@@ -1,6 +1,6 @@
-function d = pathToThisFile();
+function d = pathToThisFile()
 % Returns the path to the folder in which the currently executing file is located
-    file = evalin('caller', 'mfilename(''fullpath'')');
-    d = fileparts(file);
+    stack = dbstack('-completenames');
+    d = fileparts(stack(2).file);
 end
 
