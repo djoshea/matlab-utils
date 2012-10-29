@@ -1,0 +1,41 @@
+Use ‘blankFigure’ to create a blank figure with nothing on it.
+
+Then put on your own axes using ‘AxisMMC’
+
+e.g.
+
+blankFigure([-25 100 -25 100])
+params1.axisOffset = -5;
+out1 = AxisMMC(0, 50, params1);
+params2.axisOffset = -5;
+params2.axisOrientation = 'v';
+out2 = AxisMMC(0, 75, params2);
+
+
+Insepct ‘out1’ and ‘out2’.  Note that the fields that you set (e.g. ‘axisOffset’) have the asked-for values.  The other fields are set to default values.
+You can change those default values if you like, simply by adding the relevant field to the ‘params’ argument.
+
+For example, if you do the above, and then decide you want tick marks:
+cla
+params1.tickLocations = 0:10:50;
+out1 = AxisMMC(0, 50, params1);
+params2.tickLocations = 0:25:75
+out2 = AxisMMC(0, 75, params2);
+
+
+maybe you don’t want a label on every tick for the x axis:
+cla
+params1.tickLabels = {'0', '50'};
+out1 = AxisMMC(0, 50, params1);
+out2 = AxisMMC(0, 75, params2);
+
+
+Type ‘help AxisMMC’ for detailed information about every field.  Note that the defaults for some fields will depend on your choices for others.  
+For example, in the above case, you set ‘tickLabels’ and ‘tickLabelLocations’ automatically was set to just those labels that you wanted.  The function assumes that you want the labels to appear at the numerical values you provide.  If you don’t, then you can change this.  Perhaps the units for the x-axis is really 10’s of ms (so that 50 should really be labeled 500):
+
+cla
+params1.tickLabels = {'0', '500'};
+params1.tickLabelLocations = [0, 50];
+out1 = AxisMMC(0, 50, params1);
+out2 = AxisMMC(0, 75, params2);
+
