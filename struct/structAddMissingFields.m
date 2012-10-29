@@ -17,6 +17,7 @@ if isempty(addTo)
         fieldsToAdd = {};
     else
         withAddedFields = emptyStruct(toMatchThis);
+        withAddedFields = withAddedFields(false(size(withAddedFields)));
         fieldsToAdd = fieldnames(toMatchThis);
     end
     
