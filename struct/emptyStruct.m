@@ -8,6 +8,8 @@ function S = emptyStruct(S, val)
 
     fields = fieldnames(S);
     for iF = 1:length(fields)
-        S = assignIntoStructArray(S, fields{iF}, val);
+        for iS = 1:length(S)
+            S(iS).(fields{iF}) = val;
+        end
     end
 end
