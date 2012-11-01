@@ -1,11 +1,23 @@
-function [format] = getDateFormat(str)
+function [format dateNumber] = getDateFormat(str)
     % extracted from datevec.m Mathworks function
-    % returns the date format string that matches str (or if str is a cell array,
-    % the first non-empty string in that 
+    % returns the date format string that matches str 
+    % if str is a cellstr, return a cellstr of format strings
+    %
+    % dateNumber{i} will be the result of calling datenum(str{i}, format{i})
+    % both inputs will be cells if str is a cell, otherwise they will be strings
 
-    assert(nargin == 1 && ischar(str), 'Usage: getDateFormat(string)'); 
-    str = {str};
+    assert(nargin == 1 && (ischar(str) || iscell(str)), 'Usage: getDateFormat(string)'); 
 
+    % handle cell vs. non-cell inputs gracefully
+    if ischar(str)
+        strCell = {str};
+        stripCell = true;
+    else
+        strCell = str;
+        stripCell = false;
+    end
+
+    % format list, add new ones here but update the format masks below as well
     format = '';
     formatstr = cell(11,1);
     formatstr(1) = {'dd-mmm-yyyy HH:MM:SS'};
@@ -36,92 +48,111 @@ function [format] = getDateFormat(str)
     SpaceFormats = [1 0 0 0 0 1 0 1 0 1 0 0];
     %[1 6 8 10];
 
-    bMask = [ 1 1 1 1 1 1 1 1 1 1 1 1];
+    formatCell = cell(size(strCell));
+    for iStr = 1:length(strCell)
+        format = '';
+        dtnumber = NaN;
+        str = strCell{iStr};
+        bMask = [ 1 1 1 1 1 1 1 1 1 1 1 1];
 
-    if length(str) > 1
-        str = str(1,1);
-    end
-    str = strtrim(char(str));
-    slashes = strfind(str, '/');
-    if ~isempty(slashes)
-        bMask = bMask & SlashFormats;
-        if (~isempty(slashes) && slashes(1) == 2)
-            if (length(slashes) > 1 && slashes(2) == 4)
-                str = ['0' str(1:slashes(1)) '0' str(slashes(1)+1:end)];
+        str = strtrim(char(str));
+        slashes = strfind(str, '/');
+        if ~isempty(slashes)
+            bMask = bMask & SlashFormats;
+            if (~isempty(slashes) && slashes(1) == 2)
+                if (length(slashes) > 1 && slashes(2) == 4)
+                    str = ['0' str(1:slashes(1)) '0' str(slashes(1)+1:end)];
+                else
+                    str = ['0' str];
+                end
+            elseif (length(slashes) > 1 && slashes(2) - slashes(1) == 2)
+                str = [str(1:slashes(1)) '0' str(slashes(1)+1:end)];
+            end
+            if length(slashes) > 1
+                bMask = bMask & TwoSlashFormats;
             else
+                bMask = bMask & ~TwoSlashFormats;
+            end
+        else
+            bMask = bMask & ~SlashFormats;
+        end
+
+        dashes = strfind(str,'-');
+        if ~isempty(dashes)
+            bMask = bMask & DashFormats;
+            if (~isempty(dashes) && dashes(1) == 2)
                 str = ['0' str];
             end
-        elseif (length(slashes) > 1 && slashes(2) - slashes(1) == 2)
-            str = [str(1:slashes(1)) '0' str(slashes(1)+1:end)];
-        end
-        if length(slashes) > 1
-            bMask = bMask & TwoSlashFormats;
         else
-            bMask = bMask & ~TwoSlashFormats;
+            bMask = bMask & ~DashFormats;   
         end
-    else
-        bMask = bMask & ~SlashFormats;
-    end
 
-    dashes = strfind(str,'-');
-    if ~isempty(dashes)
-        bMask = bMask & DashFormats;
-        if (~isempty(dashes) && dashes(1) == 2)
-            str = ['0' str];
-        end
-    else
-        bMask = bMask & ~DashFormats;   
-    end
-
-    colons = strfind(str,':');
-    if ~isempty(colons)
-        bMask = bMask & ColonFormats;
-        if (~isempty(colons)) && (colons(1) == 2) && (length(str) - colons(end) <= 3)
-            str = ['0' str];
-        end
-        if length(colons) > 1
-            bMask = bMask & TwoColonFormats;
-        else
-            bMask = bMask & ~TwoColonFormats;
-        end     
-    else
-        bMask = bMask & ~ColonFormats;
-    end      
-
-    spaces = strfind(str,' ');
-    if ~isempty(spaces)
-        bMask = bMask & SpaceFormats;
-    else
-        bMask = bMask & ~SpaceFormats;
-    end
-
-    for i = 1:length(formatstr)
-        if bMask(i)
-            try
-                dtnumber = datenum(str, char(formatstr(i)));
-                str1 = dateformverify(dtnumber,char(formatstr(i)), false);
-                if (strcmpi(str, strtrim(str1)) == 1)
-                    format = char(formatstr(i));
-                    break;
-                end
-            catch exception  %#ok<NASGU>
-                % not found
+        colons = strfind(str,':');
+        if ~isempty(colons)
+            bMask = bMask & ColonFormats;
+            if (~isempty(colons)) && (colons(1) == 2) && (length(str) - colons(end) <= 3)
+                str = ['0' str];
             end
-            if AlphaFormats(i)
+            if length(colons) > 1
+                bMask = bMask & TwoColonFormats;
+            else
+                bMask = bMask & ~TwoColonFormats;
+            end     
+        else
+            bMask = bMask & ~ColonFormats;
+        end      
+
+        spaces = strfind(str,' ');
+        if ~isempty(spaces)
+            bMask = bMask & SpaceFormats;
+        else
+            bMask = bMask & ~SpaceFormats;
+        end
+
+        for i = 1:length(formatstr)
+            if bMask(i)
                 try
-                    str1 = dateformverify(dtnumber,char(formatstr(i)),true);
+                    dtnumber = datenum(str, char(formatstr(i)));
+                    str1 = dateformverify(dtnumber,char(formatstr(i)), false);
                     if (strcmpi(str, strtrim(str1)) == 1)
+                        % found it!
                         format = char(formatstr(i));
                         break;
                     end
-                catch exception %#ok<NASGU>
+                catch exception  %#ok<NASGU>
+                    % not found
+                end
+                if AlphaFormats(i)
+                    % attempt with local = true
+                    try
+                        str1 = dateformverify(dtnumber,char(formatstr(i)),true);
+                        if (strcmpi(str, strtrim(str1)) == 1)
+                            % found it
+                            format = char(formatstr(i));
+                            dtnumber = datenum(str, format);
+                            break;
+                        end
+                    catch exception %#ok<NASGU>
+                    end
                 end
             end
         end
+
+        formatCell{iStr} = format;
+        dateNumberCell{iStr} = dtnumber;
+    end
+
+    % strip cell if just a cell passed in
+    if stripCell
+        format = formatCell{1};
+        dateNumber = dateNumberCell{1};
+    else
+        format = formatCell;
+        dateNumber = dateNumberCell;
     end
 end 
 
-function S = dateformverify(dtnumber, dateformstr, islocal)
+function [S vec]= dateformverify(dtnumber, dateformstr, islocal)
     % stolen from Mathworks internal function
 
     if isempty(dtnumber)
@@ -147,6 +178,7 @@ function S = dateformverify(dtnumber, dateformstr, islocal)
 
     % format date according to data format template
     S = char(formatdate([y,mo,d,h,minute,s],dateformstr,islocal));
+    vec = [y, mo, d, h, minute, s];
 end
 
 

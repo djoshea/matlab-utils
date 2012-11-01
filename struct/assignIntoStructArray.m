@@ -2,6 +2,9 @@ function S = assignIntoStructArray(S, fld, vals, idx)
 % S = assignIntoStructArray(S, fld, vals, idx)
 % for each element s in struct array S(idx), efficiently assigns
 % s.(fld) = the corresponding element from vals.
+% 
+% If fld is a cellstr, assigns vals into each field in fld{:}
+%
 
     if ~exist('idx', 'var')
         if isempty(S)
@@ -21,14 +24,16 @@ function S = assignIntoStructArray(S, fld, vals, idx)
         'S(idx) and vals must have same size or vals must be length 1');
     n = numel(idx);
 
-
-    
-
-
     if isnumeric(vals) || islogical(vals)
         vals = num2cell(vals);
     end
 
-    [S(idx).(fld)] = deal(vals{:});
+    if ~iscell(fld)
+        fld = {fld};
+    end
+    
+    for iFld = 1:length(fld)
+        [S(idx).(fld{iFld})] = deal(vals{:});
+    end
 
 end
