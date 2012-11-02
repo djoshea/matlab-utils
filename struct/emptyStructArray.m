@@ -11,10 +11,17 @@ valsCell = cell(sz);
 
 % create the argument list to pass to struct
 nFields = length(fields);
-argsForStruct = cell(2*nFields, 1); 
-for i = 1:nFields
-    argsForStruct{2*i-1} = fields{i};
-    argsForStruct{2*i} = valsCell;
-end
 
-S = struct(argsForStruct{:});
+if nFields > 0
+    argsForStruct = cell(2*nFields, 1); 
+    for i = 1:nFields
+        argsForStruct{2*i-1} = fields{i};
+        argsForStruct{2*i} = valsCell;
+    end
+
+    S = struct(argsForStruct{:});
+else
+    S = struct();
+    S(sz(1)) = S;
+    S = makecol(S);
+end
