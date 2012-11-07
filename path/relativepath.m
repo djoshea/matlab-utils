@@ -1,4 +1,4 @@
-function  rel_path = relativepath( tgt_path, act_path )
+function  rel_path = relativepath( tgt_path, act_path, varargin)
 %RELATIVEPATH  returns the relative path from an actual path to the target path.
 %   Both arguments must be strings with absolute paths.
 %   The actual path is optional, if omitted the current dir is used instead.
@@ -25,6 +25,9 @@ function  rel_path = relativepath( tgt_path, act_path )
 
 %   Jochen Lenz
 
+% if true, removes initial ./ from relative paths
+dropDotSlash = false;
+assignargs(varargin);
 
 % 2nd parameter is optional:
 if  nargin < 2
@@ -92,6 +95,10 @@ if  isempty(rel_path)
    rel_path = ['.' filesep];
 elseif  ~isequal(rel_path(1),'.')
    rel_path = ['.' filesep rel_path];
+end
+
+if dropDotSlash && strncmp(rel_path, ['.' filesep])
+    rel_path = rel_path(3:end);
 end
 
 return
