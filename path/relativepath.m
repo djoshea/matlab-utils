@@ -27,6 +27,7 @@ function  rel_path = relativepath( tgt_path, act_path, varargin)
 
 % if true, removes initial ./ from relative paths
 dropDotSlash = false;
+dropTrailingSlash = true;
 assignargs(varargin);
 
 % 2nd parameter is optional:
@@ -99,6 +100,10 @@ end
 
 if dropDotSlash && strncmp(rel_path, ['.' filesep], 2)
     rel_path = rel_path(3:end);
+end
+
+if dropTrailingSlash && strcmp(rel_path(end), '/')
+    rel_path = rel_path(1:end-1); 
 end
 
 return
