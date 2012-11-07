@@ -97,7 +97,7 @@ elseif  ~isequal(rel_path(1),'.')
    rel_path = ['.' filesep rel_path];
 end
 
-if dropDotSlash && strncmp(rel_path, ['.' filesep])
+if dropDotSlash && strncmp(rel_path, ['.' filesep], 2)
     rel_path = rel_path(3:end);
 end
 
