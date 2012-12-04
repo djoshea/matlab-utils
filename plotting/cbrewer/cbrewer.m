@@ -37,7 +37,11 @@ function [colormap]=cbrewer(ctype, cname, ncol, interp_method)
 % Author: Charles Robert
 % email: tannoudji@hotmail.com
 % Date: 06.12.2011
-
+%
+% Modified by Dan O'Shea dan@djoshea.com on 2012.12.03
+%   Removed annoying warnings about color extrapolation.
+%   Default ncol uses actual number of specified colors (no inter/extrapolation)
+%
 
 % load colorbrewer data
 load('colorbrewer.mat')
@@ -48,7 +52,7 @@ if (~exist('interp_method', 'var'))
 end
 
 % If no arguments
-if (~exist('ctype', 'var') | ~exist('cname', 'var') | ~exist('ncol', 'var'))
+if ~exist('ctype', 'var') || ~exist('cname', 'var')
     disp(' ')
     disp('INPUT:')
     disp('  - ctype: type of color table *seq* (sequential), *div* (divergent), *qual* (qualitative)')
@@ -88,6 +92,10 @@ if (~isfield(colorbrewer.(ctype),cname))
     getfield(colorbrewer, ctype)
     colormap=[];
     return
+end
+
+if ~exist('ncol', 'var')
+    ncol = length(colorbrewer.(ctype).(cname));
 end
 
 if (ncol>length(colorbrewer.(ctype).(cname)))
