@@ -158,7 +158,6 @@ function colorCodes = getColorCode(colorName, bright)
             bright = 0;
         case 'white'
             code = 37;
-            bright = 1;
         case 'default'
             code = 39;
     end
