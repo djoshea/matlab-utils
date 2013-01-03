@@ -31,6 +31,7 @@ classdef SettingsStore < handle
 %      settings.saveSettings();
 %
 
+% SUBCLASSES MUST OVERRIDE
     methods(Static, Abstract)
         % return a string like 'DirectorySettings' to indicate the name of the
         % .mat file where the settings will be saved. The .mat suffix is not
@@ -38,7 +39,19 @@ classdef SettingsStore < handle
         % the file will be specified when calling .saveSettings()
         name = getMatFileName()
     end
+% END MUST OVERRIDE
 
+% SUBCLASSES MAY OVERRIDE
+    methods(Access=protected)
+        % this will be called on new instances of your subclass when it cannot
+        % be loaded from cache. Consider this the original constructor.
+        function setDefaults(obj)
+
+        end
+    end
+% END MAY OVERRIDE
+
+% IMPLEMENTATION DETAILS
     properties(Hidden)
         % this will determine where the matFile should be saved
         % initially it is empty, but when first saved, this will be filled in
@@ -48,18 +61,21 @@ classdef SettingsStore < handle
     end
 
     properties(Dependent, SetAccess=private)
-        matFileName
+        matFileName % full path to the mat file name
     end
 
     properties(Access=private)
-        isLoaded = false;
+        isLoaded = false; % has this instance been loaded from the cached settings
     end
 
-    methods(Access=protected)
+    methods(Access=protected, Sealed) % constructor
+        % constructor auto-loads cached settings from disk if found
+        % or calls .setDefaults if not found
         function obj = SettingsStore()
             obj.loadSettings();
         end
 
+        % assemble full mat file name by calling subclasses .getMatFileName()
         function filename = buildMatFileFullName(obj, path)
             matName = obj.getMatFileName();
             if length(matName) < 4 || ~strcmp(matName(end-3:end), '.mat')
@@ -116,13 +132,18 @@ classdef SettingsStore < handle
                     end
                 end
             catch
-                warning('Could not locate %s on path to load SettingsStore');
+                tcprintf('yellow', 'Warning: Could not locate %s.mat on path to load SettingsStore. Calling setDefaults().\n', matName);
                 instance = [];
             end
 
+            % if a saved instance exists, load it
             if ~isempty(instance)
                 this.transferDataFrom(instance);
                 this.isLoaded = true;
+
+            else
+                % no saved instance exists, call setDefaults()
+                this.setDefaults();
             end
         end
 
