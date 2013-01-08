@@ -1,9 +1,14 @@
 function S = emptyStructArray(sz, fields, varargin)
+% S = emptyStructArray(sz, fieldsOrStruct, varargin)
 % creates a struct array with a certain size sz and fields in cell array fields
 % with all values set to optional argument val = []
 
 val = [];
 assignargs(varargin);
+
+if isstruct(fields)
+    fields = fieldnames(fields);
+end
 
 % create a cell array the same size as sz
 valsCell = cell(sz);
