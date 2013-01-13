@@ -81,7 +81,7 @@ function tcprintf(style, fmatString, varargin)
     end
         
     str = ['\033[' codeStr 'm' contents '\033[0m' endOfLine];
-    fprintf(str);
+    fprintf('\033[%sm%s\033[0m%s', codeStr, contents, endOfLine);
 end
 
 function [colorName backColorName bright underline blink] = parseStyle(style)
