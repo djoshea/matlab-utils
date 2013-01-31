@@ -9,7 +9,7 @@ end
 clf;
 set(gca,'visible', 'off');
 set(hf, 'color', [1 1 1]);
-axis square;
+%axis square;
 set(gca, 'Box', 'off');
 
 
