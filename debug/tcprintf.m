@@ -31,6 +31,11 @@ function tcprintf(style, fmatString, varargin)
     %   Released under the open source BSD license 
     %     opensource.org/licenses/bsd-license.php
 
+    if nargin == 0
+        fprintf('\033[0m');
+        return
+    end
+
     if nargin < 2 || ~ischar(style) || ~ischar(fmatString)
         error('Usage: tcprintf(style, fmatString, ...)');
     end
@@ -50,47 +55,85 @@ function tcprintf(style, fmatString, varargin)
         return;
     end
 
-    bright = 1;
-    [colorName backColorName bright underline blink] = parseStyle(style);
-    colorCodes = getColorCode(colorName, bright);
-    backColorCodes = getBackColorCode(backColorName);
-
-    codes = [colorCodes; backColorCodes];
-
-    if underline
-        codes = [codes; 4];
+    if strcmp(style, 'inline') || isempty(style)
+        % use {style string} style inline tagging of format codes
+        % style matches
+        pat = '(?<style>(?<!\\){[^}]+})*(?<text>((\\{)|[^{])+)*';
+        formatPairs = regexp(fmatString, pat, 'names');
+    else
+        % use a single style element
+        formatPairs.style = style;
+        formatPairs.text = fmatString;
     end
 
-    if blink
-        codes = [codes; 5];
+    % parse all style strings
+    stringCell = cell(1, 2*length(formatPairs));
+    for iPair = 1:length(formatPairs)
+        pair = formatPairs(iPair);
+        codeStr = getCodeStringForStyle(pair.style); 
+        stringCell{2*iPair-1} = codeStr;
+        stringCell{2*iPair} = pair.text;
     end
 
-    codeStr = strjoin(codes, ';');
+    % concatenate the component strings
+    fullStr = strcat(stringCell{:});
+    contents = sprintf(fullStr, varargin{:});
 
     % evaluate the printf style message
-    contents = sprintf(fmatString, varargin{:});
-
     % if the message ends with a newline, we should turn off
     % formatting before the newline to avoid issues with 
     % background colors
-    if ~isempty(contents) && contents(end) == char(10)
+    NEWLINE = char(10);
+    if ~isempty(contents) && contents(end) == NEWLINE
         contents = contents(1:end-1);
-        endOfLine = char(10);
+        endOfLine = NEWLINE; 
     else
         endOfLine = '';
     end
-        
-    str = ['\033[' codeStr 'm' contents '\033[0m' endOfLine];
-    fprintf('\033[%sm%s\033[0m%s', codeStr, contents, endOfLine);
+            
+    str = [contents '\033[0m' endOfLine];
+    fprintf(str);
 end
 
-function [colorName backColorName bright underline blink] = parseStyle(style)
-    defaultColor = 'white';
-    defaultBackColor = 'onDefault';
-
+function codeStr = getCodeStringForStyle(style)
+    if ~isempty(style) && style(1) == '{'
+        style = style(2:end);
+    end
+    if ~isempty(style) && style(end) == '}'
+        style = style(1:end-1);
+    end
     tokens = regexp(style, '(?<value>\S+)[\s]?', 'names');
-    
     values = {tokens.value};
+
+    if isempty(style) || ismember('none', values)
+        % handle return to default
+        codes = 0;
+
+    else
+        [colorName backColorName bright underline blink] = parseStyleTokens(values);
+        colorCodes = getColorCode(colorName, bright);
+        if ~isempty(backColorName)
+            backColorCode = getBackColorCode(backColorName);
+        else
+            backColorCode = [];
+        end
+
+        codes = [colorCodes; backColorCode];
+        if underline
+            codes = [codes; 4];
+        end
+        if blink
+            codes = [codes; 5];
+        end
+    end
+
+    % use \\ because this will be fed into fprintf
+    codeStr = strcat('\\033[', strjoin(codes, ';'), 'm');
+end
+
+function [colorName backColorName bright underline blink] = parseStyleTokens(values)
+    defaultColor = 'default';
+    defaultBackColor = '';
 
     if ismember('bright', values)
         bright = true;
