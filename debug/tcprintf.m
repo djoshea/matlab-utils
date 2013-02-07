@@ -76,7 +76,7 @@ function tcprintf(style, fmatString, varargin)
     end
 
     % concatenate the component strings
-    fullStr = strcat(stringCell{:});
+    fullStr = [stringCell{:}];
     contents = sprintf(fullStr, varargin{:});
 
     % evaluate the printf style message
@@ -128,7 +128,7 @@ function codeStr = getCodeStringForStyle(style)
     end
 
     % use \\ because this will be fed into fprintf
-    codeStr = strcat('\\033[', strjoin(codes, ';'), 'm');
+    codeStr = ['\\033[', strjoin(codes, ';'), 'm'];
 end
 
 function [colorName backColorName bright underline blink] = parseStyleTokens(values)
