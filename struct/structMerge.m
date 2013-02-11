@@ -1,7 +1,7 @@
 function [merged overlap] = structMerge(target, source, varargin);
 % [merged overlap] = structMerge(target, source, varargin);
 
-def.warnOnOverwrite = true;
+def.warnOnOverwrite = false;
 def.ignoreOverwrite = {}; % list of fields to ignore when warning on overwritten fields
 def.selectSourceFields = false; % list of fields in source to copy ( {} of strings ), or false to copy all
 def.renameTo = false;
