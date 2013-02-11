@@ -1,0 +1,133 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[T1]{fontenc}\usepackage{lmodern}\usepackage[sc]{mathpazo}\linespread{1.1}% Palatino font
+\usepackage[colorlinks,urlcolor=black,linkcolor=black]{hyperref}
+\usepackage{upquote,fancyvrb,subfig,microtype,sistyle,refstyle,wasysym}
+\usepackage[process=auto,crop=pdfcrop]{pstool}
+
+\newcommand\matlabfrag{\texorpdfstring{\href{http://www.mathworks.com/matlabcentral/fileexchange/21286}{{\ttfamily matlabfrag}}}{matlabfrag}}
+
+\title{\matlabfrag\ test document}
+\author{Zebb Prime}
+
+\begin{document}
+  \maketitle
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/test01}
+       \caption{Output from {\ttfamily test01.m}; making sure multiple legend lines are printed properly.}
+       \figlabel{test01}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/test02}
+       \caption{Output from {\ttfamily test02.m}; testing italic font for the main axes property. The
+       tick labels aren't italic because they've been rendered in math mode.}
+       \figlabel{test02}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/test03}
+       \caption{Output from {\ttfamily test03.m}; bold and fixed-width test with multiple legend entries.}
+       \figlabel{test03}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/test04}
+       \caption{Output from {\ttfamily test04.m}; tick labels entered as cells.}
+       \figlabel{test04}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/test05}
+       \caption{Output from {\ttfamily test05.m}; tick label alignment test. Y tick labels should be
+       nicely right aligned, and x tick labels should be aligned by the numbers excluding any negative
+       sign, if present.}
+       \figlabel{test05}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/test06}
+       \caption{Output from {\ttfamily test06.m}; legend movement test. The legend should appear slightly
+         left and down of centre, and be shrunk to not fill its axes.}
+       \figlabel{test06}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \subfloat{\psfragfig[crop=preview]{graphics/test07-painters}}
+       \quad
+       \subfloat{\psfragfig[crop=preview]{graphics/test07-opengl}}
+       \caption{Output from {\ttfamily test07.m}; different fonts test. The left image is rendered using
+       painters, while the right is rendered using opengl.}
+       \figlabel{test07}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \subfloat{\psfragfig[crop=preview]{graphics/test08-painters}}
+       \quad
+       \subfloat{\psfragfig[crop=preview]{graphics/test08-opengl}}
+       \caption{Output from {\ttfamily test08.m}; No text test. The left image is rendered using
+       painters, while the right is rendered using opengl.}
+       \figlabel{test08}
+     \end{figure}
+     \begin{figure}
+       \centering
+       \psfragfig{graphics/test09}
+       \caption{Output from {\ttfamily test09.m}; some empty tick labels test. Some of the tick labels
+       in both the $x$ and $y$ axes should be empty.}
+       \figlabel{test09}
+     \end{figure}
+     \begin{figure}
+       \centering
+       \psfragfig{graphics/test10}
+       \caption{Output from {\ttfamily test10.m}; x-tick label vertical alignment test.}
+       \figlabel{test10}
+     \end{figure}
+     \begin{figure}
+       \centering
+       \psfragfig{graphics/test11}
+       \caption{Output from {\ttfamily test11.m}; empty x-ticks while {\ttfamily ticklabelmode}
+       is {\ttfamily auto}.}
+       \figlabel{test11}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/test12}
+       \caption{Output from the {\ttfamily test12.m}; scaling with unusual tick values.}
+       \figlabel{test12}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \subfloat[graphics/test13a]{ \psfragfig{graphics/test13a} }
+       \quad
+       \subfloat[graphics/test13b]{ \psfragfig{graphics/test13b} }
+       \caption{Output from the {\ttfamily test13.m}; Fixed the weird bug that occurs when
+         manually setting both [xyz]lim and [xyz]tick, with [xyz]tick values outside of [xyz]lim.
+         Both graphics should be identical.}
+       \figlabel{test13}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/test14}
+       \caption{Output from the {\ttfamily test14.m}; Blank strings (as opposed to empty) in the
+         xlabel, and a space forced with {\ttfamily `$\backslash~$'} for alignment after $0.6$.}
+       \figlabel{test14}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \psfragfig[width=\linewidth]{graphics/test15}
+       \caption{Output from the {\ttfamily test15.m}; For very large images, make sure that the
+         16-bit integers in the eps file don't saturate by reducing the painters DPI.}
+       \figlabel{test15}
+     \end{figure}
+     \begin{figure}[ht]
+       \centering
+       \subfloat[graphics/test16-fig1]{ \psfragfig{graphics/test16-fig1} }
+       \quad
+       \subfloat[graphics/test16-fig2]{ \psfragfig{graphics/test16-fig2} }
+       \caption{Output from the {\ttfamily test16.m}; when exporting a figure that isn't the
+         current one, axis scaling labels can break. Fig-1 should be scaled to $10^{-3}$, and
+         Fig-2 should be scaled to $10^{-6}$.}
+       \figlabel{test16}
+     \end{figure}
+\end{document}

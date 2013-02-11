@@ -1,0 +1,637 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[T1]{fontenc}\usepackage{lmodern}\usepackage[sc]{mathpazo}\linespread{1.1}% Palatino font
+\usepackage[colorlinks,urlcolor=black,linkcolor=black]{hyperref}
+\usepackage{upquote,fancyvrb,subfig,microtype,sistyle,refstyle,wasysym}
+\usepackage[process=auto,crop=pdfcrop]{pstool}
+
+\newcommand\ytick[1]{\ensuremath{\mathcal R(e^{#1 i})}}
+
+\newcommand\matlabfrag{\texorpdfstring{\href{http://www.mathworks.com/matlabcentral/fileexchange/21286}{{\ttfamily matlabfrag}}}{matlabfrag}}
+\newcommand\psfragname{\texorpdfstring{\href{http://www.ctan.org/tex-archive/help/Catalogue/entries/psfrag.html}{{\ttfamily psfrag}}}{psfrag}}
+\newcommand\pstoolname{\texorpdfstring{\href{http://www.ctan.org/tex-archive/help/Catalogue/entries/pstool.html}{{\ttfamily pstool}}}{pstool}}
+\newcommand\matlab{\texorpdfstring{{\sc Matlab}}{Matlab}}
+\newcommand\tex{\texorpdfstring{{\sc .tex}}{.tex}}
+\newcommand\eps{\texorpdfstring{{\sc .eps}}{.eps}}
+\newcommand\pdf{\texorpdfstring{{\sc .pdf}}{.pdf}}
+\def\'#1'{{\ttfamily \textquotesingle #1\textquotesingle}}
+
+% Get rid of that stupid S thing in section references.
+\newref{sec}{%
+  name    = \RSsectxt,
+  names   = \RSsecstxt,
+  Name    = \RSSectxt,
+  Names   = \RSSecstxt,
+  refcmd  = {\ref{#1}},
+  rngtxt  = \RSrngtxt,
+  lsttxt  = \RSlsttxt}
+
+\title{\matlabfrag\ user guide}
+\author{Zebb Prime}
+
+\begin{document}
+  \maketitle
+  \tableofcontents
+  \section{Introduction}%
+    \matlabfrag\ is a function which exports a \matlab\ figure to \eps\ and \tex\ files for use in LaTeX
+    with \psfragname. It is inspired by LaPrint, but is intended to be more WYSIWYG, by respecting figure
+    handles better. The main reasons to use \matlabfrag\ are the same as those for using \psfragname: figure
+    font matching that of the document, and the ability to have complex mathematical expressions typeset
+    by LaTeX.
+ 
+  \section{Background}%
+    I wrote \matlabfrag\ after becoming frustrated with the default LaPrint behaviour, including it
+    putting the line to insert the graphic in the output \tex\ file: \verb|\includegraphics{FileName.eps}|
+    
+    Whilst these problems could be addressed using one of the many options in LaPrint, I decided to
+    take a stand against the many \matlab\ scripts and functions available which try to impose their
+    own sense of style on my figures, and instead write a function which does everything possible to
+    respect the figure handles. Everyone has their own sense of style, for better or worse, and I'm sure
+    most users have their own little scripts set up to format their figures in their own way.
+        
+    The problem I have with the \verb|\includegraphics{FileName.eps}| line in the \tex\
+    file is that I keep my figures in a {\ttfamily graphics} subdirectory of my main document. This meant I had to
+    manually edit the \tex\ file every time I exported the figure from \matlab.
+    
+  \section{Compared to LaPrint}%
+    In this section I compare the output from {\ttfamily LaPrint} and \matlabfrag\ for an identical
+    figure. I have chosen some examples that shows some of the weaknesses of {\ttfamily LaPrint}, so
+    be sure to take these comparisons with a grain of salt.
+    
+    The code for the first comparison is given in\par
+    {\verb|examples/comparison01.m|}\par\noindent
+    and the results are shown in \Figref{comparison01}. Notice that the legend box for the LaPrint
+    output has been shrunk, and is too small for the equation, and the y axis scale has disappeared.
+    I am unwilling to blame {\ttfamily LaPrint} for the equation not rendering as it may by a bug
+    in any stage of the fairly complicated conversion process (which has nothing to do with
+    \matlabfrag). The output \tex\ and \eps\ files appear to have the text conversion set up
+    properly.
+    \begin{figure}[ht]
+      \centering
+      \subfloat[graphics/comparison01-matlabfrag]{\figlabel{comparison01-matlabfrag}%
+      \fbox{\psfragfig{graphics/comparison01-matlabfrag}}}
+      \,
+      \subfloat[graphics/comparison01-laprint]{\fbox{\psfragfig{graphics/comparison01-laprint}}}
+      \caption{\matlabfrag\ output versus {\ttfamily LaPrint} output for a simple graph. Notice the
+        legend box for the {\ttfamily LaPrint} is incorrectly sized, and the y axis scale has
+        disappeared. I am unsure why the equation is not rendering in the {\ttfamily LaPrint}
+        version, and it is unlikely to be the fault of {\ttfamily LaPrint}.}
+      \figlabel{comparison01}
+    \end{figure}
+    
+    In this second comparison a scaled version of the \matlab\ {\ttfamily peaks} function is
+    presented. The \matlab\ code for this example is given in:\par
+    {\verb|examples/comparison02.m|}\par\noindent
+    and the results are shown in \Figref{comparison02}. The axis labels are handled better by
+    \matlabfrag\, and it also manages to reproduce the x and y axis scales, but I stress that they
+    only work well for the default orientation of a {\ttfamily surf} plot. If you start rotating
+    the image they are unlikely to come out correctly. This is discussed further in \Secref{adv-axis}.
+    \begin{figure}[ht]
+      \centering
+      \subfloat[graphics/comparison02-matlabfrag]{\fbox{\psfragfig{graphics/comparison02-matlabfrag}}}
+      \,
+      \subfloat[graphics/comparison02-laprint]{\fbox{\psfragfig{graphics/comparison02-laprint}}}
+      \caption{\matlabfrag\ output versus {\ttfamily LaPrint}.}
+      \figlabel{comparison02}
+    \end{figure}
+    
+  \section{Usage}%
+    \subsection{Within \matlab}%
+      Using \matlabfrag\ within \matlab\ is easy. Simply format the figure how you like it, then run
+      \matlabfrag. The format for the \matlabfrag\ command is:
+      \begin{verbatim}
+matlabfrag(FileName,OPTIONS)
+      \end{verbatim}
+      where {\ttfamily FileName} (required) is the file name for the output \tex\ and \eps\ files, and 
+      {\ttfamily OPTIONS} are key-value pairs for the optional options:
+      \begin{itemize}
+        \item[{\'handle'}] The handle for the figure to export. The default is {\ttfamily gcf} (`get 
+		  current figure').
+        \item[{\'epspad'}] The number of points to pad the output \eps\ file by. The default is {\ttfamily [0,0,0,0]}.
+        \item[{\'renderer'}] The output renderer. The default is {\ttfamily painters}. The renderer is
+          discussed in more detail in \Secref{renderers}.
+        \item[{\'dpi'}] The output resolution (DPI or more appropriately, PPI) of the figure.
+          For the {\ttfamily painters} renderer this defaults to 3200, and when
+          using the {\ttfamily opengl} or {\ttfamily zbuffer} renderers the default is 300.
+          A discussion of renderers is given in \Secref{renderers}.
+      \end{itemize}
+      Some examples are given below.\nobreak
+      \VerbatimInput[firstline=7,lastline=12]{ex01.m}
+      See \Figref{ex01} for the output.
+      \begin{figure}[ht]
+        \centering
+        \subfloat[graphics/ex01-1]{\fbox{\psfragfig[crop=preview]{graphics/ex01-1}}}\quad
+        \subfloat[graphics/ex01-2]{\fbox{\psfragfig[crop=preview]{graphics/ex01-2}}}
+        \caption{\matlabfrag\ options example showing the {\ttfamily epspad} option at work.}
+        \figlabel{ex01}
+      \end{figure}
+      
+      If you wish to show something different in \matlab\ and in the \tex\ document, then you
+      can add it into the {\ttfamily UserData} property of the text, with a {\ttfamily matlabfrag:} prefix. This is
+      especially useful if you have macros in LaTeX which you want to use, or if you want to use some
+      commands not included in the \matlab\ LaTeX installation. In this example, the \verb|\LaTeX| macro
+      typesets LaTeX as \LaTeX.
+      \VerbatimInput[firstline=7,lastline=11]{ex02.m}
+      See \Figref{ex02} for the output.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex02}
+        \caption{UserData example; X-label should say `Plays nice with \LaTeX'.}
+        \figlabel{ex02}
+      \end{figure}
+      
+    \subsection{Within LaTeX}\seclabel{in-latex}%
+      The \tex\ and \eps\ files can be included in a LaTeX document (pdfLaTeX is treated seperately below)
+      by either loading the \psfragname\ package and including the \tex\ file before the \eps\ file:
+      \begin{verbatim}
+\documentclass{article}
+\usepackage{graphicx,psfrag}
+\begin{document}
+  \input{FileName.tex}
+  \includegraphics{FileName.eps}
+\end{document}
+      \end{verbatim}
+      or my preferred method; loading the \pstoolname\ package (v1.2 onwards), and using the
+      \verb|\psfragfig| macro:
+      \begin{verbatim}
+\documentclass{article}
+\usepackage{pstool}
+\begin{document}
+  \psfragfig{FileName}
+\end{document}
+      \end{verbatim}
+      Notice the lack of a file extension in the \verb|\psfragfig| macro. This is a requirement of \pstoolname.
+      \pstoolname\ also loads the {\ttfamily graphicx}, {\ttfamily psfrag} and {\ttfamily color} packages (as well as a few others),
+      so it is not necessary to explicitly load these packages.
+      
+      For more information about \pstoolname\ or \psfragname\ please see their respective manuals.
+      
+      The text replacement performed by \psfragname\ occurs somewhere between the conversion from
+      \textsc{dvi} to \textsc{ps} in some seemingly magical process that I don't understand. This means
+      that if you look at the \textsc{dvi} output directly you will see a {\ttfamily PSFrag replacements}
+      table next to the figure. This is normal, so do not panic.
+      
+    \subsection{Within pdfLaTeX}%
+      There are several ways to include files with PostScript commands (such as \psfragname) in pdfLaTeX such
+      as {\ttfamily pst-pdf}, {\ttfamily auto-pst-pdf}, {\ttfamily ps4pdf} and \pstoolname, by far the most useful of which is
+      \pstoolname.  The document is set up the same way as the LaTeX example above:
+      \begin{verbatim}
+\documentclass{article}
+\usepackage{pstool}
+\begin{document}
+  \psfragfig{FileName}
+\end{document}
+      \end{verbatim}
+      The only difference being that \pstoolname\ runs some external processes to run the postscript commands,
+      and as such it needs the \verb|-shell-escape| command when being called:\par
+{\verb|pdflatex -shell-escape example.tex|}\par\noindent
+      where {\ttfamily example.tex} is the code above.
+      
+    \subsection{Within LyX}\seclabel{in-lyx}%
+      Using \matlabfrag\ withing LyX is relatively simple. The steps to setting LyX up with \pstoolname\
+      are:
+      \begin{enumerate}
+        \item Ensure \pstoolname\ is installed in your LaTeX distribution. If you wish to use \pstoolname\
+          with non-\textsc{pdf} output, please ensure \pstoolname\ is v1.2 or greater.
+        \item Load \pstoolname\ in the document preamble by going to: {\ttfamily Document - Settings}, then
+          choose {\ttfamily LaTeX Preamble} in the navigation panel in the left. Insert the line
+          \verb|\usepackage{pstool}| and apply the settings.
+        \item Enable \verb|-shell-escape| in pdfLaTeX by going to: {\ttfamily Tools - Preferences}, then
+          choose {\ttfamily Converters} in the navigation panel in the left. Under {\ttfamily Converter Definitions}
+          find the {\ttfamily LaTeX (pdflatex) -> PDF (pdflatex)} entry. Below this change the line\par
+          {\verb|pdflatex $$i|}\par\noindent
+          to\par
+          {\verb|pdflatex -shell-escape $$i|}\par\noindent
+          then click {\ttfamily Modify} to the
+          upper right, then {\ttfamily Apply} and {\ttfamily Save} down the bottom.
+      \end{enumerate}
+      Please note that these steps were written for LyX version 1.5.6, but they should be similar for other
+      versions.
+      
+      Once \pstoolname\ is set up for use in LyX, \matlabfrag\ images can be inserted by clicking on the
+      \TeX\ button (Insert Tex Code), and placing the {\ttfamily psfragfig} command in:\par
+      {\verb|\psfragfig{FileName}|}\par\noindent
+      The {\ttfamily ERT} box created with the {\ttfamily psfragfig} command inside it should be placed as you
+      would place a normal figure, for example inside a {\ttfamily float:Figure}.
+      
+      Please also read the discussion at the end of \Secref{in-latex} regarding the \textsc{dvi} output.
+      Naturally the same applies for the \textsc{dvi} output from LyX as well.
+            
+  \section{Creating figures in \matlab}%
+    I am now going to suggest a few ways to manipulate figures in \matlab\ before exporting them using \matlabfrag.
+    
+    \subsection{Sizing}%
+      I suggest that the first thing you do when creating a figure is setting it to the size that you want
+      in the final document. This way the figure does not need to be resized at any stage, which prevents
+      line sizes changing, text over-running borders, etc.  This can be done within \matlab\ using:
+      \VerbatimInput[firstline=4,lastline=10]{ex03.m}
+      See \Figref{ex03} for the output from this example, {\ttfamily examples/ex03.m}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex03}
+        \caption{Resizing example; the figure is sized to \SI{8}{cm} by \SI{3}{cm}.}
+        \figlabel{ex03}
+      \end{figure}
+      
+    \subsection{{\ttfamily Color}}%
+      The {\ttfamily color} property is a three element vector representing the RGB colour of the text.
+      \matlabfrag\ will respect the colour set in \matlab, but may require that you load the {\ttfamily color}
+      package in LaTeX (\pstoolname\ implicitly loads the {\ttfamily color} package).
+      \VerbatimInput[firstline=7,lastline=11]{ex04.m}
+      See \Figref{ex04} for the output from this example, {\ttfamily examples/ex04.m}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex04}
+        \caption{{\ttfamily Color} example; the text should be coloured.}
+        \figlabel{ex04}
+      \end{figure}
+    
+    \subsection{{\ttfamily FontSize}}%
+      All text in \matlab\ figures has a {\ttfamily FontSize} property which \matlabfrag\ respects; the size
+      specified in the figure is the size it will be in the LaTeX output document.
+      \VerbatimInput[firstline=7,lastline=11]{ex05.m}
+      See \Figref{ex05} for the output from this example, {\ttfamily examples/ex05.m}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex05}
+        \caption{{\ttfamily FontSize} example; the text should be different sizes.}
+        \figlabel{ex05}
+      \end{figure}
+
+      
+    \subsection{{\ttfamily FontAngle}}%
+      {\ttfamily FontAngle} is a property shared by all text in a \matlab\ figure. \matlabfrag\ respects
+      {\ttfamily FontAngle} in that {\ttfamily italic} and {\ttfamily oblique} will be italic in the LaTeX output
+      document.
+      \VerbatimInput[firstline=7,lastline=11]{ex06.m}
+      See \Figref{ex06} for the output from this example, {\ttfamily examples/ex06.m}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex06}
+        \caption{{\ttfamily FontAngle} example; Oblique and Italic font should both be italic here.}
+        \figlabel{ex06}
+      \end{figure}
+      
+    \subsection{{\ttfamily FontWeight}}%
+      Another text property from \matlab\ figures that \matlabfrag\ respects is {\ttfamily FontWeight}, such
+      that any text set to {\ttfamily bold} will be made bold in the output LaTeX document. {\ttfamily light},
+      {\ttfamily demi} and {\ttfamily normal} have no effect on the font in the LaTeX output.
+      \VerbatimInput[firstline=7,lastline=12]{ex07.m}
+      See \Figref{ex07} for the output from this example, {\ttfamily examples/ex07.m}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex07}
+        \caption{{\ttfamily FontWeight} example; bold should be bold, demi and light do not really translate to
+        LaTeX, so they should default to normal.}
+        \figlabel{ex07}
+      \end{figure}
+            
+    \subsection{{\ttfamily FontName}}%
+      {\ttfamily FontName} is a property that \matlabfrag\ \emph{does not} respect, with one exception. One
+      of the basic ideas behind using \matlabfrag\ and \psfragname\ is to match the font in figures to
+      that of the text, so it does not make sense to use this property, except when it has been set to
+      {\ttfamily FixedWidth}, in which case the font in the output LaTeX document will be fixed-width (i.e.,
+      \verb|\ttfamily|).
+      \VerbatimInput[firstline=7,lastline=11]{ex08.m}
+      See \Figref{ex08} for the output from this example, {\ttfamily examples/ex08.m}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex08}
+        \caption{{\ttfamily FontName} example; fixed-width should be in a typewriter font, while Comic Sans should
+        be changed to the font of the document.}
+        \figlabel{ex08}
+      \end{figure}
+      
+    \subsection{{\ttfamily Interpreter}}%
+      \matlab\ has three (well, two really) text interpreters that is uses to render the text. These
+      are {\ttfamily tex}, {\ttfamily latex} and {\ttfamily none}. I generally don't recommend the use of the default
+      {\ttfamily tex} interpreter if rendering anything mathematical and using \matlabfrag, as while the {\ttfamily tex}
+      interpreter may render a mathematical expression fine, it may not work in LaTeX.
+      
+      The {\ttfamily latex} interpreter is especially useful for rendering mathematical formula.
+      \VerbatimInput[firstline=7,lastline=11]{ex09.m}
+      See \Figref{ex09} for the output from this example, {\ttfamily examples/ex09.m}.
+	    \begin{figure}[ht]
+	      \centering
+		  \psfragfig{graphics/ex09}
+		  \caption{{\ttfamily Interpreter} example; both equations should be the same, despite using a different
+		    interpreter in \matlab.}
+		  \figlabel{ex09}
+	    \end{figure}
+      
+    \subsection{Multi-line text}%
+      Multi-line text can be entered into \matlab\ using either a cell or a two-dimensional character
+      matrix. If using a character matrix, \matlabfrag\ preserves all of the white spaces, so if you
+      do not wish for this to occur, use cells instead (or check out the {\ttfamily cellstr} function).
+      
+      \matlabfrag\ recreates multi-line text using a {\ttfamily tabular} environment. If you also use the
+      {\ttfamily UserData} property, you will need to manually put the {\ttfamily tabular} environment in, as
+      \matlabfrag\ will ignore any {\ttfamily UserData} that is not a string.
+      \VerbatimInput[firstline=7,lastline=13]{ex10.m}
+      See \Figref{ex10} for the output from this example, {\ttfamily examples/ex10.m}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex10}
+        \caption{Multi-line example; three different ways to make multi-line text. 2D arrays, cells
+          and using {\ttfamily tabular}.}
+        \figlabel{ex10}
+      \end{figure}
+	  
+    \subsection{Custom tick labels}%
+      Custom tick labels can be added directly as strings for LaTeX to interpret. In this example,
+      the \verb|\ytick| macro has been defined in the preamble of this document as:
+      \par{\verb|\newcommand\ytick[1]{\ensuremath{\mathcal R(e^{#1 i})}}|}\par\noindent
+      The \matlab\ example code is:
+      \VerbatimInput[firstline=7,lastline=12]{ex11.m}
+      See \Figref{ex11} for the output from this example, {\ttfamily examples/ex11.m}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex11}
+        \caption{Custom tick label example.}
+        \figlabel{ex11}
+      \end{figure}
+      
+    \subsection{Legends}\seclabel{legends}%
+      Legends can, with a bit of manipulation, be used in exactly the same way as other text objects.
+      
+      If LaTeX strings are entered into the legend, the LaTeX interpreter can be turned
+      on using the legend handle directly:
+      \begin{verbatim}
+hleg = legend($\ddot\alpha$,$\ddot\beta$);
+set(hleg,'interpreter','latex');
+      \end{verbatim}
+      
+      To use the \matlabfrag\ {\ttfamily userdata} auto-substitution feature with legend texts,
+      the text objects inside the legend need to be accessed directly.  Each legend entry
+      appears as three child objects of the legend ({\ttfamily line}, {\ttfamily marker} and
+      {\ttfamily text} in that order), and the entries are in reverse order to that which
+      they were entered into {\ttfamily legend} as. Knowing this order, the {\ttfamily userdata}
+      property of the text objects can be set:
+      \VerbatimInput[firstline=7,lastline=11]{ex12.m}
+      If each legend string is unique, then another method is find the text object is to use
+      the {\ttfamily findobj} function in \matlab.
+      \VerbatimInput[firstline=12,lastline=13]{ex12.m}
+      The output from this example, {\ttfamily examples/ex12.m}, is given in \Figref{ex12}.
+      \begin{figure}
+        \centering
+        \psfragfig{graphics/ex12}
+        \caption{Using the {\ttfamily userdata} feature with legends.}
+        \figlabel{ex12}
+      \end{figure}
+      
+    \subsection{Tick scaling values}\seclabel{axis-scaling}%
+      Tick values automatically generated by \matlab\ may have a scaling value placed at the end
+      of the axis. In two-dimensional plots these will be handled by \matlabfrag\ fairly well, but
+      in some circumstances, such as three-dimensional plots, they will work badly. An example of
+      them being automatically placed in the figure is given in \Figref{comparison02} and the file\par
+      {\verb|examples/comparison02.m|}\par\noindent
+      When \matlabfrag\ fails to insert the scaling properly, I suggest you manually modify the
+      axis ticks, and place the scaling in either the axis label, or place it manually as a text
+      object. Example code for doing this is:
+      \VerbatimInput[firstline=7,lastline=17]{ex13.m}
+      See \Figref{ex13} for the output from this example, {\ttfamily examples/ex13.m}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex13}
+        \caption{Manually inserted axis scalings.}
+        \figlabel{ex13}
+      \end{figure}
+      You can read more about why this is necessary in \Secref{adv-axis}.
+	  
+  \section{Frequently (occasionally) asked questions}%
+    \subsection{Why does the output have three digit numbers all through it?}
+	
+	  Either you are looking at the \eps\ output and that is how it is supposed to look,
+	  or there was a problem processing the image with \psfragname. Check out the troubleshooting section
+	  below.
+	
+	  \subsection{Why doesn't the \tex\ file have the
+	  \texorpdfstring{{\ttfamily includegraphics}}{includegraphics} statement in it like LaPrint does?}
+	
+	  Firstly, read the Background section above. With all the image files stored in a
+	  {\ttfamily graphics} subdirectory of the main document, I would have to manually open the \tex\ file and
+	  insert the path into the that line. This was one of the reasons I wrote \matlabfrag\ in the first
+	  place.
+	
+	  I have considered including an option to produce this output for those who would rather use this
+	  behaviour than load \pstoolname\ but decided against it due to the directory problems. From v1.2 onwards
+	  \pstoolname\ works fine in LaTeX so there really is no need to manually put the \verb|\includegraphics|
+	  line in.
+	
+    \section{Troubleshooting}
+      \subsection{I get an error in \matlab!}
+        The only errors that should be generated from \matlabfrag\ are from using it with an old version
+        of \matlab\ or calling it with invalid parameters. Unfortunately the error messages generated from
+        the {\ttfamily inputParser} class are a bit cryptic, but you should be able to work out if it is a
+        parameter error. A simple way to check this is to use an example that is known to work.
+        
+        If using a version of \matlab\ older than v7, you will receive a parse error, rather than a sane
+        error message telling you your version of matlab is too old.  An example of this error is:
+        \begin{verbatim}
+"identifier" expected, "(" found.
+        \end{verbatim}
+        As this is a parse error, it occurs before any code in the script has run, hence I am unable to
+        output a sane error message.  The only way to output a sane error message in such an old version
+        of \matlab\ would be to rewrite \matlabfrag\ so that it doesn't use anonymous functions, which I
+        don't want to do.
+        
+        No other errors should be generated by \matlabfrag. If you encounter one it is most likely a bug.
+        Please email the smallest self-contained example that reproduces the bug to me at
+        \par\noindent{\ttfamily zebb.prime+matlabfrag@gmail.com}
+      
+      \subsection{I get a warning in \matlab!}
+        Warnings created by \matlabfrag\ are there for a reason. Read through them, as they explain what
+        the problem is and what \matlabfrag\ is doing about it.
+        
+      \subsection{I get the {\ttfamily Unable to interpret TeX string} warning in \matlab!}
+        This warning occurs when the TeX or LaTeX interpreter (whichever is chosen) cannot
+        interpret the string, and can be caused by calling macros which don't exist in
+        the version of LaTeX that ships with \matlab\ or by trying to interpret a LaTeX string
+        with the TeX interpreter (and vice versa).
+      
+        To troubleshoot, ensure the string is correct, and the appropriate interpreter is used.
+        An example known to work is:
+        \begin{verbatim}
+title('Force versus $\sin(\alpha)$','interpreter','latex');
+        \end{verbatim}
+        The {\ttfamily none} interpreter can also be used, however the box around the text may end up
+        a very different size to the final text. The following example also works, but the bounding box
+        in \matlab\ is much wider than in the final document:
+        \begin{verbatim}
+title('Force versus $\sin(\alpha)$','interpreter','none');
+        \end{verbatim}
+        Another alternative is to use the {\ttfamily userdata}
+        feature of \matlabfrag\ with a placeholder for the screen text. A working example is:
+        \begin{verbatim}
+title('Force versus sin(a)','userdata',...
+  'matlabfrag:Force versus $\sin(\alpha)$');
+        \end{verbatim}
+        This is also a good option for using macros that aren't included with the version of LaTeX
+        that ships with \matlab. For example, in \Secref{legends}, the \verb|\SI| macro is used to format the
+        numbers and units. The package that provides this command, {\ttfamily sistyle}, is loaded
+        in the preamble of this document.
+      
+        As this warning has to do with the way \matlab\ renders text on screen and not \matlabfrag,
+        please do not contact me about it.
+      
+      \subsection{My graphic exports from \matlab\ fine, but does not compile in LaTeX/pdfLaTeX/LyX!}
+	    \begin{enumerate}
+	      \item Check that all LaTeX statements in your figure are valid. If you are having problems, try a
+	        simple example that is known to work.
+	      \item If you have manually loaded the {\ttfamily graphicx} package, make sure you don't have a
+	        driver (e.g. {\ttfamily pdftex}) specified.
+	      \item If using pdfLaTeX and \pstoolname, check:
+	      \begin{enumerate}
+	        \item \verb|-shell-escape| option is set when calling pdfLaTeX.
+	      \end{enumerate}
+	      \item If using LaTeX and \pstoolname, check:
+	      \begin{enumerate}
+	        \item \pstoolname\ is at least at version 1.2. An alternative location to finding \pstoolname\ is
+		      \url{http://github.com/wspr/pstool/}.
+	      \end{enumerate}
+	      \item If using LaTeX or pdfLaTeX with anything else:
+	      \begin{enumerate}
+	        \item Install \pstoolname !
+	      \end{enumerate}
+	      \item If using LyX:
+  	    \begin{enumerate}
+	        \item Check to see if the \pstoolname\ package is loading by going to {\ttfamily Document -- LaTeX log},
+	          and trying to find the \pstoolname\ entry. If it is not found then try repeating the instructions
+	          in \Secref{in-lyx}. If it is there, check to see if it is issuing a warning that \verb|-shell-escape|
+	          is disabled. If so, follow the instructions in \Secref{in-lyx}.
+	      \end{enumerate}
+	  \end{enumerate}
+
+    \subsection{My graphic exports from \matlab\ and compiles in LaTeX/\texorpdfstring{\\}{}pdfLaTeX/LyX but doesn't look right!}
+      \begin{enumerate}
+      \item If you use a {\ttfamily includegraphics} option such as {\ttfamily rotate}, there is a bug
+	      in \pstoolname\ prior to v1.2b that caused the option to be applied twice.
+      \item The text is running over lines or is cut out!
+      \begin{enumerate}
+        \item This most likely happens if you resize the image in LaTeX using a \verb|[width=x]| argument.
+          It is usually better to size the image in \matlab\ in the first place, and do no further resizing.
+        \item If you have mathematical equations, use the {\ttfamily latex} interpreter. This will make the
+          text object be roughly the right size, which will let \matlab\ place it properly. This is
+          especially useful for legends, as shown in \Figref{comparison01-matlabfrag}.
+        \item If the text appears to be cropped from the outside of the graphic then try padding the \eps\
+          file using the {\ttfamily epspad} option, or try the {\ttfamily pdfcrop} option
+          for \pstoolname:\par
+          {\verb|\usepackage[crop=pdfcrop]{pstool}|}
+      \end{enumerate}
+	    \item A complicated graphic appears different on screen than it does in the document.
+	      \begin{enumerate}
+	        \item This is most likely an issue caused by a renderer. For more information, read the discussion
+	          on renderers in \Secref{renderers}.
+	      \end{enumerate}
+	    \end{enumerate}
+
+    \section{Advanced usage: a discussion on renderers}\seclabel{renderers}%
+      \matlab\ has three different renderers that it uses to render a graphic on screen; {\ttfamily Painters},
+      {\ttfamily OpenGL}, and {\ttfamily Z-Buffer}. Of these, only the {\ttfamily Painters} renderer can export
+      an image in a native text format which is needed for the text substitution process. If one of the
+      other renderers is used the text becomes rasterised, and hence normally no text replacement can take place.
+      
+      As of \matlabfrag\ {\ttfamily v0.6.0}\footnote{There have been a series of bug fixes since
+      {\ttfamily v0.6.0}, so I always recommend using the latest version.},
+      an {\ttfamily EXPORTFIG} and {\ttfamily epscombine} style hack
+      has been included, which manually places text objects inside rasterised \eps\ images. The result of this
+      is that text can now be substituted with LaTeX font and code, but also that all the text now appears
+      in the foreground (i.e. all text appears in front of the image, regardless of its placement in the
+      original image).
+      
+      A downside to placing a rasterised image inside an \eps\ file is that it is uncompressed, which creates
+      a very large \eps\ file. However, during the conversion to {\ttfamily pdf} the image is compressed to a
+      reasonable file size.  If you are using \pstoolname, from {\ttfamily v1.3} it defaults to a lossless
+      compression technique similar to \textsc{png}. This is the most suitable compression for technical
+      graphics, but should you prefer it, lossy compression can be turned on. For more information, refer to
+      the \pstoolname\ documentation.
+      
+      When printing a rasterised image, the resolution is set using the {\ttfamily dpi} option in \matlabfrag.
+      The default is 300 for {\ttfamily OpenGL} and {\ttfamily Z-Buffer} rendered images, which is usually
+      considered to be print quality.  The default for the {\ttfamily Painters} renderer is 3200. Using a large
+      {\ttfamily dpi} value for {\ttfamily Painters} rendered images reduces quantisation error while only
+      increasing the file size by a small amount.
+      
+      By default \matlabfrag\ will use the {\ttfamily Painters} renderer unless either the figure has had
+      the renderer manually set (which causes the {\ttfamily renderermode} property to become {\ttfamily manual}),
+      or the {\ttfamily renderer} option is set in \matlabfrag.
+      
+      An example of choosing the renderer in \matlabfrag, and increasing the image DPI is given in
+      \par{\verb|examples/ex14.m|}\par\noindent
+      an extract of which is:
+      \VerbatimInput[firstline=7,lastline=15]{ex14.m}
+      The output for this example is given in \Figref{ex14}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex14}
+        \caption{Example showing the use of the {\ttfamily OpenGL} renderer.}
+        \figlabel{ex14}
+      \end{figure}
+      
+      An example showing \matlabfrag\ detecting a manually set renderer is given in
+      \par{\verb|examples/ex15.m|}\par\noindent
+      which is largely based off of the ``Moving the Camera Through a Scene'' example in the \matlab\
+      documentation. An extract of this example is:
+      \VerbatimInput[firstline=41,lastline=45]{ex15.m}
+      The output from this example is given in \Figref{ex15}.
+      \begin{figure}[ht]
+        \centering
+        \psfragfig{graphics/ex15}
+        \caption{Example output when the renderer is set to {\ttfamily zbuffer} and shading set to
+        {\ttfamily phong}.}
+        \figlabel{ex15}
+      \end{figure}
+      
+   \section{Advanced usage: a discussion on axis ticks}\seclabel{adv-axis}%
+     Easily the hardest part about writing \matlabfrag\ has been dealing with axis ticks. Their positioning
+     and circumstances when the labels are modified are completely hidden from the user. For example, if the
+     axis is logarithmic, and the ticks occur at powers of 10, then the {\ttfamily xticklabel} properties
+     are written as the power of ten (e.g. 2) and rendered as the 10 to the power of the number (e.g. $10^2$).
+     \matlabfrag\ handles this case by detecting whether {\ttfamily xscale} is set to {\ttfamily log}, and
+     {\ttfamily xticklabelmode} is set to {\ttfamily auto}. If so, it automatically inserts the appropriate
+     LaTeX code. A simple example of this behaviour can be shown with the code:
+     \VerbatimInput[firstline=7,lastline=8]{ex16.m}
+     from {\ttfamily examples/ex16.m}, which produces \Figref{ex16}.
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/ex16}
+       \caption{An example {\ttfamily bodemag} plot demonstrating ticks of the format $10^x$. Note that
+         the axis tick labels are grey. This is due to the {\ttfamily bodemag} function setting them grey
+         using the {\ttfamily xcolor} and {\ttfamily ycolor} axis properties.}
+       \figlabel{ex16}
+     \end{figure}
+     
+     The above case is fairly simple in comparison to how \matlab\ handles axes that have been scaled by
+     a power of ten. For example, if $x\in[0\quad10^{-3}]$, then the x ticks would read, say 
+     $[0\quad0.5\quad1]$, and a $\times10^{-3}$ would be placed to the lower right of the x axis.
+     Unfortunately, this $\times10^{-3}$ text object is completely hidden from the user, and as soon as
+     the tick labels are modified by the user it disappears. Both \matlabfrag\ and {\ttfamily LaPrint}
+     have to modify the tick labels to make it possible for \psfragname\ to do text substitution, thus
+     we have to manually recreate this scaling. In \matlabfrag\ this is performed by detecting when:
+     \begin{enumerate}
+       \item {\ttfamily xticklabelmode} is set to {\ttfamily auto}, and
+       \item there is a scaling value between the {\ttfamily xtick} and {\ttfamily xticklabel} that is
+         equal to a power of ten.
+     \end{enumerate}
+     In these circumstances, \matlabfrag\ does its best to place the scaling value in the most appropriate
+     location. For two-dimensional graphs this isn't too bad, but for three-dimensional plots it is very
+     difficult.
+     
+     The locations for all of the scaling values for all permutations of x and y axis locations
+     in a two dimensional plot are shown in \Figref{ex17}. The code for this example is given in:\par
+     {\verb|examples/ex17.m|}.
+     \begin{figure}[ht]
+       \centering
+       \psfragfig{graphics/ex17}
+       \caption{Axis scale positions for all permutations of the x and y axis locations.}
+       \figlabel{ex17}
+     \end{figure}
+       
+     Lastly, support for tick scaling in three-dimensional plots has been added to \matlabfrag\ for
+     the default orientation of {\ttfamily surf} plots, such as that shown previously in
+     \Figref{comparison02}. If you start to rotate the orientation of the plot it will probably break
+     horribly. In these circumstances I suggest you manually place the scaling in the axis label, or
+     as a text object. Please read through \Secref{axis-scaling} for some information and an example
+     of how to do this.
+     
+\end{document}
