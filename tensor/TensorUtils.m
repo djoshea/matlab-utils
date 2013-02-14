@@ -75,6 +75,17 @@ classdef TensorUtils
             % of subscripts it would be accessed at, e.g. t(i) = i 
             t = TensorUtils.mapToSizeFromSubs(sz, @(varargin) [varargin{:}], true);
         end
+
+        function mat = ind2subAsMat(sz, inds)
+            % mat is length(inds) x length(sz) where each row contains ind2sub(sz, inds(i))
+           
+            ndims = length(sz);
+            subsCell = cell(ndims, 1);
+            
+            [subsCell{:}] = ind2sub(sz, makecol(inds));
+            
+            mat = [subsCell{:}];
+        end
         
         function tCell = regroupAlongDimension(t, dim)
             % tCell{i} will be equivalent to squeeze(t(..., i, ...)) where i is in dimension t
@@ -97,7 +108,7 @@ classdef TensorUtils
             % generate masks by dimension that are equivalent to ':'
             maskByDimCell = arrayfun(@(d) true(sz(d), 1), 1:ndims(t), 'UniformOutput', false);
             maskByDimCell{dim} = ind;
-            tSelect = squeeze(t(maskByDimCell{:}));
+            tSelect = makecol(squeeze(t(maskByDimCell{:})));
         end
 
         function tCell = squeezeSelectEachAlongDimensionAsCell(t, dim) 
@@ -108,14 +119,14 @@ classdef TensorUtils
             maskByDimCell = arrayfun(@(d) true(sz(d), 1), 1:ndims(t), 'UniformOutput', false);
 
             tCell = cell(sz(dim), 1);
-            for i = 1:sz(dim)
+            for ind = 1:sz(dim)
                 maskByDimCell{dim} = ind;
-                tCell{i} = squeeze(t(maskByDimCell{:}));
+                tCell{ind} = makecol(squeeze(t(maskByDimCell{:})));
             end
         end
 
         function vec = flatten(t)
-            vec = t(:);
+            vec = makecol(t(:));
         end
         
         function mat = flattenAlongDimension(t, dim)
