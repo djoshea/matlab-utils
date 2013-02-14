@@ -88,6 +88,35 @@ classdef TensorUtils
                 tCell{iAlong} = squeeze(t(sqMask{:}));
             end
         end
+
+        function tSelect = squeezeSelectAlongDimension(t, dim, ind)
+            % select ind along dimension dim and squeeze() the result
+            % e.g. squeeze(t(:, :, ... ind, ...)) 
+            
+            sz = size(t);
+            % generate masks by dimension that are equivalent to ':'
+            maskByDimCell = arrayfun(@(d) true(sz(d), 1), 1:ndims(t), 'UniformOutput', false);
+            maskByDimCell{dim} = ind;
+            tSelect = squeeze(t(maskByDimCell{:}));
+        end
+
+        function tCell = squeezeSelectEachAlongDimensionAsCell(t, dim) 
+            % returns a cell array tCell such that tCell{i} = squeezeSelectAlongDimension(t, dim, i)
+
+            sz = size(t);
+            % generate masks by dimension that are equivalent to ':'
+            maskByDimCell = arrayfun(@(d) true(sz(d), 1), 1:ndims(t), 'UniformOutput', false);
+
+            tCell = cell(sz(dim), 1);
+            for i = 1:sz(dim)
+                maskByDimCell{dim} = ind;
+                tCell{i} = squeeze(t(maskByDimCell{:}));
+            end
+        end
+
+        function vec = flatten(t)
+            vec = t(:);
+        end
         
         function mat = flattenAlongDimension(t, dim)
             % returns a 2d matrix where mat(i, :) is the flattened vector of tensor
