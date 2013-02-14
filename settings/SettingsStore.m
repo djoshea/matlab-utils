@@ -48,6 +48,16 @@ classdef SettingsStore < handle
         function setDefaults(obj)
 
         end
+
+        % will be called just before saving a SettingsStore instance to filename
+        function preSaveSettings(obj, filename)
+
+        end
+
+        % will be called just after loading an instance or creating one using defaults
+        function postLoadSettings(obj, usingDefaults)
+
+        end
     end
 % END MAY OVERRIDE
 
@@ -140,11 +150,14 @@ classdef SettingsStore < handle
             if ~isempty(instance)
                 this.transferDataFrom(instance);
                 this.isLoaded = true;
-
+                usingDefaults = false;
             else
                 % no saved instance exists, call setDefaults()
                 this.setDefaults();
+                usingDefaults = true;
             end
+
+            this.postLoadSettings(usingDefaults);
         end
 
         % copy all property values from dest to src
@@ -178,8 +191,12 @@ classdef SettingsStore < handle
                     path = settings.matFilePath;
                 end
             end
+            
             settings.matFilePath = path;
             filename = settings.buildMatFileFullName(path);
+
+            settings.preSaveSettings(filename);
+
             varName = settings.getMatVarName();
             data.(varName) = settings;
 
