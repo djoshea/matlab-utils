@@ -29,7 +29,7 @@ function varargout = pdftops(cmd)
 % under linux.
 
 % Call pdftops
-[varargout{1:nargout}] = system(sprintf('"%s" %s', xpdf_path, cmd));
+[varargout{1:nargout}] = system(sprintf('export DYLD_LIBRARY_PATH=""; "%s" %s', xpdf_path, cmd));
 return
 
 function path_ = xpdf_path
@@ -100,7 +100,7 @@ return
 
 function good = check_xpdf_path(path_)
 % Check the path is valid
-[good message] = system(sprintf('"%s" -h', path_));
+[good message] = system(sprintf('export DYLD_LIBRARY_PATH=""; "%s" -h', path_));
 % system returns good = 1 even when the command runs
 % Look for something distinct in the help text
 good = ~isempty(strfind(message, 'PostScript'));

@@ -412,6 +412,7 @@ if isvector(options)
     if ~options.crop
         p2eArgs = [p2eArgs {'-loose'}];
     end
+    
     try
         % Generate an eps
         print2eps(tmp_nam, fig, p2eArgs{:});
@@ -551,7 +552,8 @@ for a = 1:nargin-1
             [p, options.name, ext] = fileparts(varargin{a});
             if ~isempty(p)
                 options.name = [p filesep options.name];
-            end
+            end        
+            options.name = GetFullPath(options.name);
             switch lower(ext)
                 case {'.tif', '.tiff'}
                     options.tif = true;

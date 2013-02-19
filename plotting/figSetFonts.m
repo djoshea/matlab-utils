@@ -4,6 +4,7 @@ function figSetFonts(varargin)
     p.KeepUnmatched = true;
     p.parse(varargin{:});
     hfig = p.Results.hfig;
-
-    set(findall(hfig, 'type', 'text'), p.Unmatched);
+    
+    hfont = findobj(hfig, '-property', 'FontName');
+    set(hfont, p.Unmatched);
 end

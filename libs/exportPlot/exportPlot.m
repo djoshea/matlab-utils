@@ -55,10 +55,10 @@ for kk = 1:length(axesList)
     
     set(gcf, 'InvertHardCopy', 'off');
     set(gca, 'TickDir','out')
-    set(get(gca,'XLabel'),'FontName', 'Arial',  'FontSize', 14);
-    set(get(gca,'YLabel'),'FontName', 'Arial',  'FontSize', 14);
-    set(get(gca,'ZLabel'),'FontName', 'Arial',  'FontSize', 14);
-    set(get(gca,'title') ,'FontName', 'Arial',  'FontSize', 16,  'FontWeight', 'bold');
+    %set(get(gca,'XLabel'),'FontName', 'Arial',  'FontSize', 14);
+    %set(get(gca,'YLabel'),'FontName', 'Arial',  'FontSize', 14);
+    %set(get(gca,'ZLabel'),'FontName', 'Arial',  'FontSize', 14);
+    %set(get(gca,'title') ,'FontName', 'Arial',  'FontSize', 16,  'FontWeight', 'bold');
     
 end
 

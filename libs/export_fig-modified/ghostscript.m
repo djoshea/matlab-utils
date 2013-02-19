@@ -34,7 +34,11 @@
 
 function varargout = ghostscript(cmd)
 % Call ghostscript
-[varargout{1:nargout}] = system(sprintf('"%s" %s', gs_path, cmd));
+
+% MODIFIED BY @djoshea
+% based on Felix Zoergiebel's comment on http://www.mathworks.us/matlabcentral/fileexchange/23629-exportfig
+[varargout{1:nargout}] = system(sprintf('export DYLD_LIBRARY_PATH=""; "%s" %s', gs_path, cmd));
+%[varargout{1:nargout}] = system(sprintf('"%s" %s', gs_path, cmd));
 return
 
 function path_ = gs_path

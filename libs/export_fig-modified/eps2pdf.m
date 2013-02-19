@@ -47,6 +47,13 @@
 function eps2pdf(source, dest, crop, append, gray, quality)
 % Intialise the options string for ghostscript
 options = ['-q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile="' dest '"'];
+
+% MODIFIED BY @djoshea for the purposes of MyriadPro font substitution
+fontName = '/Library/Fonts/MyriadPro-Regular.otf';
+if exist(fontName, 'file')
+    options = [options sprintf(' -sSUBSTFONT="%s"', fontName)];
+end
+
 % Set crop option
 if nargin < 3 || crop
     options = [options ' -dEPSCrop'];
@@ -128,7 +135,7 @@ else
     if ~isempty(fp)
         fp = [fp ':'];
     end
-    fp = [fp '/usr/share/fonts:/usr/local/share/fonts:/usr/share/fonts/X11:/usr/local/share/fonts/X11:/usr/share/fonts/truetype:/usr/local/share/fonts/truetype'];
+    fp = [fp '/Library/Fonts:/usr/share/fonts:/usr/local/share/fonts:/usr/share/fonts/X11:/usr/local/share/fonts/X11:/usr/share/fonts/truetype:/usr/local/share/fonts/truetype'];
 end
 user_string('gs_font_path', fp);
 return
