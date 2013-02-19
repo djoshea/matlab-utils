@@ -39,7 +39,7 @@ classdef TensorUtils
             
             t = arrayfun(contentsFn, subsGrids{:}, 'UniformOutput', ~asCell);
         end
-        
+
         function results = mapIncludeSubs(fn, varargin)
             % mapWithInds(fn, t1, t2, ...) calls fn(t1(subs), t2(subs), ..., subs) with subs
             % being the subscript indices where the element of t1, t2, etc.
@@ -77,6 +77,7 @@ classdef TensorUtils
         end
 
         function mat = ind2subAsMat(sz, inds)
+            % sz is the size of the tensor
             % mat is length(inds) x length(sz) where each row contains ind2sub(sz, inds(i))
            
             ndims = length(sz);
@@ -85,6 +86,17 @@ classdef TensorUtils
             [subsCell{:}] = ind2sub(sz, makecol(inds));
             
             mat = [subsCell{:}];
+        end
+
+        function inds = subMat2Ind(sz, mat)
+            % sz is the size of the tensor
+            % mat is length(inds) x length(sz) where each row contains ind2sub(sz, inds(i))
+            % converts back to linear indices using sub2ind
+           
+            ndims = length(sz);
+            subsCell = arrayfun(@(dim) mat(:, dim), 1:ndims, 'UniformOutput', false);
+            
+            inds = sub2ind(sz, subsCell{:});
         end
         
         function tCell = regroupAlongDimension(t, dim)
