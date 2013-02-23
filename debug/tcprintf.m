@@ -71,8 +71,8 @@ function tcprintf(style, fmatString, varargin)
     for iPair = 1:length(formatPairs)
         pair = formatPairs(iPair);
         codeStr = getCodeStringForStyle(pair.style); 
-        stringCell{2*iPair-1} = codeStr;
-        stringCell{2*iPair} = pair.text;
+        stringCell{2*iPair-1} = makerow(codeStr);
+        stringCell{2*iPair} = makerow(pair.text);
     end
 
     % concatenate the component strings
