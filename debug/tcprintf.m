@@ -78,6 +78,9 @@ function tcprintf(style, fmatString, varargin)
     % concatenate the component strings
     fullStr = [stringCell{:}];
     contents = sprintf(fullStr, varargin{:});
+    
+    % re-escape any %% that were transformed into % by sprintf
+    contents = strrep(contents, '%', '%%');
 
     % evaluate the printf style message
     % if the message ends with a newline, we should turn off
