@@ -31,12 +31,8 @@ function tcprintf(style, fmatString, varargin)
     %   Released under the open source BSD license 
     %     opensource.org/licenses/bsd-license.php
 
-    if nargin == 0
-        fprintf('\033[0m');
-        return
-    end
 
-    if nargin < 2 || ~ischar(style) || ~ischar(fmatString)
+    if nargin > 0 && (nargin < 2 || ~ischar(style) || ~ischar(fmatString))
         error('Usage: tcprintf(style, fmatString, ...)');
     end
 
@@ -48,10 +44,12 @@ function tcprintf(style, fmatString, varargin)
     % use color in the hover datatip or all you'll see are ANSI codes.
     stack = dbstack;
     inDataTip = ismember('datatipinfo', {stack.name});
-
-    if ~usingTerminal || inDataTip
-        % print the message without color and return
-        fprintf(fmatString, varargin{:});
+    
+    if nargin == 0
+        if usingTerminal && inDataTip
+            % clear the ansi codes in case somethings gone wrong
+            fprintf('\033[0m');
+        end
         return;
     end
 
@@ -65,7 +63,16 @@ function tcprintf(style, fmatString, varargin)
         formatPairs.style = style;
         formatPairs.text = fmatString;
     end
-
+    
+    % dump as plaintext if not in terminal or in data tip
+    if ~usingTerminal || inDataTip
+        % print the message without color and return
+        textPieces = {formatPairs.text};
+        fmatString = [textPieces{:}];
+        fprintf(fmatString, varargin{:});
+        return;
+    end
+    
     % parse all style strings
     stringCell = cell(1, 2*length(formatPairs));
     for iPair = 1:length(formatPairs)

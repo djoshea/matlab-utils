@@ -25,6 +25,7 @@ classdef TensorUtils
                 return
             end
 
+            sz = TensorUtils.expandScalarSize(sz);
             nDims = length(sz);
             idxEachDim = arrayfun(@(n) 1:n, sz, 'UniformOutput', false);
             [subsGrids{1:nDims}] = ndgrid(idxEachDim{:});
@@ -106,13 +107,24 @@ classdef TensorUtils
     end
 
     methods(Static) % Indices and subscripts
+        function sz = expandScalarSize(sz)
+            % if sz (size) is a scalar, make it into a valid size vector by
+            % appending 1 to the end. i.e. 3 --> [3 1]
+            if isscalar(sz)
+                sz = [sz 1];
+            end
+        end
+        
         function t = containingLinearInds(sz)
             % build a tensor with size sz where each element contains the linear
             % index it would be accessed at, e.g. t(i) = i 
+            sz = TensorUtils.expandScalarSize(sz);
             t = TensorUtils.mapToSizeFromSubs(sz, @(varargin) sub2ind(sz, varargin{:}), false);
         end
 
         function t = containingSubscripts(sz, asCell)
+            sz = TensorUtils.expandScalarSize(sz);
+            
             % asCell == true means each element is itself a cell rather then a vector of
             % subscripts
             if nargin < 2
@@ -129,6 +141,8 @@ classdef TensorUtils
         end
 
         function mat = ind2subAsMat(sz, inds)
+            sz = TensorUtils.expandScalarSize(sz);
+            
             % sz is the size of the tensor
             % mat is length(inds) x length(sz) where each row contains ind2sub(sz, inds(i))
            
@@ -141,6 +155,8 @@ classdef TensorUtils
         end
 
         function inds = subMat2Ind(sz, mat)
+            sz = TensorUtils.expandScalarSize(sz);
+            
             % sz is the size of the tensor
             % mat is length(inds) x length(sz) where each row contains ind2sub(sz, inds(i))
             % converts back to linear indices using sub2ind
@@ -170,6 +186,8 @@ classdef TensorUtils
         end
 
         function maskByDim = maskByDimCell(sz)
+            sz = TensorUtils.expandScalarSize(sz);
+            
             % get a cell array of selectors into each dim that would select
             % every element if used via t(maskByDim{:})
             maskByDim = arrayfun(@(n) true(n, 1), sz, 'UniformOutput', false);
@@ -180,6 +198,8 @@ classdef TensorUtils
         % for selecting along dim. If dim is a vector, select is a cell array of
         % vectors to be used for selecting along dim(i)
         function maskByDim = maskByDimCellSelectAlongDimension(sz, dim, select)
+            sz = TensorUtils.expandScalarSize(sz);
+            
             % get a cell array of selectors into each dim that effectively select
             % select{i} along dim(i). These could be used by indexing a tensor t
             % via t(maskByDim{:}) --> se selectAlongDimension
@@ -193,6 +213,8 @@ classdef TensorUtils
         end
 
         function mask = maskSelectAlongDimension(sz, dim, select)
+            sz = TensorUtils.expandScalarSize(sz);
+            
             % return a logical mask where for tensor with size sz
             % we select t(:, :, select, :, :) where select acts along dimension dim
 
