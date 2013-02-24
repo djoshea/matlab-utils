@@ -49,9 +49,19 @@ function eps2pdf(source, dest, crop, append, gray, quality)
 options = ['-q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -dPDFSETTINGS=/prepress -sOutputFile="' dest '"'];
 
 % MODIFIED BY @djoshea for the purposes of MyriadPro font substitution
-fontName = '/Library/Fonts/MyriadPro-Regular.otf';
-if exist(fontName, 'file')
-    options = [options sprintf(' -sSUBSTFONT="%s"', fontName)];
+fontNames = {'/Library/Fonts/MyriadPro-Regular.otf', '~/.fonts/MyriadPro-Regular.otf'};
+foundFont = false;
+for name=fontNames
+    name = GetFullPath(name);
+    if exist(name{1}, 'file')
+        options = [options sprintf(' -sSUBSTFONT="%s"', name{1})];
+        foundFont = true;
+        break;
+    end
+end
+
+if ~foundFont
+    warning('Could not find MyriadPro-Regular.otf font');
 end
 
 % Set crop option
