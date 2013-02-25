@@ -1,7 +1,7 @@
 function success = makeSymLink(src, link)
 % makeSymLink(src, linkDest)
 
-    src = GetFullPath(src);
+    src = resolveSymLink(GetFullPath(src));
     link = GetFullPath(link);
     mkdirRecursive(fileparts(link));
     cmd = sprintf('ln -s "%s" "%s"', src, link);
