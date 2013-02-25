@@ -10,17 +10,38 @@ function saveFigure(varargin)
 % ext : cell array of extensions, default={'fig', 'png', 'svg', 'eps', 'pdf'}
 
     extList = {'fig', 'png', 'hires.png', 'svg', 'eps', 'pdf'};
+    extListDefault = extList;
 
     p = inputParser;
     p.addOptional('hfig', gcf, @ishandle);
     p.addOptional('name', '', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
-    p.addOptional('ext', extList, @(x) ischar(x) || iscellstr(x));
+    p.addOptional('ext', [], @(x) ischar(x) || iscellstr(x));
+    p.addParamValue('convertFromPdf', true, @islogical);
     p.KeepUnmatched = true;
     p.parse(varargin{:});
     hfig = p.Results.hfig;
     name = p.Results.name;
     ext = p.Results.ext;
+    convertFromPdf = p.Results.convertFromPdf;
 
+    if isempty(ext)
+        % no extension list specified, figure out what it should be
+        if isstruct(name)
+            ext = fieldnames(name);
+        elseif iscell(name)
+            ext = cellfun(@getExtension, name, 'UniformOutput', false);
+        else
+            ext = extListDefault;
+        end
+    end 
+    
+    tempList = {};
+    
+    extNonRecognized = setdiff(ext, extList);
+    if ~isempty(extNonRecognized)
+        error('Extensions %s not supported', strjoin(ext, ', '));
+    end
+    
     if ismember('fig', ext)
         file = getFileName('fig');
         
@@ -32,25 +53,54 @@ function saveFigure(varargin)
     hfigCopy = copyfig(hfig);
     set(hfigCopy, 'NumberTitle', 'off', 'Name', 'Copy of Figure -- Temporary');
         
+    % bitmap formats are built using imagemagick to convert from pdf
+    needPdfForConversion = any(ismember({'png', 'hires.png'}, ext)) && convertFromPdf;
+        
+    if ismember('pdf', ext) || needPdfForConversion
+        if ismember('pdf', ext)
+            % use the right file name
+            file = getFileName('pdf');
+            printmsg('pdf', file);
+        else
+            % use a temp file name
+            file = [tempname '.pdf'];
+            tempList{end+1} = file;
+        end
+        
+        % set everything to use a dummy font so that ghostscript can substitute
+        figSetFont(hfigCopy, 'FontName', 'SUBSTITUTEFONT');
+        
+        export_fig(hfigCopy, file);   
+        pdfFile = file;
+    end
+    
     if ismember('png', ext)
-        % set font to Myriad Pro
-        figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
         file = getFileName('png'); 
         printmsg('png', file);
-        export_fig(hfigCopy, file);
+        
+        % set font to Myriad Pro
+        figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
+        if convertFromPdf
+            convertPdf(pdfFile, file);
+        else
+            export_fig(hfigCopy, file);
+        end
     end
     
     if ismember('hires.png', ext)
-        % suppress large image warning
-        s = warning('OFF', 'MATLAB:LargeImage');
-        
-        % set font to Myriad Pro
-        figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
         file = getFileName('hires.png'); 
         printmsg('hires.png', file);
-        export_fig(hfigCopy, file, '-r300');
-        
-        warning(s);
+        % set font to Myriad Pro
+        figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
+            
+        if convertFromPdf
+            convertPdf(pdfFile, file, true);
+        else
+            % suppress large image warning
+            s = warning('OFF', 'MATLAB:LargeImage');
+            export_fig(hfigCopy, file, '-r300');
+            warning(s);
+        end
     end
     
     if ismember('svg', ext)
@@ -68,20 +118,44 @@ function saveFigure(varargin)
         printmsg('eps', file);
         export_fig(hfigCopy, file);
     end
-    
-    if ismember('pdf', ext)
-        % set everything to use a dummy font so that ghostscript can substitute
-        figSetFont(hfigCopy, 'FontName', 'SUBSTITUTEFONT');
-        file = getFileName('pdf');
-        printmsg('pdf', file);
-        export_fig(hfigCopy, file);
-    end
-    
+
     close(hfigCopy);
+    
+    % delete temporary files
+    for tempFile = tempList
+        delete(tempFile{1});
+    end
     
     return;
     
 %%%%%%%
+
+    function convertPdf(pdfFile, file, hires)
+        % call imageMagick convert on pdfFile --> file
+        if nargin < 3
+            hires = false;
+        end
+        
+        if hires
+            density = 400;
+            resize = 100;
+        else
+            density = 400;
+            resize = 25;
+        end
+        
+        % MATLAB has it's own older version of libtiff.so inside it, so we
+        % clear that path when calling imageMagick to avoid issues
+        cmd = sprintf('export LD_LIBRARY_PATH=""; export DYLD_LIBRARY_PATH=""; convert -verbose -trim -density %d %s -resize %d%% %s', ...
+            density, escapePathForShell(pdfFile), resize, escapePathForShell(file));
+        [status result] = system(cmd);
+        
+        if status
+            fprintf('Error converting pdf file. Is ImageMagick installed?\n');
+            fprintf(result);
+            fprintf('\n');
+        end
+    end
 
     function printmsg(ex, file)
         debug('Saving %s as %s\n', ex, file);
@@ -110,6 +184,15 @@ function saveFigure(varargin)
 
         % replace ~ with actual home directory, among other fixes
         file = GetFullPath(file);
+    end
+    
+    function ext = getExtension(file)
+        [~, ~, dotext] = fileparts(file);
+        if ~isempty(dotext)
+            ext = dotext(2:end);
+        else
+            ext = '';
+        end
     end
     
 end
