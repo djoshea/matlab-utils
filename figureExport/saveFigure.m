@@ -1,4 +1,4 @@
-function saveFigure(varargin)
+function fileList = saveFigure(varargin)
 % saveFigure(hfig, name, ext)
 %
 % hfig : figure handle, default=gcf
@@ -36,6 +36,7 @@ function saveFigure(varargin)
     end 
     
     tempList = {};
+    fileList = {};
     
     extNonRecognized = setdiff(ext, extList);
     if ~isempty(extNonRecognized)
@@ -44,6 +45,7 @@ function saveFigure(varargin)
     
     if ismember('fig', ext)
         file = getFileName('fig');
+        fileList{end+1} = file;
         
         printmsg('fig', file);
         saveas(hfig, file, 'fig');
@@ -60,6 +62,7 @@ function saveFigure(varargin)
         if ismember('pdf', ext)
             % use the right file name
             file = getFileName('pdf');
+            fileList{end+1} = file;
             printmsg('pdf', file);
         else
             % use a temp file name
@@ -76,6 +79,7 @@ function saveFigure(varargin)
     
     if ismember('png', ext)
         file = getFileName('png'); 
+        fileList{end+1} = file;
         printmsg('png', file);
         
         % set font to Myriad Pro
@@ -89,6 +93,7 @@ function saveFigure(varargin)
     
     if ismember('hires.png', ext)
         file = getFileName('hires.png'); 
+        fileList{end+1} = file;
         printmsg('hires.png', file);
         % set font to Myriad Pro
         figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
@@ -106,6 +111,7 @@ function saveFigure(varargin)
     if ismember('svg', ext)
         % set font to Myriad Pro
         figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
+        fileList{end+1} = file;
         file = getFileName('svg');
         printmsg('svg', file);
         plot2svg(file, hfigCopy);
@@ -114,6 +120,7 @@ function saveFigure(varargin)
     if ismember('eps', ext)
         % set everything to use a dummy font so that ghostscript can substitute
         figSetFont(hfigCopy, 'FontName', 'SUBSTITUTEFONT');
+        fileList{end+1} = file;
         file = getFileName('eps');
         printmsg('eps', file);
         export_fig(hfigCopy, file);
