@@ -1,6 +1,11 @@
 function target = resolveSymLink(file)
 
-    target = getResolved(file);
+    if ismac
+        target = file;
+        return;
+    else
+        target = getResolved(file);
+    end
     
     return;
 

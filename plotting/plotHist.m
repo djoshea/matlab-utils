@@ -19,6 +19,8 @@ def.lineAt = [];
 def.axisThickness = 1;
 def.lineColor = [];
 def.prettyAxis = true;
+def.xname = '';
+def.yname = '';
 assignargs(def, varargin);
 
 n = histc(vals, binEdges);
@@ -51,10 +53,6 @@ end
 ylim(axh, yl);
 arrowY = [yl(2) yl(2)*.8];
 xlim(axh, minmax(binEdges));
-
-if prettyAxis
-    makePrettyAxis('lineThickness', axisThickness);
-end
 
 if showMedian
     hold on
@@ -122,7 +120,20 @@ if ~isempty(arrowAt)
 
 end
 
+if ~isempty(xname)
+    xlabel(xname);
+end
+if ~isempty(yname)
+    ylabel(yname);
+end
+
+if prettyAxis
+    makePrettyAxis('lineThickness', axisThickness);
+end
+
 hold off
+
+
 
 
 

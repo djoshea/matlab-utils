@@ -1,7 +1,7 @@
 function [status, result] = chmod(permissions, fileList, varargin)
     % runs chmod permissions fileList
     p = inputParser;
-    p.addRequired('permissions', @ischar);
+    p.addRequired('permissions', @(x) isempty(x) || ischar(x));
     p.addRequired('fileList', @(x) ischar(x) || iscellstr(x));
     p.addParamValue('recursive', false, @islogical);
     p.addParamValue('printError', true, @islogical);
@@ -9,6 +9,12 @@ function [status, result] = chmod(permissions, fileList, varargin)
     printError = p.Results.printError;
     recursive = p.Results.recursive;
 
+    if isempty(permissions)
+        status = 0;
+        result = '';
+        return;
+    end
+    
     if ~iscell(fileList)
         fileList = {fileList};
     end
