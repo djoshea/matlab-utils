@@ -1,0 +1,16 @@
+
+on mac os 10.8
+http://stackoverflow.com/questions/12643236/matlab-2012a-mex-to-work-with-xcode-4-5-on-mountain-lion
+
+edit ~/.matlab/R2012b/mexopts.sh
+changed CC from gcc to llvm-gcc
+changed CXX from g++ to llvm-g++
+set SDKROOT to '/'
+
+on ubuntu: 
+http://www.mathworks.com/matlabcentral/answers/47064-running-mex-files-compiled-on-linux
+http://stackoverflow.com/a/5963813
+
+setenv('LD_LIBRARY_PATH','/usr/local/lib:/usr/lib:/usr/local/lib64:/usr/lib64')
+before running:
+typecastx
