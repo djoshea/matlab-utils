@@ -1,12 +1,14 @@
 function vim(varargin)
 % VIM Edit file using vim. 
-%   VIM(file) edits file in vim using the first server returned by vim --serverlist.
-%   File must exist somewhere on the path. Vim must have been opened using --servername
-%   flag in order to be registered as a server.
+%   VIM(file) edits file in vim using either the first server returned by 
+%   `vim --serverlist` or the last server specified.
+%   File must exist somewhere on the path. Vim must have been opened using 
+%   `vim --servername` flag in order to be registered as a server.
 %
 %   VIM(file, server) edits file using a specific vim server. Server is either the name
 %   of that server or the numeric index of the server in the --serverlist.
 %
+%   VIM returns the list of vim instances in the serverlist
 %   VIM --serverlist returns the list of vim instances in the serverlist
 %
 %   Example
@@ -15,15 +17,17 @@ function vim(varargin)
 %     vim helloWorld VIM3 % open helloWorld.m in vim with servername VIM3
 %
 
+    persistent pLastServer;
+
     p = inputParser;
-    p.addRequired('file', @ischar);
-    p.addOptional('server', 1, @(x) ischar(x) || isscalar(x)); 
+    p.addOptional('file', '', @ischar);
+    p.addOptional('server', [], @(x) ischar(x) || isscalar(x)); 
     p.parse(varargin{:});
     file = p.Results.file;
     server = p.Results.server;
     
-    if strcmp(file, '--serverlist') 
-        getVimServerList(true);
+    if nargin == 0 || strcmp(file, '--serverlist') 
+        getVimServerList(true, pLastServer);
         return;
     end
 
@@ -34,10 +38,14 @@ function vim(varargin)
     end
 
     if isempty(server)
-        server = 1;
+        if isempty(pLastServer)
+            server = 1;
+        else
+            server = pLastServer;
+        end
     end
         
-    list = getVimServerList();
+    list = getVimServerList(false, pLastServer);
     
     if ischar(server)
         numServer = str2double(server);
@@ -62,10 +70,12 @@ function vim(varargin)
     else
         if ~ismember(server, list)
             fprintf('Server %s not found in list:\n', server);
-            getVimServerList(true);
+            getVimServerList(true, pLastServer);
             return;
         end
     end 
+    
+    pLastServer = server;
     
     cmd = sprintf('vim --servername %s --remote %s', server, file);
     [status result] = system(cmd);
@@ -76,7 +86,11 @@ function vim(varargin)
     end
 end
 
-function list = getVimServerList(printList)
+function list = getVimServerList(printList, lastServer)
+    if nargin < 2
+        lastServer = '';
+    end
+        
     [status result] = system('vim --serverlist'); 
     if isempty(result)
         list = {};
@@ -88,7 +102,11 @@ function list = getVimServerList(printList)
             fprintf('No instances in serverlist\n');
         else
             for i = 1:length(list)
-                fprintf('%2d : %s\n', i, list{i});
+                if ~isempty(lastServer) && strcmp(list{i}, lastServer)
+                    fprintf('%2d : %s [last used]\n', i, list{i});
+                else
+                    fprintf('%2d : %s\n', i, list{i});
+                end
             end
         end
     end

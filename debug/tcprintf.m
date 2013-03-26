@@ -46,7 +46,7 @@ function tcprintf(style, fmatString, varargin)
     inDataTip = ismember('datatipinfo', {stack.name});
     
     if nargin == 0
-        if usingTerminal && inDataTip
+        if usingTerminal && ~inDataTip
             % clear the ansi codes in case somethings gone wrong
             fprintf('\033[0m');
         end

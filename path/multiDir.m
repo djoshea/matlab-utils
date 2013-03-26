@@ -18,9 +18,11 @@ function list = multiDir(varargin)
     for i = 1:length(args)
         r = dir(args{i});
         
-        path = fileparts(args{i});
-        fullNames = cellfun(@(name) fullfile(path, name), {r.name}, 'UniformOutput', false);
-        [r.name] = fullNames{:};
+        if ~isempty(r)
+            path = fileparts(args{i});
+            fullNames = cellfun(@(name) fullfile(path, name), {r.name}, 'UniformOutput', false);
+            [r.name] = fullNames{:};
+        end
         resultsCell{i} = r;
     end
 

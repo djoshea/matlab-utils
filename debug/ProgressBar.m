@@ -6,10 +6,10 @@ classdef ProgressBar < handle
 % Usage:
 %   pbar = ProgressBar('Message goes here', nThingsToProcess);
 %   for i = 1:nThingsToProcess
-%       pbar.update(i);
+%       pbar.update(i, [optional message update]);
 %       ...
 %   end
-%   pbar.finish();
+%   pbar.finish([optional final message]);
 %         
 % Demonstration:
 %   ProgressBar.demo();
@@ -24,9 +24,9 @@ classdef ProgressBar < handle
     end
 
     methods
-        function pbar = ProgressBar(message, N)
+        function pbar = ProgressBar(N, message, varargin)
             if nargin >= 1
-                pbar.message = message;
+                pbar.message = sprintf(message, varargin{:});
             end
             if nargin >= 2
                 pbar.N = N;
@@ -36,36 +36,77 @@ classdef ProgressBar < handle
             [~, pbar.cols] = getTerminalSize();
             pbar.firstUpdate = true;
             pbar.timeStart = now;
+            pbar.update(0);
         end
 
-        function update(pbar, n)
+        function update(pbar, n, message, varargin)
+            if nargin > 2
+                pbar.message = sprintf(message, varargin{:});
+            end
+            
             if pbar.firstUpdate
                 pbar.firstUpdate = false;
             end
-            numWidth = ceil(log10(pbar.N));
-            if isempty(pbar.N) || pbar.N == 1
-                progStr = sprintf('[ %5.1f%% ]', n*100);
-                progLen = 10;
+            if pbar.N > 0
+                numWidth = ceil(log10(pbar.N));
             else
-                progStr = sprintf('%*d / %*d [ %5.1f%% ]', numWidth, n, numWidth, pbar.N, n/pbar.N*100);
-                progLen = numWidth*2 + 4 + 10;
+                numWidth = 1;
             end
-            gap = pbar.cols - 1 - length(pbar.message) - progLen;
+            
+            if n < 0
+                n = 0;
+            end
+            if isempty(pbar.N) || pbar.N == 1
+                ratio = n;
+                if ratio < 0
+                    ratio = 0;
+                end
+                if ratio > 1
+                    ratio = 1;
+                end
+                percentage = ratio * 100;
+                progStr = sprintf('[ %5.1f%% ]', percentage);
+                %progLen = 10;
+            else
+                ratio = (n-1)/pbar.N;
+                percentage = min(max(ratio*100, 0), 100);
+                progStr = sprintf('%*d / %*d [ %5.1f%% ]', numWidth, n, numWidth, pbar.N, percentage);
+                
+                %progLen = numWidth*2 + 4 + 10;
+            end
+            
+            progLen = length(progStr);
+            
+            if ratio < 0
+                ratio = 0;
+            end
+            if ratio > 1
+                ratio = 1;
+            end
+            
+            gap = pbar.cols - 1 - (length(pbar.message)+1) - progLen;
             spaces = repmat(' ', 1, gap);
             str = [pbar.message spaces progStr]; 
 
             % separate into colored portion of bar and non-colored portion of bar
-            ind = min(length(str), ceil(n/pbar.N*pbar.cols));
+            ind = min(length(str), ceil(ratio*pbar.cols));
             preStr = str(1:ind);
             postStr = str(ind+1:end);
 
-            fprintf('\b\r\033[42;30m%s\033[49;39m%s ', preStr, postStr);
+            fprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
         end
 
-        function finish(pbar)
-            gap = pbar.cols - 1 - length(pbar.message);
-            spaces = repmat(' ' , 1, gap);
-            fprintf('\b\r%s%s\n', pbar.message, spaces);
+        function finish(pbar, message, varargin)
+            %gap = pbar.cols - 1 - length(pbar.message);
+            %spaces = repmat(' ' , 1, gap);
+            %fprintf('\b\r%s%s\033[0m\n', pbar.message, spaces);
+
+            spaces = repmat(' ', 1, pbar.cols-1);
+            fprintf('\b\r%s\033[0m\r', spaces);
+            if nargin > 1
+                pbar.message = sprintf(message, varargin{:});
+                fprintf('%s\n', pbar.message);
+            end
         end
     end
 
@@ -75,7 +116,7 @@ classdef ProgressBar < handle
                 withInterruption = false;
             end
             N = 300;
-            pbar = ProgressBar('Running ProgressBarDemo', N);
+            pbar = ProgressBar(N, 'Running ProgressBarDemo with %d items', N);
             for i = 1:N
                 pbar.update(i);
                 if i == floor(N/2) && withInterruption
