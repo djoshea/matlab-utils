@@ -10,8 +10,6 @@ function printPValue(name, p)
         tcprintf(verySigColor, '< 0.001 ***');
     elseif p < 0.01
         tcprintf(sigColor, '< 0.01 **');
-    elseif p < 0.01
-        tcprintf(sigColor, '< 0.01 *');
     elseif p < 0.05 
         tcprintf(sigColor, '< 0.05 *');
     else
