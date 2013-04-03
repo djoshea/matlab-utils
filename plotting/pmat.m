@@ -31,4 +31,7 @@ set(h, 'EdgeColor', 'none');
 colorbar;
 
 box off
+axis ij
+
+set(gca, 'XAxisLocation', 'top');
 
