@@ -1,22 +1,3 @@
-% DISCLAIMER
-% ---------------------------------------------------------------------
-% This work is released under the
-%
-% Creative Commons Attribution-NonCommercial 3.0 Unported (CC BY-NC 3.0)
-%
-% license. Therefore, you are free to copy, redistribute and remix
-% the code. You may not use this work for commercial purposes (please 
-% contact the authors at wieland.brendel@neuro.fchampalimaud.org).  
-% You are obliged to reference the work of the original authors:
-%
-% Wieland Brendel & Christian Machens, published at NIPS 2011 "Demixed
-% Principal Component Analysis", code@http://sourceforge.net/projects/dpca/
-%
-% USAGE AT YOUR OWN RISK! The authors may not be hold responsible for any
-% kind of damages or losses of any kind that might be traced back to the
-% usage or compilation of this work.
-% ---------------------------------------------------------------------
-    
 function W = dpca(Y,comps,maxstep,tolerance)
     % Performs a DPCA analysis on the data set Y. For further information
     % on this method please check the paper

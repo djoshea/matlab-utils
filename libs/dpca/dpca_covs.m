@@ -17,7 +17,7 @@
 % usage or compilation of this work.
 % ---------------------------------------------------------------------
 
-function [covmats, C] = dpca_covs(Y)
+function [covmats, C, sets] = dpca_covs(Y)
 	%  Calculates the marginalized covariance matrices for DPCA
     %  
     %  INPUT
