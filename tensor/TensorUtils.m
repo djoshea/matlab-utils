@@ -16,7 +16,7 @@ classdef TensorUtils
             asCell = p.Results.asCell;
             contentsFn = p.Results.contentsFn;
             
-            if isempty(sz)
+            if isempty(sz) || prod(sz) == 0
                 if asCell 
                     t = {};
                 else
@@ -110,7 +110,9 @@ classdef TensorUtils
         function sz = expandScalarSize(sz)
             % if sz (size) is a scalar, make it into a valid size vector by
             % appending 1 to the end. i.e. 3 --> [3 1]
-            if isscalar(sz)
+            if isempty(sz)
+                sz = [0 0];
+            elseif isscalar(sz)
                 sz = [sz 1];
             end
         end
