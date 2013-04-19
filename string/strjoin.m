@@ -15,6 +15,8 @@ function str = strjoin(strCell, join)
         if isnumeric(strCell) || islogical(strCell)
             % convert numeric vectors to strings
             strCell = arrayfun(@num2str, strCell, 'UniformOutput', false);
+        elseif iscell(strCell)
+            strCell = cellfun(@num2str, strCell, 'UniformOutput', false);
         end
         
         strCell = cellfun(@num2str, strCell, 'UniformOutput', false);

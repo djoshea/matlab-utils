@@ -4,5 +4,10 @@ function v = removenan(v)
         error('Must specify a vector input');
     end
 
-    v = v(~isnan(v));
+    if iscell(v)
+        nanMask = cellfun(@isnan, v);
+    else
+        nanMask = isnan(v);
+    end
+    v = v(~nanMask);
 end
