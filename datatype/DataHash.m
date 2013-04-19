@@ -376,7 +376,9 @@ function DataBin = ConvertObject(DataObj)
 DataBin = uint8(DataObj);
 
 % Or perhaps this is better:
+% state = warning('off', 'MATLAB:structOnObject');
 % DataBin = struct(DataObj);
+% warning(state);
 
 % return;
 

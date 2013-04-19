@@ -191,7 +191,7 @@ function colorCodes = getColorCode(colorName, bright)
         case 'black'
             code = 30;
             bright = 0;
-        case 'darkGray';
+        case 'darkGray'
             code = 30;
             bright = 1;
         case 'red'
@@ -206,11 +206,12 @@ function colorCodes = getColorCode(colorName, bright)
             code = 35;
         case 'cyan'
             code = 36;
-        case 'lightGray'
+        case {'gray', 'lightGray'}
             code = 37;
             bright = 0;
         case 'white'
             code = 37;
+            bright = 1;
         case 'default'
             code = 39;
     end
@@ -218,7 +219,7 @@ function colorCodes = getColorCode(colorName, bright)
     if bright
         colorCodes = [1; code];
     else
-        colorCodes = [code];
+        colorCodes = [0; code];
     end
 
 end
