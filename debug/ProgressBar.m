@@ -25,9 +25,12 @@ classdef ProgressBar < handle
 
     methods
         function pbar = ProgressBar(N, message, varargin)
-            if nargin >= 1
+            if nargin > 1
                 pbar.message = sprintf(message, varargin{:});
+            else
+                pbar.message = '';
             end
+            
             if nargin >= 2
                 pbar.N = N;
             else

@@ -17,10 +17,12 @@ classdef TensorUtils
             contentsFn = p.Results.contentsFn;
             
             if isempty(sz) || prod(sz) == 0
-                if asCell 
-                    t = {};
-                else
-                    t = [];
+                for i = 1:nargout
+                    if asCell 
+                        varargout{i} = {};
+                    else
+                        varargout{i} = [];
+                    end
                 end
                 return
             end
@@ -78,14 +80,21 @@ classdef TensorUtils
         end
 
         function varargout = mapSlices(fn, spanDim, varargin) 
-            % this acts like map, except rather than being called on each element 
-            % individually, it is called on slices of the tensor at once. These slices
-            % are created by selecting all elements along the dimensions in dims and 
-            % repeating this over each set of subscripts along the other dims.
+            % varargout = mapSlices(fn, spanDims, varargin)
             %
-            % The result will be reassembled into a tensor. If the function returns
-            % a matrix or cell with the same size as its inputs, the output tensor will
-            % have the same shape and size as the input.
+            % this acts like map, calling fn(varargin{1}(ind),varargin{2}(ind))
+            % except rather than being called on each element of varargin{:}
+            % individually, it is called on slices of the tensor(s) at once. These slices
+            % are created by selecting all elements along the dimensions in spanDims and 
+            % repeating this over each set of subscripts along the other dims.
+            % The slices passed to fn will not be squeezed, so they will
+            % have singleton dimensions for dim in spanDim. Call
+            % .squeezeDims(in, spanDim) to obtain a squeezed slice.
+            % 
+            % The result will be reassembled into a tensor, whose size is determined by
+            % the sizes of dimensions not in spanDim. Because the output
+            % values will be stored as cell tensor elements, there are no
+            % constraints on what these outputs look like
            
             sz = size(varargin{1});
             nd = ndims(varargin{1});
@@ -95,18 +104,26 @@ classdef TensorUtils
             dim = setdiff(1:nd, spanDim);
             
             % slice through each of the varargin
-            tCellArgs = cellfun(@(t) TensorUtils.selectEachAlongDimension(t, dim), varargin,...
-                'UniformOutput', false);
+            tCellArgs = cellfun(@(t) TensorUtils.selectEachAlongDimension(t, dim), ...
+                varargin, 'UniformOutput', false);
 
             % run the function on each slice
             [resultCell{1:nargout}] = cellfun(fn, tCellArgs{:}, 'UniformOutput', false);
 
-            % reassemble the result
-            varargout = cellfun(@(r) TensorUtils.reassemble(r, dim), resultCell, 'UniformOutput', false);
+            varargout = resultCell;
+            
+            % (old) reassemble the result 
+            % varargout = cellfun(@(r) TensorUtils.reassemble(r, dim), resultCell, 'UniformOutput', false);
         end
     end
 
     methods(Static) % Indices and subscripts
+        function sz = sizeMultiDim(t, dims)
+            % sz = sizeMultiDim(t, dims) : sz(i) = size(t, dims(i))
+            szAll = size(t);
+            sz = arrayfun(@(d) szAll(d), dims);
+        end
+
         function sz = expandScalarSize(sz)
             % if sz (size) is a scalar, make it into a valid size vector by
             % appending 1 to the end. i.e. 3 --> [3 1]
@@ -115,6 +132,13 @@ classdef TensorUtils
             elseif isscalar(sz)
                 sz = [sz 1];
             end
+        end
+
+        function other = otherDims(sz, dims)
+            % otherDims(t, dims) returns a list of dims in t NOT in dims
+            % e.g. if ndims(t) == 3, dims = 2, other = [1 3]
+            allDims = 1:length(sz);
+            other = makecol(setdiff(allDims, dims));
         end
         
         function t = containingLinearInds(sz)
@@ -173,23 +197,10 @@ classdef TensorUtils
         end
     end
 
-    methods(Static) % Selecting, reshaping
-        function tCell = regroupAlongDimension(t, dim)
-            % tCell{i} will be equivalent to squeeze(t(..., i, ...)) where i is in dimension t
-            % for each row along dimension dim
-            
-            nAlong = size(t, dim);
-            sqMask = arrayfun(@(n) true(n, 1), size(t), 'UniformOutput', false);
-            tCell = cell(nAlong, 1);
-            for iAlong = 1:nAlong;
-                sqMask{dim} = iAlong;
-                tCell{iAlong} = squeeze(t(sqMask{:}));
-            end
-        end
-
+    methods(Static) % Selection Mask generation
         function maskByDim = maskByDimCell(sz)
             sz = TensorUtils.expandScalarSize(sz);
-            
+
             % get a cell array of selectors into each dim that would select
             % every element if used via t(maskByDim{:})
             maskByDim = arrayfun(@(n) true(n, 1), sz, 'UniformOutput', false);
@@ -201,7 +212,7 @@ classdef TensorUtils
         % vectors to be used for selecting along dim(i)
         function maskByDim = maskByDimCellSelectAlongDimension(sz, dim, select)
             sz = TensorUtils.expandScalarSize(sz);
-            
+
             % get a cell array of selectors into each dim that effectively select
             % select{i} along dim(i). These could be used by indexing a tensor t
             % via t(maskByDim{:}) --> se selectAlongDimension
@@ -216,13 +227,103 @@ classdef TensorUtils
 
         function mask = maskSelectAlongDimension(sz, dim, select)
             sz = TensorUtils.expandScalarSize(sz);
-            
+
             % return a logical mask where for tensor with size sz
             % we select t(:, :, select, :, :) where select acts along dimension dim
 
             mask = false(sz); 
             maskByDim = TensorUtils.maskByDimCellSelectAlongDimension(sz, dim, select);
             mask(maskByDim{:}) = true;
+        end
+    end
+
+    methods(Static) % Squeezing along particular dimensions
+        function tsq = squeezeDims(t, dims)
+            % like squeeze, except only collapses singleton dimensions in list dims
+            siz = size(t);
+            dims = dims(dims <= ndims(t));
+            dims = dims(siz(dims) == 1);
+            siz(dims) = []; % Remove singleton dimensions.
+            siz = [siz ones(1,2-length(siz))]; % Make sure siz is at least 2-D
+            tsq = reshape(t,siz);
+        end
+        
+        function newDimIdx = shiftDimsPostSqueeze(sz, squeezeDims, dimsToShift)
+            assert(isvector(sz), 'First arg must be size');
+            % when squeezing along squeezeDims, the positions of dims in
+            % dimsToShift will change. The new dim idx will be returned
+            origDims = 1:length(sz);
+            squeezeDims = squeezeDims(squeezeDims <= length(sz));
+            remainDims = setdiff(origDims, squeezeDims);
+            
+            [~, newDimIdx] = ismember(dimsToShift, remainDims);
+            newDimIdx(newDimIdx==0) = NaN;
+        end
+
+        function tsq = squeezeOtherDims(t, dims)
+            other = TensorUtils.otherDims(size(t), dims);
+            tsq = TensorUtils.squeezeDims(t, other);
+        end
+    end
+
+    methods(Static) % Regrouping, Nesting, Selecting, reshaping
+        function tCell = regroupAlongDimension(t, dims)
+            % tCell = regroupAlongDimension(t, dims)
+            % returns a cell tensor of tensors, where the outer tensor is over 
+            % the dims in dims. Each inner tensor is formed by selecting over
+            % the dims not in dims.
+            %
+            % e.g. if size(t) = [nA nB nC nD] and dims is [1 2],
+            % size(tCell) = [nA nB] and size(tCell{iA, iB}) = [nC nD]
+            
+            tCell = TensorUtils.squeezeSelectEachAlongDimension(t, dims);
+            tCell = TensorUtils.squeezeOtherDims(tCell, dims);
+        end
+
+        function tCell = nestedRegroupAlongDimension(t, dimSets)
+            assert(iscell(dimSets), 'dimSets must be a cell array of dimension sets');
+
+            dimSets = makecol(cellfun(@makecol, dimSets, 'UniformOutput', false));
+            allDims = cell2mat(dimSets);
+
+            assert(length(unique(allDims)) == length(allDims), ...
+                'A dimension was included in multiple dimension sets');
+
+            otherDims = TensorUtils.otherDims(size(t), allDims);
+            if ~isempty(otherDims)
+                dimSets{end+1} = otherDims;
+            end
+
+            tCell = inner(t, dimSets);
+            return;
+
+            function tCell = inner(t, dimSets)
+                if length(dimSets) == 1
+                    % special case, no grouping, just permute dimensions and
+                    % force to be cell
+                    tCell = permute(t, dimSets{1});
+                    if ~iscell(tCell)
+                        tCell = num2cell(tCell);
+                    end
+                elseif length(dimSets) == 2
+                    % last step in recursion, call final regroup
+                    tCell = TensorUtils.regroupAlongDimension(t, dimSets{1});
+                else
+                    % call inner on each slice of dimSets{1}
+                    remainingDims = TensorUtils.otherDims(size(t), dimSets{1});
+                    tCell = TensorUtils.mapSlices(@(t) mapFn(t, dimSets), ...
+                        remainingDims, t);
+                    tCell = TensorUtils.squeezeOtherDims(tCell, dimSets{1});
+                end
+            end
+            
+            function tCell = mapFn(t, dimSets)
+                remainingDimSets = cellfun(...
+                    @(dims) TensorUtils.shiftDimsPostSqueeze(size(t), dimSets{1}, dims), ...
+                    dimSets(2:end), 'UniformOutput', false);
+                tCell = inner(TensorUtils.squeezeDims(t, dimSets{1}), remainingDimSets);
+            end
+            
         end
 
         function [res mask] = selectAlongDimension(t, dim, select, squeezeResult)
@@ -233,25 +334,26 @@ classdef TensorUtils
             maskByDim = TensorUtils.maskByDimCellSelectAlongDimension(sz, dim, select);
             res = t(maskByDim{:});
 
-            if squeezeResult;
-                res = squeeze(res);
+            if squeezeResult
+                % selectively squeeze along dim
+                res = TensorUtils.squeezeDims(res, dim);
             end
         end
 
         function [res mask] = squeezeSelectAlongDimension(t, dim, select)
             % select ind along dimension dim and squeeze() the result
             % e.g. squeeze(t(:, :, ... ind, ...)) 
-            
+
             [res mask] = TensorUtils.selectAlongDimension(t, dim, select, true);
         end
 
         function tCell = selectEachAlongDimension(t, dim, squeezeEach)
             % returns a cell array tCell such that tCell{i} = selectAlongDimension(t, dim, i)
             % optionally calls squeeze on each element 
-            if nargin < 4
+            if nargin < 3
                 squeezeEach = false;
             end
-            
+
             sz = size(t);
 
             % generate masks by dimension that are equivalent to ':'
@@ -264,7 +366,8 @@ classdef TensorUtils
 
             % oh so clever
             tCell = TensorUtils.mapToSizeFromSubs(szResult, 'asCell', true, ...
-                'contentsFn', @(varargin) TensorUtils.selectAlongDimension(t, dim, varargin(dim), squeezeEach));
+                'contentsFn', @(varargin) TensorUtils.selectAlongDimension(t, dim, ...
+                varargin(dim), squeezeEach));
         end
 
         function tCell = squeezeSelectEachAlongDimension(t, dim) 
@@ -276,9 +379,11 @@ classdef TensorUtils
             % given a tCell in the form returned by selectEachAlongDimension
             % return the original tensor
 
+            nd = ndims(tCell);
             szOuter = size(tCell);
+            szOuter = [szOuter ones(1, nd - length(szOuter))];
             szInner = size(tCell{1});
-            nd = length(szInner);
+            szInner = [szInner ones(1, nd - length(szInner))];
 
             % dimMask(i) true if i in dim
             dimMask = false(nd, 1);
@@ -311,11 +416,11 @@ classdef TensorUtils
         function vec = flatten(t)
             vec = makecol(t(:));
         end
-        
+
         function mat = flattenAlongDimension(t, dim)
             % returns a 2d matrix where mat(i, :) is the flattened vector of tensor
             % values from each t(..., i, ...) where i is along dim
-            
+
             nAlong = size(t, dim);
             nWithin = numel(t) / nAlong;
             if iscell(t)
@@ -323,7 +428,7 @@ classdef TensorUtils
             else
                 mat = nan(nAlong, nWithin);
             end
-            
+
             sqMask = TensorUtils.maskByDimCell(size(t));
             for iAlong = 1:nAlong
                 sqMask{dim} = iAlong;
@@ -331,7 +436,7 @@ classdef TensorUtils
                 mat(iAlong, :) = within(:);
             end
         end
-        
+
         function tCell = flattenAlongDimensionAsCell(t, dim)
             % returns a cell array of length size(t, dim)
             % where each element is the flattened vector of tensor
