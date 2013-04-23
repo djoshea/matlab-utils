@@ -18,6 +18,8 @@ function str = strjoin(strCell, join)
         elseif iscell(strCell)
             strCell = cellfun(@num2str, strCell, 'UniformOutput', false);
         end
+        
+        strCell = cellfun(@num2str, strCell, 'UniformOutput', false);
 
         str = cellfun(@(str) [str join], strCell, ...
             'UniformOutput', false);
