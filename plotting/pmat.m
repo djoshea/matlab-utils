@@ -1,4 +1,4 @@
-function pmat(varargin)
+function [h hcbar] = pmat(varargin)
 % visualize a matrix using pcolor
 
 if(length(varargin) == 1)
@@ -28,7 +28,7 @@ set(h, 'EdgeColor', 'none');
 %colormap(flipud(cbrewer('div', 'RdYlBu', 256)));
 %colormap gray;
 
-colorbar;
+hcbar = colorbar;
 
 box off
 axis ij

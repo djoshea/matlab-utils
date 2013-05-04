@@ -45,7 +45,7 @@ if isempty(merged)
 	% struct
 	merged = struct();
 end
-for it = 1:length(source)
+for it = 1:numel(source)
     for ifld = 1:length(sourceFields)
         merged(it).(destFields{ifld}) = source(it).(sourceFields{ifld});
     end
