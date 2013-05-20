@@ -26,8 +26,10 @@ for ifld = 1:length(flds)
     end
 
     % assign each element of vals into each struct in structArray
-    valsCell = num2cell(vals);
-    [structArray(1:length(vals)).(flds{ifld})] = deal(valsCell{:});
+    if ~iscell(vals)
+        vals = num2cell(vals);
+    end
+    [structArray(1:length(vals)).(flds{ifld})] = deal(vals{:});
 end
 
 end
