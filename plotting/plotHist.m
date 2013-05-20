@@ -21,6 +21,8 @@ def.lineColor = [];
 def.prettyAxis = true;
 def.xname = '';
 def.yname = '';
+def.fillColor = [];
+def.zeroLine = true;
 assignargs(def, varargin);
 
 n = histc(vals, binEdges);
@@ -42,8 +44,22 @@ if isempty(axh)
     axh = gca;
 end
 
-stairs(binEdges, n, '-', 'LineWidth', lineWidth, 'Color', color, 'Parent', axh);
+[xPts yPts] = stairs(binEdges, n);
+xPts = [xPts(1); xPts; xPts(end)];
+yPts = [0; yPts; 0];
+
+if zeroLine
+    plot([xPts(1) xPts(end)], [0 0], '-', 'Color', 0.8*ones(3,1));
+end
+
+if ~isempty(fillColor)
+    patch(xPts, yPts, fillColor, 'EdgeColor', 'none');
+    hold on
+end
+
+stairs(xPts, yPts, '-', 'LineWidth', lineWidth, 'Color', color, 'Parent', axh);
 hold on
+    
 box off
 
 yl = [0 nanmax(n) * 1.2];
