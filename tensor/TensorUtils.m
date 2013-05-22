@@ -115,6 +115,21 @@ classdef TensorUtils
             % (old) reassemble the result 
             % varargout = cellfun(@(r) TensorUtils.reassemble(r, dim), resultCell, 'UniformOutput', false);
         end
+        
+        function varargout = mapSlicesInPlace(fn, spanDim, varargin)
+            % This function acts very similarly to mapSlices. The only
+            % difference is that fn must return outputs that has the same
+            % size and shape as it's inputs. Provided this constraint is
+            % met, the output will be a tensor that has the same shape as
+            % the input tensor. Effectively you loop through the
+            % input tensors one slice at a time, transform that slice in
+            % place via slice = fn(slice) and rebuild the output tensor one
+            % slice at a time.
+            
+            [resultCell{1:nargout}] = TensorUtils.mapSlices(fn, spanDim, varargin{:});
+            nonSpanDims = TensorUtils.otherDims(size(resultCell{1}), spanDim);
+            varargout = cellfun(@(r) TensorUtils.reassemble(r, nonSpanDims), resultCell, 'UniformOutput', false);
+        end
     end
 
     methods(Static) % Indices and subscripts
@@ -377,6 +392,7 @@ classdef TensorUtils
 
         function t = reassemble(tCell, dim)
             % given a tCell in the form returned by selectEachAlongDimension
+            % dim is the dimension embedded within each slice
             % return the original tensor
 
             nd = ndims(tCell);
