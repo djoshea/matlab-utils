@@ -1,1 +1,4 @@
-evalin('base', 'dbquit(''all'')');
+try
+    evalin('base', 'dbquit(''all'')');
+catch
+end
