@@ -1,7 +1,6 @@
 classdef TensorUtils
     % set of classes for building high-d matrices easily
-    
-    methods(Static)
+    methods(Static) % Mapping, construction via callback
         function varargout = mapToSizeFromSubs(sz, varargin)
             % t = mapTensor(sz, contentsFn = @(varargin) NaN, asCell = false)
             % build a tensor with size sz by passing subscripts inds to
@@ -132,7 +131,23 @@ classdef TensorUtils
         end
     end
 
-    methods(Static) % Indices and subscripts
+    methods(Static) % Dimensions and sizes
+        function out = emptyWithSameType(in, szOut)
+            % create out as size szOut with same type as in (either cell or
+            % nans)
+            if iscell(in)
+                out = cell(szOut);
+            else
+                out = nan(szOut);
+            end
+        end
+            
+        function tf = isvector(vec)
+            % like isvector except works for high-d vectors as well
+            sz = size(vec);
+            tf = nnz(sz ~= 1) == 1 && ~any(sz == 0);
+        end
+        
         function sz = sizeMultiDim(t, dims)
             % sz = sizeMultiDim(t, dims) : sz(i) = size(t, dims(i))
             szAll = size(t);
@@ -155,7 +170,9 @@ classdef TensorUtils
             allDims = 1:length(sz);
             other = makecol(setdiff(allDims, dims));
         end
-        
+    end
+    
+    methods(Static) % Indices and subscripts
         function t = containingLinearInds(sz)
             % build a tensor with size sz where each element contains the linear
             % index it would be accessed at, e.g. t(i) = i 
@@ -212,7 +229,7 @@ classdef TensorUtils
         end
     end
 
-    methods(Static) % Selection Mask generation
+    methods(Static) % Selection Mask generation        
         function maskByDim = maskByDimCell(sz)
             sz = TensorUtils.expandScalarSize(sz);
 
@@ -250,6 +267,18 @@ classdef TensorUtils
             maskByDim = TensorUtils.maskByDimCellSelectAlongDimension(sz, dim, select);
             mask(maskByDim{:}) = true;
         end
+        
+        function maskByDim = maskByDimCellSelectPartialFromOrigin(sz, dim, select)
+            maskByDim = TensorUtils.maskByDimCell(sz);
+            maskByDim(dim) = arrayfun(@(n) 1:n, select, 'UniformOutput', false);
+        end
+        
+        function mask = maskSelectPartialFromOrigin(sz, dim, select)
+            % select the first select(i) items from dim(i) 
+            % for i = 1:numel(sz)
+            selectCell = arrayfun(@(n) 1:n, select, 'UniformOutput', false);
+            mask = TensorUtils.maskSelectAlongDimension(sz, dim, selectCell);
+        end                 
     end
 
     methods(Static) % Squeezing along particular dimensions
@@ -281,7 +310,7 @@ classdef TensorUtils
         end
     end
 
-    methods(Static) % Regrouping, Nesting, Selecting, reshaping
+    methods(Static) % Regrouping, Nesting, Selecting, Reshaping
         function tCell = regroupAlongDimension(t, dims)
             % tCell = regroupAlongDimension(t, dims)
             % returns a cell tensor of tensors, where the outer tensor is over 
@@ -461,6 +490,61 @@ classdef TensorUtils
             for iAlong = 1:length(tCell)
                 tCell{iAlong} = tCell{iAlong}(:);
             end
+        end
+    end
+    
+    methods(Static) % Slice orienting and repmat
+        function out = orientSliceAlongDims(slice, spanDim)
+            % given a slice with D dimensions, orient slice so that it's
+            % dimension(i) becomes dimension spanDim(i)
+            
+            szSlice = size(slice);
+            ndimsSlice = length(spanDim);
+            if ndimsSlice == 1
+                % when spanDim is scalar, expect column vector or makecol
+                slice = makecol(squeeze(slice));
+            end
+            
+            ndimsOut = max(spanDim);
+            sliceHigherDims = ndimsSlice+1:ndimsOut;
+            nonSpanDims = setdiff(1:ndimsOut, spanDim);
+            
+            permuteOrder = nan(1, ndimsOut);
+            permuteOrder(spanDim) = 1:ndimsSlice;
+            permuteOrder(nonSpanDims) = sliceHigherDims;
+            
+            out = permute(slice, permuteOrder);
+        end
+        
+        function out = repmatSliceAlongDims(slice, szOut, spanDim)
+            % given a slice with ndims(slice) == numel(spanDim), 
+            % orient that slice along the dimensions in spanDim and repmat
+            % it so that the output is size szOut.
+            
+            nSpan = 1:length(spanDim);
+            ndimsOut = length(szOut);
+            
+            sliceOrient = TensorUtils.orientSliceAlongDims(slice, spanDim);
+            
+            repCounts = szOut;
+            repCounts(spanDim) = 1;
+            
+            out = repmat(sliceOrient, repCounts);
+        end
+    end
+    
+    methods(Static) % Size expanding
+        function out = expandAlongDims(in, dims, by)
+            sz = size(in);
+            sz(dims) = sz(dims) + by;
+            
+            out = TensorUtils.emptyWithSameType(in, sz);
+            
+            % build the mask over out to assign in into
+            szInDims = TensorUtils.sizeMultiDim(in, dims);
+            maskByDim = TensorUtils.maskByDimCellSelectPartialFromOrigin(size(out), dims, szInDims);
+            
+            out(maskByDim{:}) = in;
         end
     end
 end
