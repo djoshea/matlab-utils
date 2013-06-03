@@ -22,7 +22,9 @@ def.prettyAxis = true;
 def.xname = '';
 def.yname = '';
 def.fillColor = [];
+def.fillAlpha = 1;
 def.zeroLine = true;
+def.setAxisLimits = true;
 assignargs(def, varargin);
 
 n = histc(vals, binEdges);
@@ -53,7 +55,7 @@ if zeroLine
 end
 
 if ~isempty(fillColor)
-    patch(xPts, yPts, fillColor, 'EdgeColor', 'none');
+    patch(xPts, yPts, fillColor, 'FaceAlpha', fillAlpha, 'EdgeColor', 'none');
     hold on
 end
 
@@ -66,9 +68,12 @@ yl = [0 nanmax(n) * 1.2];
 if isnan(yl(2)) || yl(2) <= 0
     yl(2) = 1;
 end
-ylim(axh, yl);
 arrowY = [yl(2) yl(2)*.8];
-xlim(axh, minmax(binEdges));
+
+if setAxisLimits
+    ylim(axh, yl);
+    xlim(axh, minmax(binEdges));
+end
 
 if showMedian
     hold on
