@@ -14,6 +14,9 @@ function [tf loc] = ismemberCell(A, S)
     if isnumeric(S) || islogical(A)
         S = num2cell(S);
     end
+    if ischar(A)
+        A = {A};
+    end
 
     loc = cellfun(@(a) findInCell(a, S), A);
     tf = loc > 0;
