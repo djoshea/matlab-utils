@@ -7,6 +7,10 @@ val = [];
 value = [];
 assignargs(varargin);
 
+if nargin < 2
+    fields = {};
+end
+
 if isempty(val) && ~isempty(value)
     val = value;
 end

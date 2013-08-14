@@ -15,6 +15,10 @@ function S = structReplaceEmptyValues(S, varargin)
     replaceEmptyStrings = false; 
 
     assignargs(varargin);
+    
+    if ~iscell(fields)
+        fields = {fields};
+    end
 
     if replaceEmptyStrings
         emptyFn = @isempty;
