@@ -29,3 +29,4 @@ end
 S = cat(1, structs{:});
 
 end
+

@@ -87,9 +87,15 @@ classdef ProgressBar < handle
                 ratio = 1;
             end
             
-            gap = pbar.cols - 1 - (length(pbar.message)+1) - progLen;
+            if length(pbar.message) + progLen + 2 > pbar.cols
+                message = [pbar.message(1:(pbar.cols - progLen - 6)), '...'];
+            else
+                message = pbar.message;
+            end 
+            
+            gap = pbar.cols - 1 - (length(message)+1) - progLen;
             spaces = repmat(' ', 1, gap);
-            str = [pbar.message spaces progStr]; 
+            str = [message spaces progStr]; 
 
             % separate into colored portion of bar and non-colored portion of bar
             ind = min(length(str), ceil(ratio*pbar.cols));

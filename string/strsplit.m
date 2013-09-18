@@ -8,6 +8,11 @@ if nargin < 2
     separator = ',';
 end
 
+if isempty(str)
+    tokens = {};
+    return;
+end
+
 results = textscan(str, '%s', 'Delimiter', separator);
 tokens = results{1};
 

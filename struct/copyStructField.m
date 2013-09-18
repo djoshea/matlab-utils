@@ -1,5 +1,7 @@
 function Sdest = copyStructField(Ssrc, Sdest, fromFields, toFields)
-
+% Sdest = copyStructField(Ssrc, Sdest, fromFields, toFields)
+% copies each Ssrc(i).(fromFields{j}) to Sdest(i).(toFields{j})
+%
     if nargin < 4
         toFields = fromFields;
     end

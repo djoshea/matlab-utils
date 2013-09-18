@@ -533,8 +533,17 @@ classdef TensorUtils
         end
     end
     
-    methods(Static) % Size expanding
+    methods(Static) % Size expansion
+        function out = singletonExpandToSize(in, szOut)
+            % expand singleton dimensions to match szOut
+            szIn = size(in);
+            repCounts = szOut;
+            repCounts(szIn ~= 1) = 1;
+            out = repmat(in, repCounts);
+        end
+        
         function out = expandAlongDims(in, dims, by)
+            % expand by adding nans or empty cells for cell array
             sz = size(in);
             sz(dims) = sz(dims) + by;
             

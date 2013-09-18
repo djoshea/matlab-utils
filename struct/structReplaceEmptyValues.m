@@ -1,4 +1,4 @@
-function S = structReplaceEmptyValues(S, varargin)
+function S = structReplaceEmptyValues(S, with, varargin)
 % for each field in 'fields', replaces empty values of S(i).(field) with 'with'
     if isempty(S)
         fields = {};
@@ -7,7 +7,9 @@ function S = structReplaceEmptyValues(S, varargin)
     end
     
     % replace all empty values with this:
-    with = NaN;
+    if nargin < 2
+        with = NaN;
+    end
     
     % empty strings ('') are typically not a problem
     % as they do not collapse when gathering fields from a struct array as in
