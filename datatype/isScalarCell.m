@@ -1,17 +1,35 @@
-function [tf mat] = isScalarCell(c, varargin)
+function [tf, mat] = isScalarCell(c, varargin)
 % [tf mat] = isScalarCell(c)
 %    returns true if each entry in cell array c is a numeric type or empty
 % [tf mat] = isScalarCell(c, 'ignoreEmpty', false)
 %    returns true if each entry in cell array c is a numeric type 
 
-ignoreEmpty = true;
-assignargs(varargin);
+p = inputParser();
+p.addParamValue('ignoreEmpty', true, @islogical);
+p.parse(varargin{:});
+ignoreEmpty = p.Results.ignoreEmpty;
+
+if isempty(c)
+    tf = true;
+    mat = [];
+    return;
+end
 
 if ~iscell(c)
     tf = false;
     mat = [];
     return;
 end
+
+% for i = 1:numel(c)
+%     v = c{i};
+%     if (~ignoreEmpty && isempty(v)) && (~isscalar(v) || (~isnumeric(c) && ~islogical(c)))
+%         % simple shortcut
+%         tf = false;
+%         mat = [];
+%         return;
+%     end
+% end
 
 % figure out which cells are currently nans
 nanMask = cellfun(@(c) isnumeric(c) && all(isnan(c)),c);

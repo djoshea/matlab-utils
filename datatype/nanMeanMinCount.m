@@ -1,6 +1,7 @@
-function m = nanmeanMinCount(x,dim,minCount)
-%NANMEAN Mean value, ignoring NaNs and marking as Nan when the number of values is below
-% minCount
+function m = nanmeanMinCount(x, dim, minCount)
+% m = nanmeanMinCount(x,dim,minCount)
+% Computes mean value along dimension dim, ignoring NaNs and 
+% marking as Nan when the number of non-nan values is below minCount
 
 if nargin == 2
     minCount = 1;
