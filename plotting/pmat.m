@@ -15,6 +15,10 @@ if isvector(m)
     m = repmat(makerow(m), 2, 1);
 end
 
+if islogical(m)
+    m = double(m);
+end
+
 if nargin == 1
     h = pcolor(m);
 else

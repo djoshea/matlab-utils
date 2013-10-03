@@ -38,7 +38,7 @@ function [tf format num] = isDateStrCell(c, varargin)
         return;
     end
     
-    num = cell2mat(numCell);
+   % num = cell2mat(numCell);
     if allowMultipleFormats
         format = formatCell;
     else
