@@ -10,6 +10,10 @@ function [ha] = shadeYInterval(x, y1, y2, varargin)
     y1 = makerow(y1);
     y2 = makerow(y2);
 
+    if all(isnan(y1) | isnan(y2))
+        ha = NaN;
+        return;
+    end
 
     isFirstRegion = true;
 
