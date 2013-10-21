@@ -15,7 +15,7 @@ classdef TensorUtils
             asCell = p.Results.asCell;
             contentsFn = p.Results.contentsFn;
             
-            if isempty(sz) || prod(sz) == 0
+            if isempty(sz) 
                 for i = 1:nargout
                     if asCell 
                         varargout{i} = {};
@@ -128,6 +128,43 @@ classdef TensorUtils
             [resultCell{1:nargout}] = TensorUtils.mapSlices(fn, spanDim, varargin{:});
             nonSpanDims = TensorUtils.otherDims(size(resultCell{1}), spanDim);
             varargout = cellfun(@(r) TensorUtils.reassemble(r, nonSpanDims), resultCell, 'UniformOutput', false);
+        end
+        
+        function varargout = mapFromAxisLists(fn, axisLists, varargin)
+            % varargout = mapToSizeFromAxisElements(sz, [fn = @(varargin) varargin], axis1, axis2, ...)
+            % build a tensor with size sz by setting 
+            % tensor(i,j,k,...) = fn(axis1{i}, axis2{j}, axis3{k})
+            % (or axis(i) for numeric arrays)
+            % if fn is omitted returns a cell array of 
+            % {axis1{i}, axis2{j}, axis3{j}}
+            
+            p = inputParser;
+            p.addParamValue('asCell', true, @islogical);
+            p.parse(varargin{:});
+            
+            if isempty(fn)
+                fn = @(varargin) varargin;
+            end
+            if iscell(axisLists)
+                sz = cellfun(@numel, axisLists);
+            else
+                sz = arrayfun(@numel, axisLists);
+            end
+
+            [varargout{1:nargout}] = TensorUtils.mapToSizeFromSubs(sz, @indexFn, 'asCell', p.Results.asCell);
+            
+            function varargout = indexFn(varargin)
+                inputs = cellvec(numel(axisLists));
+                for iAx = 1:numel(axisLists)
+                    if iscell(axisLists{iAx})
+                        inputs{iAx} = axisLists{iAx}{varargin{iAx}};
+                    else
+                        inputs{iAx} = axisLists{iAx}(varargin{iAx});
+                    end
+                end
+                [varargout{1:nargout}] = fn(inputs{:});
+            end
+           
         end
     end
 
