@@ -1,5 +1,6 @@
 classdef TensorUtils
-    % set of classes for building high-d matrices easily
+    % set of classes for building, manipulating, and computing on 
+    % high-d (or arbitrary-d) matrices easily
     methods(Static) % Mapping, construction via callback
         function varargout = mapToSizeFromSubs(sz, varargin)
             % t = mapTensor(sz, contentsFn = @(varargin) NaN, asCell = false)
