@@ -13,14 +13,14 @@ function str = structToString(s)
     return;
     
     function str = convertToString(v)
-        if isempty(v)
+        if ischar(v)
+            str = v;
+        elseif isempty(v)
             str = '[]';
         elseif isnumeric(v) || islogical(v)
             str = mat2str(v);
         elseif iscellstr(v)
             str = ['{', strjoin(v, ','), '}'];
-        elseif ischar(v)
-            str = v;
         else
             error('Could not convert struct field value');
         end
