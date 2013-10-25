@@ -23,7 +23,7 @@ if nargin == 1
     h = pcolor(m);
 else
     if isvector(x)
-        [x y] = ndgrid(x, y);
+        [x y] = meshgrid(x, y);
     end
         
     h = pcolor(x,y, m);
