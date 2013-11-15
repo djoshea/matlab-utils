@@ -48,7 +48,7 @@ load('colorbrewer.mat')
 % initialise the colormap is there are any problems
 colormap=[];
 if (~exist('interp_method', 'var'))
-    interp_method='cubic';
+    interp_method='pchip';
 end
 
 % If no arguments
