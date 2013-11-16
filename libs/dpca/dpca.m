@@ -26,8 +26,8 @@ function W = dpca(Y,comps,maxstep,tolerance)
     %  W: loading matrix
     
     % load default parameters
-    if isempty(tolerance), tolerance = 1d-6; end
-    if isempty(maxstep), maxstep = 100; end
+    if isempty(tolerance), tolerance = 1d-7; end
+    if isempty(maxstep), maxstep = 10000; end
     
     % load covariance matrices    
     [covs, C] = dpca_covs(Y);

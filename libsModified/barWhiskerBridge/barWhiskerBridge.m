@@ -1,4 +1,4 @@
-function outHandle = barWhiskerBridge(inBar,inWhisker,inBridge, sigBar, colors, barNames, clusterNames)
+function outHandle = barWhiskerBridge(inBar,inWhisker,bridgeInfo, sigBar, colors, barNames, clusterNames, yAxisLabel)
 %BARWHISKERBRIDGE creates a bar-and-whisker plot with bridges connecting
 %related bars
 %    OUTHANDLE = BARWHISKERBRIDGE( INBAR , INWHISKER , INBRIDGE ) outputs
@@ -8,143 +8,202 @@ function outHandle = barWhiskerBridge(inBar,inWhisker,inBridge, sigBar, colors, 
 %    'clusters' and M is the number of bars within each 'cluster'.
 %    INWHISKER determines how long the whiskers extend beyond the top of
 %    the bars. If an element of either is NaN, the corresponding bar will not be made
-%    INBRIDGE is an M-by-M-by-N array which contains
+%    INBRIDGE is an K x 5 array which contains
 %    information on whether there is a significant relation between pairs
-%    of bars within a cluster; a nonzero value means to make a bridge, and
-%    integers greater than 1 lead to marking with asterisks (so 1 makes a
-%    bridge, 2 makes a bridge with one asterisk, 3 makes a bridge with two
-%    asterisks...). Only the upper half of each 2D 'slice' of the bridge
-%    matrix is assessed.  Values in INBRIDGE are addressed as follows: each
-%    M-by-M 'slice' of the matrix describes the Nth cluster; within a
-%    slice, a given element describes the level of relationship between
-%    bars in the Nth cluster (that is, (3,5,4) describes the level of
-%    relationship to indicate between the 3rd and 5th bar in the 4th
-%    cluster)
+%    of bars. each row looks like:
+%       [cluster1 bar1 cluster2 bar2 nStars]
+%
 
 %aesthetics
 %bridgeGap determines the minimum distance from the end of the whiskers to
 %the start of the bridges
-bridgeGap = 0.02*max(inBar(:)+inWhisker(:));
+maxVal = max(inBar(:)+inWhisker(:));
+minVal = min(inBar(:)-inWhisker(:));
+scale= maxVal - minVal;
+bridgeGap = 0.02*scale;
 %bridgeStep determines the distance between one bridge connector and the
 %next above it
-bridgeStep = 0.03*max(inBar(:)+inWhisker(:));
+bridgeStep = 0.03*scale;
 %this value determines the additional step allocated for bridges which have
 %additional markers
-starGap = 0;
-clusterNameGap = 0.07*max(inBar(:)+inWhisker(:));
+starGap = 0.01*scale;
+barNameGap = 0.03*scale;
+clusterNameGap = 0.06*max(inBar(:)+inWhisker(:)) + barNameGap;
 
 %clear the current axes
-cla
+clf
 
-enn = size(inBar,1);
-emm = size(inBar,2);
+nClusters = size(inBar,1);
+nBarsInCluster = size(inBar,2);
 
 %number of possible bridges
-bee = emm*(emm-1)/2;
+bee = nBarsInCluster*(nBarsInCluster-1)/2;
 
-%the amount to increase the height of bridges from previous bridges
-
-%the current colormap?
-colores = colormap;
+baseline = 0;
 
 %width of bars
-Xwidth = 1/(emm+2);
+Xwidth = 0.9;
 %distance between bars
-Xinterval = 1/(emm+1);
+XGapBar = 0.2;
+XGapCluster = 0.2;
 %set the offset for the first bar
-Xoffset = Xinterval*(emm-1)/2;
-
+Xoffset = 0;
 
 %this keeps track of how high the plot ever gets
-YtopMax = 0;
+maxY = 0;
+YbotMin = 0;
 Xticks = [];
 
-clusterMiddles = nan(enn, 1);
+clusterStart = nan(nClusters, 1);
+clusterMiddles = nan(nClusters, 1);
+clusterStop = nan(nClusters, 1);
+barX = nan(nClusters, nBarsInCluster);
+barMaxY = nan(nClusters, nBarsInCluster);
+barMinY = nan(nClusters, nBarsInCluster);
 
-for iterCluster = 1:enn
-    Xmiddles = NaN(emm,1);
-    Ywhiskers = NaN(emm,1);
+%% Plot the bars, whiskers, and bar significance stars
+
+for iC = 1:nClusters
+    Xmiddles = NaN(nBarsInCluster,1);
+    Ywhiskers = NaN(nBarsInCluster,1);
+    
+    clusterStart(iC) = Xoffset;
     
     %first make the bars
-    for iterBar = 1:emm
-        if ~isnan(inBar(iterCluster,iterBar)) && ~isnan(inWhisker(iterCluster,iterBar))
-            XmiddleNow = (iterCluster-Xoffset+Xinterval*(iterBar-1));
-            Xticks = [Xticks XmiddleNow];
-            Ybar = inBar(iterCluster,iterBar);
-            YwhiskerNow = Ybar + inWhisker(iterCluster,iterBar);
-            rectangle('position',[ (XmiddleNow-Xwidth/2) , 0 , Xwidth , Ybar ],'edgecolor','none','facecolor', colors{iterCluster, iterBar});
-            line( (XmiddleNow*ones(2,1)) , [Ybar;YwhiskerNow] ,'color',colors{iterCluster, iterBar},'linewidth',4);
-            %line( (XmiddleNow + [-0.375 0.375]*Xwidth) , YwhiskerNow*ones(2,1) ,'color','k','linewidth',2)
+    for iB = 1:nBarsInCluster
+        if ~isnan(inBar(iC,iB)) && ~isnan(inWhisker(iC,iB))
+            XmiddleNow = Xoffset + Xwidth/2 + XGapBar;
             
+            barX(iC, iB) = XmiddleNow;
+            Xticks = [Xticks, XmiddleNow];
+            Ybar = inBar(iC,iB);
+            
+            whiskLen = inWhisker(iC, iB);
+            if(Ybar < 0)
+                y0 = Ybar;
+                yH = -Ybar;
+                yText = Ybar - whiskLen - starGap;
+                Ywhiskers(iB) = Ybar - whiskLen;
+                barMinY(iC, iB) = Ybar - whiskLen;
+                barMaxY(iC, iB) = max(0, Ybar + whiskLen);
+            else
+                y0 = 0;
+                yH = Ybar;
+                yText = Ybar + whiskLen + starGap;
+                Ywhiskers(iB) = Ybar + whiskLen;
+                barMinY(iC, iB) = min(0, Ybar - whiskLen);
+                barMaxY(iC, iB) = Ybar + whiskLen;
+            end
+            
+            rectangle('position',[ (XmiddleNow-Xwidth/2) , y0 , Xwidth , yH ],...
+                'edgecolor','none','facecolor', colors{iC, iB});
+            hold on
+            h = rectangle('position', [XmiddleNow-Xwidth/20, Ybar-whiskLen, Xwidth / 10, 2*whiskLen] ,...
+                'facecolor','k', 'edgecolor', 'none');
+            hasbehavior(h, 'legend', false);
+           
             % add the significance stars to each bar
-            if sigBar(iterCluster, iterBar) > 0
-                text(XmiddleNow, YwhiskerNow+starGap, repmat('*', 1, sigBar(iterCluster, iterBar)), ...
-                    'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Bottom', 'Color', 'k', 'FontSize', 14);
+            if sigBar(iC, iB) > 0
+                h = text(XmiddleNow, yText, repmat('*', 1, sigBar(iC, iB)), ...
+                    'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'Color', 'k', 'FontSize', 14);
+                
+                extent = get(h, 'Extent');
+                
+                barMinY(iC, iB) = min(extent(2), barMinY(iC, iB));
+                barMaxY(iC, iB) = max(extent(2)+extent(4), barMaxY(iC, iB));
             end
         end
-        Xmiddles(iterBar) = XmiddleNow;
-        Ywhiskers(iterBar) = YwhiskerNow;
         
+        Xmiddles(iB) = XmiddleNow;
+        Xoffset = Xoffset + XGapBar + Xwidth;
     end
     
-    clusterMiddles(iterCluster) = mean(Xmiddles);
+    Xoffset = Xoffset + XGapBar;
+    clusterMiddles(iC) = mean(Xmiddles);
+    clusterStop(iC) = Xoffset;
     
     Ywhiskers = Ywhiskers + bridgeGap;
     Ytops = Ywhiskers;
-    YtopMax = max(YtopMax, max(Ywhiskers(:)));
+
+    % advance a cluster
+    Xoffset = Xoffset + XGapCluster;
     
     hold on
     
-    %now fill in the bridges
-    for iterOne = 2:emm
-        for iterTwo = 1:(emm-iterOne+1)
-            num1 = iterOne + iterTwo - 1;
-            num2 = iterTwo;
-            numL = min(num1,num2);
-            numR = max(num1,num2);
-            if inBridge(num1,num2,iterCluster) ~= 0
-                Xl = Xmiddles(numL);
-                Xr = Xmiddles(numR);
-                Ytop = max(Ytops(numL:numR)) + bridgeStep;
-                
-                %now draw the bridge
-                line( [Xl ; Xr] , Ytop*ones(2,1) ,'color','k','linewidth',1.5)
-                line( Xl*ones(2,1) , [Ywhiskers(numL)+bridgeGap;Ytop] ,'color','k','linewidth',1.5)
-                line( Xr*ones(2,1) , [Ywhiskers(numR)+bridgeGap;Ytop] ,'color','k','linewidth',1.5)
-                
-                %now add to the Ywhiskers to prevent bridge overlaps
-                Ytops(numL:numR) = Ytop;
-                YtopMax = max(YtopMax,Ytop);
-                
-                %now add the stars, if necessary
-                if (inBridge(num1,num2,iterCluster) > 0) %%&& isinteger(inBridge(num1,num2,iterCluster))
-                    nStars = inBridge(num1,num2,iterCluster);
-                    %for iterStars = 1:(inBridge(num1,num2,iterCluster))
-                        text((Xl+Xr)/2,(Ytop + starGap),repmat('*', 1, nStars), ...
-                            'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Bottom', 'Color', 'k', 'FontSize', 14)
-                        %add to the new top for the relevant bars
-                        Ytop = Ytop + starGap;
-                        Ytops(numL:numR) = Ytop;
-                        YtopMax = max(YtopMax,Ytop);
-                    %end
-                end
-                
-                
-                
-            end
-        end
+    % draw the baseline for this cluster
+    h = line([clusterStart(iC) clusterStop(iC)], [baseline, baseline], 'LineStyle', '-', 'Color','k');
+    hasbehavior(h, 'legend', false);
+end
+
+%now fill in the bridges
+nBridges = size(bridgeInfo, 1);
+assert(isempty(bridgeInfo) || size(bridgeInfo, 2) == 5, 'BridgeInfo must be K x 5');
+
+minY = min(barMinY(:));
+maxY = max(barMaxY(:));
+
+trBarMaxY = barMaxY';
+
+for iBridge = 1:nBridges
+    row = bridgeInfo(iBridge, :);
+    iC1 = row(1);
+    iB1 = row(2);
+    iC2 = row(3);
+    iB2 = row(4);
+    nStars = row(5);
+    
+    if nStars == 0
+        continue;
+    end
+    
+    % find height for bridge which clears all bars in between
+
+    ind1 = sub2ind(size(trBarMaxY), iB1, iC1);
+    ind2 = sub2ind(size(trBarMaxY), iB2, iC2);
+    Ytop = max(trBarMaxY(ind1:ind2)) + bridgeStep + bridgeGap;
+    trBarMaxY(ind1:ind2) = Ytop;
+    
+    Xl = barX(iC1, iB1);
+    Xr = barX(iC2, iB2);
+                    
+    %now draw the bridge
+    h = line( [Xl ; Xr] , Ytop*ones(2,1) ,'color','k','linewidth',1.5);
+    hasbehavior(h, 'legend', false);
+    h = line( Xl*ones(2,1) , [Ytop-bridgeGap;Ytop] ,'color','k','linewidth',1.5);
+    hasbehavior(h, 'legend', false);
+    h = line( Xr*ones(2,1) , [Ytop-bridgeGap;Ytop] ,'color','k','linewidth',1.5);
+    hasbehavior(h, 'legend', false);
+
+    %now add to the Ywhiskers to prevent bridge overlaps
+    maxY = max(maxY, Ytop);
+
+    h = text((Xl+Xr)/2,(Ytop + starGap),repmat('*', 1, nStars), ...
+        'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'Color', 'k', 'FontSize', 14)
+        %add to the new top for the relevant bars
+    extent = get(h, 'Extent');
+    trBarMaxY(ind1:ind2) = extent(2) + extent(4);
+    maxY = max(maxY, extent(2) + extent(4));
+end
+    
+xlim([clusterStart(1), clusterStop(end)]);
+ylim([minY maxY])
+
+ylabel(yAxisLabel);
+makePrettyAxis('yOnly', true);
+figSetFonts('FontSize', 14);
+
+for iC = 1:nClusters
+    for iB = 1:nBarsInCluster
+        text(barX(iC, iB), YbotMin - barNameGap, barNames{iC, iB}, ...
+            'HorizontalAlignment', 'center', 'VerticalAlignment', 'Top', 'FontSize', 14);
     end
 end
 
-minY = 0;
-xlim([ (1-Xoffset-Xinterval) (enn+Xoffset+Xinterval) ])
-ylim([minY (YtopMax+starGap)])
-set(gca, 'XTick', Xticks, 'XTickLabel', barNames);
-
-for iCluster = 1:enn
-    text(clusterMiddles(iCluster), minY - clusterNameGap, clusterNames{iCluster}, ...
-        'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Top', 'FontSize', 14);
+for iC = 1:nClusters
+    text(clusterMiddles(iC), YbotMin - clusterNameGap, clusterNames{iC}, ...
+        'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Top', 'FontSize', 16);
 end
+
 
 outHandle = gca;
 

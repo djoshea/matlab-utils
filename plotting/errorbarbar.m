@@ -18,6 +18,8 @@ function [b,e] = errorbarbar(x,y,E,barSettings,lineSettings)
 %       No additional files are required.
 % 
 
+% Modified by @djoshea
+
 % Created by Venn on 2009-JUL-13 (vennjr@u.northwestern.edu)
 % Modified:
 %   2011-Jun-22. Removed the legends for the error bars.
@@ -33,7 +35,8 @@ if nargin<4
     barSettings = {};
 end
 
-if ~iscell(barSettings{1})
+
+if ~isempty(barSettings) && ~iscell(barSettings{1})
     s = barSettings;
     barSettings = cell(length(x),1);
     [barSettings{:}] = deal(s);
@@ -46,7 +49,11 @@ end
 
 %% plot the bars
 for i = 1:length(x)
-    b = bar(x(i),y(i),barSettings{i}{:});
+    if isempty(barSettings)
+        b = bar(x(i), y(i));
+    else
+        b = bar(x(i),y(i),barSettings{i}{:});
+    end
     hold on
 end
 
@@ -66,12 +73,17 @@ end
 
 %% plot the errorbars
 hold on;
+e = nan(length(x), 1);
 for i = 1:length(x)
-    line([x(i) x(i)], [y(i) y(i)+E(i)], lineSettings{i}{:});
+    if y(i) > 0
+        e(i) = line([x(i) x(i)], [y(i), y(i)+E(i)], lineSettings{i}{:});
+    else
+        e(i) = line([x(i) x(i)], [y(i), y(i)-E(i)], lineSettings{i}{:});
+    end
     %e(i) = errorbar(x(i), y(i), NaN, E(i), lineSettings{:});
     hold on
 end
-% for i = 1:length(e)
-%     hasbehavior(e(i), 'legend', false);
-% end
+for i = 1:length(e)
+    hasbehavior(e(i), 'legend', false);
+end
 hold off;

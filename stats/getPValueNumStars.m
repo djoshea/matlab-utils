@@ -1,6 +1,11 @@
-function s = getPValueNumStars(p)
+function [numStars, text] = getPValueNumStars(p)
 
-    s = arrayfun(@getNum, p);
+    numStars = arrayfun(@getNum, p);
+    
+    text = arrayfun(@(n) repmat('*', n, 1), numStars, 'UniformOutput', false);
+    if isscalar(p)
+        text = text{1};
+    end 
     
     function n = getNum(p)
         if p < 0.0001
@@ -9,8 +14,6 @@ function s = getPValueNumStars(p)
             n = 3;
         elseif p < 0.01
             n = 2;
-        elseif p < 0.1
-            n = 1;
         elseif p < 0.05 
             n = 1;
         else
