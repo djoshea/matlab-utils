@@ -1,24 +1,25 @@
-function outHandle = barWhiskerBridge(inBar,inWhisker,bridgeInfo, sigBar, colors, barNames, clusterNames, yAxisLabel, varargin)
-%BARWHISKERBRIDGE creates a bar-and-whisker plot with bridges connecting
-%related bars
-%    OUTHANDLE = BARWHISKERBRIDGE( INBAR , INWHISKER , INBRIDGE ) outputs
-%    the handle to an 'axes' containing a bar-and-whisker plot based on the
-%    information in INBAR and INWHISKER; the plot is made in the currently
-%    active axes.  INBAR and INWHISKER are N-by-M, where N is the number of
-%    'clusters' and M is the number of bars within each 'cluster'.
-%    INWHISKER determines how long the whiskers extend beyond the top of
-%    the bars. If an element of either is NaN, the corresponding bar will not be made
-%    INBRIDGE is an K x 5 array which contains
-%    information on whether there is a significant relation between pairs
-%    of bars. each row looks like:
-%       [cluster1 bar1 cluster2 bar2 nStars]
+function barWhiskerBridge(inBar,inWhisker,bridgeInfo, sigBar, colors, barNames, clusterNames, yAxisLabel, varargin)
+%BARWHISKERBRIDGE creates a clustered bar-and-whisker plot with signficance stars and bridges connecting related bars
+%
+% barWhiskerBridge(bars, whiskers, sigBridge, sigBar, colors, barNames, clusterNames, yAxisLabel, varargin)
+% bars [nClusters, nBars] : bar heights
+% whiskers [nClusters, nBars] : whisker heights
+% bridgeInfo [K, 5] : each row [c1 b1 c2 b2 nStars] is a bridge from bar b1 in
+%     cluster c1 to bar b2 in cluster c2 with nStars '*' drawn above
+% sigBar [nClusters, nBars] : nStars to draw above each bar
+% barNames {nClusters, nBars} : cellstr of bar labels
+% clusterNames {nClusters} : cellstr of cluster labels
+% yAxisLabel : string to label y axis with
+% 
+% optional params:
+%  'showValues' : true/false : show numerical value above bar
+%  'valuePrecision' : scalar : values will be shown with # decimal points
+%
+% Modified by dan@djoshea.com from
+% http://www.mathworks.com/matlabcentral/fileexchange/36023-bar-plot-with-whiskers-and-significance-bridges
 %
 
-if ~exist('inWhisker', 'var') || isempty(inWhisker)
-    inWhisker = 0*inBar;
-end
-
-p = inputParser;
+p = inputParser();
 p.addParamValue('showValues', false, @islogical);
 p.addParamValue('valuePrecision', 1, @isscalar);
 p.parse(varargin{:});
@@ -197,7 +198,7 @@ for iBridge = 1:nBridges
     maxY = max(maxY, Ytop);
 
     h = text((Xl+Xr)/2,(Ytop + starGap),repmat('*', 1, nStars), ...
-        'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'Color', 'k', 'FontSize', 14)
+        'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'Color', 'k', 'FontSize', 14);
         %add to the new top for the relevant bars
     extent = get(h, 'Extent');
     trBarMaxY(ind1:ind2) = extent(2) + extent(4);
