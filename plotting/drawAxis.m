@@ -165,7 +165,7 @@ if ischar(axisLabelOffset) & strcmp(axisLabelOffset, 'default')
     if axisOrientation == 'h'
         axisLabelOffset = tickLength*6;
     else
-        axisLabelOffset = tickLength*6; 
+        axisLabelOffset = tickLength*18; 
     end
 end
 
@@ -256,7 +256,11 @@ end
 % PLOT AXIS LABEL
 x = (start+fin)/2;
 y = axisPosition + axisOffset - tickLim - axisLabelOffset;
-if axisOrientation == 'h', h = text(x, y, axisLabel); else h = text(y, x, axisLabel); end
+if axisOrientation == 'h'
+    h = text(x, y, axisLabel);
+else
+    h = text(y, x, axisLabel); 
+end
 set(h,'HorizontalA', LalignH, 'VerticalA', LalignV, 'fontsize', fontSize, 'color', color);
 if axisOrientation == 'v', set(h,'rotation',90); end
 % DONE PLOTTING

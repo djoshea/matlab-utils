@@ -1,18 +1,31 @@
-function outHandle = barWhiskerBridge(inBar,inWhisker,bridgeInfo, sigBar, colors, barNames, clusterNames, yAxisLabel)
-%BARWHISKERBRIDGE creates a bar-and-whisker plot with bridges connecting
-%related bars
-%    OUTHANDLE = BARWHISKERBRIDGE( INBAR , INWHISKER , INBRIDGE ) outputs
-%    the handle to an 'axes' containing a bar-and-whisker plot based on the
-%    information in INBAR and INWHISKER; the plot is made in the currently
-%    active axes.  INBAR and INWHISKER are N-by-M, where N is the number of
-%    'clusters' and M is the number of bars within each 'cluster'.
-%    INWHISKER determines how long the whiskers extend beyond the top of
-%    the bars. If an element of either is NaN, the corresponding bar will not be made
-%    INBRIDGE is an K x 5 array which contains
-%    information on whether there is a significant relation between pairs
-%    of bars. each row looks like:
-%       [cluster1 bar1 cluster2 bar2 nStars]
+function barWhiskerBridge(inBar,inWhisker,bridgeInfo, sigBar, colors, barNames, clusterNames, yAxisLabel, varargin)
+%BARWHISKERBRIDGE creates a clustered bar-and-whisker plot with signficance stars and bridges connecting related bars
 %
+% barWhiskerBridge(bars, whiskers, sigBridge, sigBar, colors, barNames, clusterNames, yAxisLabel, varargin)
+% bars [nClusters, nBars] : bar heights
+% whiskers [nClusters, nBars] : whisker heights
+% bridgeInfo [K, 5] : each row [c1 b1 c2 b2 nStars] is a bridge from bar b1 in
+%     cluster c1 to bar b2 in cluster c2 with nStars '*' drawn above
+% sigBar [nClusters, nBars] : nStars to draw above each bar
+% barNames {nClusters, nBars} : cellstr of bar labels
+% clusterNames {nClusters} : cellstr of cluster labels
+% yAxisLabel : string to label y axis with
+% 
+% optional params:
+%  'showValues' : true/false : show numerical value above bar
+%  'valuePrecision' : scalar : values will be shown with # decimal points
+%
+% Modified by dan@djoshea.com from
+% http://www.mathworks.com/matlabcentral/fileexchange/36023-bar-plot-with-whiskers-and-significance-bridges
+%
+
+p = inputParser();
+p.addParamValue('showValues', false, @islogical);
+p.addParamValue('valuePrecision', 1, @isscalar);
+p.parse(varargin{:});
+
+showValues = p.Results.showValues;
+valuePrecision = p.Results.valuePrecision;
 
 %aesthetics
 %bridgeGap determines the minimum distance from the end of the whiskers to
@@ -29,9 +42,6 @@ bridgeStep = 0.03*scale;
 starGap = 0.01*scale;
 barNameGap = 0.03*scale;
 clusterNameGap = 0.06*max(inBar(:)+inWhisker(:)) + barNameGap;
-
-%clear the current axes
-clf
 
 nClusters = size(inBar,1);
 nBarsInCluster = size(inBar,2);
@@ -98,10 +108,19 @@ for iC = 1:nClusters
             rectangle('position',[ (XmiddleNow-Xwidth/2) , y0 , Xwidth , yH ],...
                 'edgecolor','none','facecolor', colors{iC, iB});
             hold on
-            h = rectangle('position', [XmiddleNow-Xwidth/20, Ybar-whiskLen, Xwidth / 10, 2*whiskLen] ,...
-                'facecolor','k', 'edgecolor', 'none');
-            hasbehavior(h, 'legend', false);
+            if whiskLen > 0
+                h = rectangle('position', [XmiddleNow-Xwidth/20, Ybar-whiskLen, Xwidth / 10, 2*whiskLen] ,...
+                    'facecolor','k', 'edgecolor', 'none');
+                hasbehavior(h, 'legend', false);
+            end
            
+            if showValues
+                h = text(XmiddleNow, yText, sprintf('%.*f', valuePrecision, Ybar), ...
+                    'HorizontalAlign', 'Center', 'VerticalAlign', 'Bottom',  'Color', 'k', 'FontSize', 14);
+                extent = get(h, 'Extent');
+                yText = yText + extent(4);
+            end
+            
             % add the significance stars to each bar
             if sigBar(iC, iB) > 0
                 h = text(XmiddleNow, yText, repmat('*', 1, sigBar(iC, iB)), ...
@@ -112,6 +131,7 @@ for iC = 1:nClusters
                 barMinY(iC, iB) = min(extent(2), barMinY(iC, iB));
                 barMaxY(iC, iB) = max(extent(2)+extent(4), barMaxY(iC, iB));
             end
+            
         end
         
         Xmiddles(iB) = XmiddleNow;
@@ -178,7 +198,7 @@ for iBridge = 1:nBridges
     maxY = max(maxY, Ytop);
 
     h = text((Xl+Xr)/2,(Ytop + starGap),repmat('*', 1, nStars), ...
-        'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'Color', 'k', 'FontSize', 14)
+        'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'Color', 'k', 'FontSize', 14);
         %add to the new top for the relevant bars
     extent = get(h, 'Extent');
     trBarMaxY(ind1:ind2) = extent(2) + extent(4);
@@ -186,7 +206,12 @@ for iBridge = 1:nBridges
 end
     
 xlim([clusterStart(1), clusterStop(end)]);
-ylim([minY maxY])
+
+if exist('yLims', 'var')
+    ylim(yLims);
+else
+    ylim([minY maxY])
+end
 
 ylabel(yAxisLabel);
 makePrettyAxis('yOnly', true);

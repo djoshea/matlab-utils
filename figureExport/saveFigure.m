@@ -17,6 +17,7 @@ function fileList = saveFigure(varargin)
     p.addOptional('name', '', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
     p.addOptional('ext', [], @(x) ischar(x) || iscellstr(x));
     p.addParamValue('convertFromPdf', true, @islogical);
+    p.addParamValue('copy', true, @islogical);
     p.KeepUnmatched = true;
     p.parse(varargin{:});
     hfig = p.Results.hfig;
@@ -52,7 +53,11 @@ function fileList = saveFigure(varargin)
     end
     
     % copy the figure
-    hfigCopy = copyfig(hfig);
+    if p.Results.copy
+        hfigCopy = copyfig(hfig);
+    else
+        hfigCopy = hfig;
+    end
     set(hfigCopy, 'NumberTitle', 'off', 'Name', 'Copy of Figure -- Temporary');
         
     % bitmap formats are built using imagemagick to convert from pdf
