@@ -7,4 +7,8 @@ function figSetFonts(varargin)
     
     hfont = findobj(hfig, '-property', 'FontName');
     set(hfont, p.Unmatched);
+    
+    % handle all the rest (Title, 
+    htext = findall(hfig, 'Type', 'Text');
+    set(htext, p.Unmatched);
 end

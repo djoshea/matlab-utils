@@ -14,20 +14,25 @@ else
     error('Requires 2 or 3 arguments: [figh=gcf], height, width');
 end
 
-figurePaperUnits = get(figh, 'PaperUnits');
+set(figh, 'PaperUnits' ,'centimeters');
+%figurePaperUnits = get(figh, 'PaperUnits');
 oldFigureUnits = get(figh, 'Units');
-oldFigPos = get(figh,'Position');
-set(figh, 'Units', figurePaperUnits);
+%oldFigPos = get(figh,'Position');
+set(figh, 'Units', 'centimeters');
 figPos = get(figh,'Position');
-refsize = figPos(3:4);
-
-aspectRatio = refsize(1)/refsize(2);
-wscale = width/refsize(1);
-hscale = height/refsize(2);
-sizescale = min(wscale,hscale);
+% refsize = figPos(3:4);
+% aspectRatio = refsize(1)/refsize(2);
+% wscale = width/refsize(1);
+% hscale = height/refsize(2);
+% sizescale = min(wscale,hscale);
 
 set(figh, 'PaperPositionMode', 'auto');
-newPos = [figPos(1) figPos(2)+figPos(4)*(1-hscale) ...
-    wscale*figPos(3) hscale*figPos(4)];
+% newPos = [figPos(1) figPos(2)+figPos(4)*(1-hscale) ...
+%     wscale*figPos(3) hscale*figPos(4)];
+
+newPos = [figPos(1), figPos(2), width, height];
+paperPos = [0 0 width height];
 set(figh, 'Position', newPos);
-set(figh, 'Units', oldFigureUnits);
+%set(figh, 'PaperPosition', paperPos);
+
+%set(figh, 'Units', oldFigureUnits);
