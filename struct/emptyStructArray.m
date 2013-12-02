@@ -19,6 +19,10 @@ if isstruct(fields)
     fields = fieldnames(fields);
 end
 
+if isscalar(sz)
+    sz = [sz 1];
+end
+
 % create a cell array the same size as sz
 valsCell = cell(sz);
 [valsCell{:}] = deal(val);
