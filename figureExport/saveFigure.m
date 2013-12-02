@@ -18,12 +18,14 @@ function fileList = saveFigure(varargin)
     p.addOptional('ext', [], @(x) ischar(x) || iscellstr(x));
     p.addParamValue('convertFromPdf', true, @islogical);
     p.addParamValue('copy', true, @islogical);
+    p.addParamValue('fixPcolor', true, @islogical);
     p.KeepUnmatched = true;
     p.parse(varargin{:});
     hfig = p.Results.hfig;
     name = p.Results.name;
     ext = p.Results.ext;
     convertFromPdf = p.Results.convertFromPdf;
+    fixPcolor = p.Results.fixPcolor;
 
     if isempty(ext)
         % no extension list specified, figure out what it should be
@@ -55,11 +57,12 @@ function fileList = saveFigure(varargin)
     % copy the figure
     if p.Results.copy
         hfigCopy = copyfig(hfig);
+        set(hfigCopy, 'NumberTitle', 'off', 'Name', 'Copy of Figure -- Temporary');
+        
     else
         hfigCopy = hfig;
     end
-    set(hfigCopy, 'NumberTitle', 'off', 'Name', 'Copy of Figure -- Temporary');
-        
+    
     % bitmap formats are built using imagemagick to convert from pdf
     needPdfForConversion = any(ismember({'png', 'hires.png'}, ext)) && convertFromPdf;
         
@@ -78,7 +81,7 @@ function fileList = saveFigure(varargin)
         % set everything to use a dummy font so that ghostscript can substitute
         figSetFont(hfigCopy, 'FontName', 'SUBSTITUTEFONT');
         
-        export_fig(hfigCopy, file);   
+        export_fig(hfigCopy, file, '-fixPcolor', true);   
         pdfFile = file;
     end
     
@@ -131,7 +134,9 @@ function fileList = saveFigure(varargin)
         export_fig(hfigCopy, file);
     end
 
-    close(hfigCopy);
+    if p.Results.copy
+        close(hfigCopy);
+    end
     
     % delete temporary files
     for tempFile = tempList

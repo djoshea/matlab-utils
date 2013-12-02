@@ -420,6 +420,9 @@ if isvector(options)
         if options.transparent && ~isequal(get(fig, 'Color'), 'none')
             eps_remove_background(tmp_nam);
         end
+        if options.fixPcolor
+            fix_pcolor_eps(tmp_nam);
+        end
         % Add a bookmark to the PDF if desired
         if options.bookmark
             fig_nam = get(fig, 'Name');
@@ -488,7 +491,8 @@ options = struct('name', 'export_fig_out', ...
                  'aa_factor', 3, ...
                  'magnify', 1, ...
                  'bookmark', false, ...
-                 'quality', []);
+                 'quality', [], ...
+                 'fixPcolor', false);
 native = false; % Set resolution to native of an image
 
 % Go through the other arguments
@@ -534,6 +538,8 @@ for a = 1:nargin-1
                     options.bookmark = true;
                 case 'native'
                     native = true;
+                case 'fixpcolor'
+                    options.fixPcolor = true;
                 otherwise
                     val = str2double(regexp(varargin{a}, '(?<=-(m|M|r|R|q|Q))(\d*\.)?\d+(e-?\d+)?', 'match'));
                     if ~isscalar(val)
