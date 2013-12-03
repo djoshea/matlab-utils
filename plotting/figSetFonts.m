@@ -1,4 +1,11 @@
 function figSetFonts(varargin)
+% figSetFonts(hfig, 'Property', val, ...) or figSetFonts('Property', val, ...)
+%
+% Applies a set of properties to all text objects in figure hfig (defaults
+% to gcf if ommitted).
+% 
+% Example: figSetFonts('FontSize', 18);
+
     p = inputParser;
     p.addOptional('hfig', gcf, @ishandle);
     p.KeepUnmatched = true;

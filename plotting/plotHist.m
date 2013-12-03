@@ -7,6 +7,7 @@ cdf = [];
 def.normalize = false;
 def.cdf = false;
 def.excludeZero = false;
+def.drawLine = true;
 def.lineWidth = 2;
 def.color = 'k';
 def.axh = [];
@@ -59,7 +60,9 @@ if ~isempty(fillColor)
     hold on
 end
 
-stairs(xPts, yPts, '-', 'LineWidth', lineWidth, 'Color', color, 'Parent', axh);
+if drawLine
+    stairs(xPts, yPts, '-', 'LineWidth', lineWidth, 'Color', color, 'Parent', axh);
+end
 hold on
     
 box off
