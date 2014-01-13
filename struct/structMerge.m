@@ -19,13 +19,14 @@ end
 assert(length(selectSourceFields) == length(renameTo) || ~renameTo);
 
 sourceFields = fieldnames(source);
+
 if iscell(selectSourceFields)
-    [sourceFields idxKept] = intersect(sourceFields, selectSourceFields);
-    if iscell(renameTo)
-        destFields = renameTo;
-    else
-        destFields = sourceFields;
-    end
+    assert(all(ismember(selectSourceFields, sourceFields)), 'Some fields not found in original struct');
+    sourceFields = selectSourceFields; 
+end
+
+if iscell(renameTo)
+    destFields = renameTo;
 else
     destFields = sourceFields;
 end
