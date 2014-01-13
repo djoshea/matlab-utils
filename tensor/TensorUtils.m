@@ -53,6 +53,12 @@ classdef TensorUtils
                 end
             end
             [varargout{1:nargout}] = cellfun(fn, varargin{:}, 'UniformOutput', false);
+            % convert scalar numeric cells back to matrices
+            for iArg = 1:numel(varargout);
+                if all(cellfun(@(x) isnumeric(x) && isscalar(x), varargout{iArg}));
+                    varargout{iArg} = cell2mat(varargout{iArg});
+                end
+            end
         end
 
         function results = mapIncludeSubs(fn, varargin)
@@ -201,7 +207,19 @@ classdef TensorUtils
                 sz = [sz 1];
             end
         end
-
+        
+        % pads sz with 1s to make it nDims length
+        function sz = expandSizeToNDims(sz, nDims)
+            szPad = ones(nDims - numel(sz), 1);
+            sz(end+1:nDims) = szPad;
+        end
+        
+        function tf = compareSizeVectors(sz1, sz2)
+            nDims = max(numel(sz1), numel(sz2));
+            tf = isequal(TensorUtils.expandSizeToNDims(sz1, nDims), ....
+                TensorUtils.expandSizeToNDims(sz2, nDims));
+        end
+            
         function other = otherDims(sz, dims)
             % otherDims(t, dims) returns a list of dims in t NOT in dims
             % e.g. if ndims(t) == 3, dims = 2, other = [1 3]
@@ -532,6 +550,11 @@ classdef TensorUtils
     end
     
     methods(Static) % Slice orienting and repmat
+        % A slice is a selected region of a tensor, in which each dimension
+        % either selects all of the elements (via :), or 1 of the elements.
+        % This is the 2-d matrix equivalent of a row (slice with spanDim = 1)
+        % or a column (slice with spanDim = 2). For a 3-d tensor, a slice
+        % along spanDim = [2 3] would look like t(1, :, :);
         function out = orientSliceAlongDims(slice, spanDim)
             % given a slice with D dimensions, orient slice so that it's
             % dimension(i) becomes dimension spanDim(i)
@@ -543,7 +566,7 @@ classdef TensorUtils
                 slice = makecol(squeeze(slice));
             end
             
-            ndimsOut = max(spanDim);
+            ndimsOut = max(2, max(spanDim));
             sliceHigherDims = ndimsSlice+1:ndimsOut;
             nonSpanDims = setdiff(1:ndimsOut, spanDim);
             
@@ -552,6 +575,16 @@ classdef TensorUtils
             permuteOrder(nonSpanDims) = sliceHigherDims;
             
             out = permute(slice, permuteOrder);
+        end
+        
+        function out = orientSliceAlongSameDimsAs(slice, refSlice)
+            % orient slice such that it has the same shape as refSlice
+            spanDim = find(size(refSlice) > 1);
+            if ~isempty(spanDim);
+                out = TensorUtils.orientSliceAlongDims(slice, spanDim);
+            else
+                out = slice;
+            end
         end
         
         function out = repmatSliceAlongDims(slice, szOut, spanDim)
@@ -593,5 +626,106 @@ classdef TensorUtils
             
             out(maskByDim{:}) = in;
         end
+    end
+
+    methods(Static) % List resampling and shuffling along dimension
+        function seedRandStream(seed)
+            if nargin == 0
+                seed = 'Shuffle';
+            end
+            s = RandStream('mt19937ar', 'Seed', seed);
+            RandStream.setGlobalStream(s);
+        end
+        
+        % Each of these methods apply to cell tensors containing vector
+        % lists of values. They will move values around among the
+        % different cells, i.e. from one list to another, but generally
+        % they each preserve the total count within each list.
+        % They also typically act along one or more dimensions, in that
+        % they will move values among the cells that lie along a particular
+        % dimension(s), but not among cells that lie at different positions
+        % on the other dimensions. For example, if t is a 2-d matrix,
+        % shuffling along dimension 1 would move values among cells that
+        % lie along the same row, but not across rows. Here, the row would
+        % be referred to as a slice of the matrix.
+        %
+        % Inputs are not required to have lists be column vectors, but the
+        % output will have column vectors in each cell.
+        %
+        % The various functions differ in how they move the values around
+        % and whether or not they sample with replacement, which would
+        % allow some values to be replicated multiple times and others to
+        % not appear in the final lists.
+
+        function t = listShuffleAlongDimension(t, iA, replace)
+            % t is a cell tensor of vectors. For each slice along iA, i.e. 
+            % t(i, j, ..., :, ..., k) where the : is in position iA,
+            % shuffle the elements among all cells of that slice,
+            % preserving the total number in each cell. If replace is true
+            % shuffles with replacement.
+            
+            if nargin < 3
+                replace = false;
+            end
+                        
+            t = TensorUtils.mapSlicesInPlace(@shuffleFn, iA, t);
+            
+            function sNew = shuffleFn(s)
+                list = TensorUtils.combineListFromCells(s);
+                list = randsample(list, numel(list), replace);
+                sNew = TensorUtils.splitListIntoCells(list, TensorUtils.map(@numel, s));
+            end
+        end
+        
+        function t = listResampleFromSame(t)
+            % resample from replacement within each list, i.e. don't move
+            % anything between lists, just take each list and resample with
+            % replacement from itself.
+            t = TensorUtils.map(@(list) randsample(list, numel(list), true), t); 
+        end
+        
+        function t = listResampleFromSpecifiedAlongDimension(t, from, iA, replace)
+            % resample from replacement from other lists, according to a
+            % specified set of cell elements along each slice. from{i} is a
+            % specifies the linear index (or indices) of which cells to
+            % sample from when building the list for the cell at position i
+            % along that slice. If replace is true, samples with
+            % replacement.
+            % 
+            % Example: listResampleFromSpecified(t, {1, [1 2]}, 1) where t
+            % is a 3 x 2 matrix. For each row i of t, the new list at cell
+            % t{i, 1} will be built by sampling from list in t{i, 1}. 
+            % The new list at cell t{i, 2} will be built by sampling from
+            % both t{i, 1} and t{i, 2}.
+            
+            if nargin < 4
+                replace = false;
+            end
+                        
+            t = TensorUtils.mapSlicesInPlace(@resampleFn, iA, t);
+            
+            function sNew = resampleFn(s)
+                sNew = cell(size(s));
+                for i = 1:numel(s)
+                    list = TensorUtils.combineListFromCells(s(from{i}));
+                    sNew{i} = randsample(list, numel(s{i}), replace);
+                end
+            end
+        end
+        
+        function list = combineListFromCells(t)
+            % gathers all lists from t{:} into one long column vector
+            t = cellfun(@makecol, t, 'UniformOutput', false);
+            list = cell2mat(t(:));
+        end
+        
+        function t = splitListIntoCells(list, nPerCell)
+            % list is a vector list, nPerCell is a numeric tensor
+            % specifying how many elements to place in each list.
+            % This undoes combineListFromCells
+            t = mat2cell(makecol(list), nPerCell(:), 1);
+            t = reshape(t, size(nPerCell));
+        end
+            
     end
 end

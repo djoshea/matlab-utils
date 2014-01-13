@@ -1,3 +1,3 @@
 close all;
-clear;
+clear classes;
 clc;
