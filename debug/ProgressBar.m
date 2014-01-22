@@ -106,6 +106,10 @@ classdef ProgressBar < handle
         end
 
         function finish(pbar, message, varargin)
+            % if message is provided (also in printf format), the message
+            % will be displayed. Otherwise, the progress bar will disappear
+            % and output will resume on the same line.
+            
             %gap = pbar.cols - 1 - length(pbar.message);
             %spaces = repmat(' ' , 1, gap);
             %fprintf('\b\r%s%s\033[0m\n', pbar.message, spaces);
@@ -120,17 +124,20 @@ classdef ProgressBar < handle
     end
 
     methods(Static)
-        function demo(withInterruption)
-            if nargin == 0
-                withInterruption = false;
+        function demo(N, varargin)
+            if nargin < 1
+                N = 300;
             end
-            N = 300;
-            pbar = ProgressBar(N, 'Running ProgressBarDemo with %d items', N);
+            if numel(varargin) == 0
+                varargin = {'Running ProgressBarDemo with %d items', N};
+            end
+            
+            pbar = ProgressBar(N, varargin{:});
             for i = 1:N
                 pbar.update(i);
-                if i == floor(N/2) && withInterruption
-                    fprintf('Random interruption!\n');
-                end
+%                 if i == floor(N/2) && withInterruption
+%                     fprintf('Random interruption!\n');
+%                 end
                 pause(0.01);
             end
             pbar.finish();

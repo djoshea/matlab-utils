@@ -1,4 +1,4 @@
-function [h hcbar] = pmat(varargin)
+function [h, hcbar] = pmat(varargin)
 % visualize a matrix using pcolor
 
 if(length(varargin) == 1)
@@ -52,6 +52,9 @@ set(hcbar, 'TickLength', [0, 0]);
 box off
 axis ij
 
+if size(m, 1) > 50 || size(m, 2) > 50
+    return;
+end
 x = X(1, :);
 y = Y(:, 1);
 xTick = x(1:end-1) + diff(x) / 2;

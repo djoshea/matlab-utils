@@ -19,6 +19,8 @@ function vim(varargin)
 
     persistent pLastServer;
 
+    setenv('DYLD_LIBRARY_PATH', '/usr/local/bin/');
+    
     p = inputParser;
     p.addOptional('file', '', @ischar);
     p.addOptional('server', [], @(x) ischar(x) || isscalar(x)); 
