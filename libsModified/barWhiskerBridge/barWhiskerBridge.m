@@ -3,7 +3,8 @@ function barWhiskerBridge(inBar,inWhisker,bridgeInfo, sigBar, colors, barNames, 
 %
 % barWhiskerBridge(bars, whiskers, sigBridge, sigBar, colors, barNames, clusterNames, yAxisLabel, varargin)
 % bars [nClusters, nBars] : bar heights
-% whiskers [nClusters, nBars] : whisker heights
+% whiskers [nClusters, nBars, 1 or 2] : whisker heights (separate below, above if
+% 3rd dimension is size 2)
 % bridgeInfo [K, 5] : each row [c1 b1 c2 b2 nStars] is a bridge from bar b1 in
 %     cluster c1 to bar b2 in cluster c2 with nStars '*' drawn above
 % sigBar [nClusters, nBars] : nStars to draw above each bar
@@ -27,11 +28,19 @@ p.parse(varargin{:});
 showValues = p.Results.showValues;
 valuePrecision = p.Results.valuePrecision;
 
+if size(inWhisker, 3) == 1
+    inWhisker = repmat(inWhisker, 1, 1, 2);
+end
+% height of whisker below
+inWhiskerL = inWhisker(:, :, 1);
+% height of whisker above
+inWhiskerH = inWhisker(:, :, 2);
+
 %aesthetics
 %bridgeGap determines the minimum distance from the end of the whiskers to
 %the start of the bridges
-maxVal = max(inBar(:)+inWhisker(:));
-minVal = min(inBar(:)-inWhisker(:));
+maxVal = max(inBar(:)+inWhiskerH(:));
+minVal = min(inBar(:)-inWhiskerL(:));
 scale= maxVal - minVal;
 bridgeGap = 0.02*scale;
 %bridgeStep determines the distance between one bridge connector and the
@@ -41,7 +50,7 @@ bridgeStep = 0.03*scale;
 %additional markers
 starGap = 0.01*scale;
 barNameGap = 0.03*scale;
-clusterNameGap = 0.06*max(inBar(:)+inWhisker(:)) + barNameGap;
+clusterNameGap = 0.06*max(inBar(:)+inWhiskerH(:)) + barNameGap;
 
 nClusters = size(inBar,1);
 nBarsInCluster = size(inBar,2);
@@ -75,41 +84,45 @@ barMinY = nan(nClusters, nBarsInCluster);
 
 for iC = 1:nClusters
     Xmiddles = NaN(nBarsInCluster,1);
-    Ywhiskers = NaN(nBarsInCluster,1);
+    YwhiskersL = NaN(nBarsInCluster,1);
+    YwhiskersH = NaN(nBarsInCluster,1);
     
     clusterStart(iC) = Xoffset;
     
     %first make the bars
     for iB = 1:nBarsInCluster
-        if ~isnan(inBar(iC,iB)) && ~isnan(inWhisker(iC,iB))
+        if ~isnan(inBar(iC,iB)) && ~isnan(inWhiskerH(iC,iB))
             XmiddleNow = Xoffset + Xwidth/2 + XGapBar;
             
             barX(iC, iB) = XmiddleNow;
             Xticks = [Xticks, XmiddleNow];
             Ybar = inBar(iC,iB);
             
-            whiskLen = inWhisker(iC, iB);
+            whiskLenH = inWhiskerH(iC, iB);
+            whiskLenL = inWhiskerL(iC, iB);
             if(Ybar < 0)
                 y0 = Ybar;
                 yH = -Ybar;
-                yText = Ybar - whiskLen - starGap;
-                Ywhiskers(iB) = Ybar - whiskLen;
-                barMinY(iC, iB) = Ybar - whiskLen;
+                yText = Ybar - whiskLenL - starGap;
+                YwhiskersL(iB) = Ybar - whiskLenL;
+                YwhiskersH(iB) = Ybar + whiskLenH;
+                barMinY(iC, iB) = Ybar - whiskLenL;
                 barMaxY(iC, iB) = max(0, Ybar + whiskLen);
             else
                 y0 = 0;
                 yH = Ybar;
-                yText = Ybar + whiskLen + starGap;
-                Ywhiskers(iB) = Ybar + whiskLen;
-                barMinY(iC, iB) = min(0, Ybar - whiskLen);
-                barMaxY(iC, iB) = Ybar + whiskLen;
+                yText = Ybar + whiskLenH + starGap;
+                YwhiskersH(iB) = Ybar + whiskLenH;
+                YwhiskersL(iB) = Ybar - whiskLenL;
+                barMinY(iC, iB) = min(0, Ybar - whiskLenL);
+                barMaxY(iC, iB) = Ybar + whiskLenH;
             end
             
             rectangle('position',[ (XmiddleNow-Xwidth/2) , y0 , Xwidth , yH ],...
                 'edgecolor','none','facecolor', colors{iC, iB});
             hold on
-            if whiskLen > 0
-                h = rectangle('position', [XmiddleNow-Xwidth/20, Ybar-whiskLen, Xwidth / 10, 2*whiskLen] ,...
+            if whiskLenL + whiskLenH > 0
+                h = rectangle('position', [XmiddleNow-Xwidth/20, Ybar-whiskLenL, Xwidth / 10, whiskLenL+whiskLenH] ,...
                     'facecolor','k', 'edgecolor', 'none');
                 hasbehavior(h, 'legend', false);
             end
@@ -142,7 +155,7 @@ for iC = 1:nClusters
     clusterMiddles(iC) = mean(Xmiddles);
     clusterStop(iC) = Xoffset;
     
-    Ywhiskers = Ywhiskers + bridgeGap;
+    YwhiskersH = YwhiskersH + bridgeGap;
     Ytops = Ywhiskers;
 
     % advance a cluster

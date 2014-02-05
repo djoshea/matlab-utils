@@ -840,7 +840,7 @@ classdef TensorUtils
             % both t{i, 1} and t{i, 2}.
             
             if nargin < 4
-                replace = false;
+                replace = true;
             end
             
             t = TensorUtils.mapSlicesInPlace(@resampleFn, iA, t);

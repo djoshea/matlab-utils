@@ -1,6 +1,6 @@
 function r = nanminNanEmpty(v)
     if ~isempty(v)
-        r = min(v);
+        r = nanmin(v);
     else
         r = NaN; 
     end
