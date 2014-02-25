@@ -5,7 +5,7 @@ function capStr = upperFirst(str)
 fn = @(str) strcat(upper(str(1)), str(2:end));
 
 if iscellstr(str)
-    capStr = cellfun(fn, str);
+    capStr = cellfun(fn, str, 'UniformOutput', false);
 elseif ischar(str)
     capStr = fn(str);
 else
