@@ -18,6 +18,10 @@ classdef AutoAxis < handle
         titleFontSize
         titleFontColor
         
+        scaleBarThickness = 0.2; % cm
+        xUnits = '';
+        yUnits = '';
+        
         axisTickLength % cm
         
         debug = false;
@@ -31,13 +35,18 @@ classdef AutoAxis < handle
         % handles of objects sitting below x axis but above x axis label
         hBelowX = []
         
-        % handles of objects sitting above y axis but right of y axis label
+        % handles of objects sitting left of y axis but right of y axis label
         hLeftY = []
+        
+        % handles of objects sitting right of y axis
+        hRightY = []
         
         % these hold on to specific special objects that have been added
         % to the plot
         autoAxisX
         autoAxisY
+        autoScaleBarX
+        autoScaleBarY
         hTitle
         hXLabel
         hYLabel
@@ -59,10 +68,40 @@ classdef AutoAxis < handle
     
     methods
         function ax = AutoAxis(axh)
-            if nargin < 1
+            if nargin < 1 || isempty(axh)
                 axh = gca;
             end
+            
+            ax = AutoAxis.createOrRecoverInstance(ax, axh);
+        end
+    end
+    
+    methods(Static)
+        function ax = createOrRecoverInstance(ax, axh)
+            % if an instance is stored in this axis' UserData.autoAxis
+            % then return the existing instance, otherwise create a new one
+            % and install it
+            
+            ud = get(axh, 'UserData');
+            if isempty(ud) || ~isstruct(ud) || ~isfield(ud, 'autoAxis') || isempty(ud.autoAxis)
+                ax.initializeNewInstance(axh);
+                if ~isstruct(ud)
+                    ud = struct('autoAxis', ax);
+                else
+                    ud.autoAxis = ax;
+                end
+                set(axh, 'UserData', ud);
+            else
+                % return the existing instance
+                ax = ud.autoAxis;
+            end
+        end
+    end
+    
+    methods    
+        function initializeNewInstance(ax, axh)
             ax.axh = axh;
+            
             %ax.hMap = containers.Map('KeyType', 'char', 'ValueType', 'any'); % allow handle arrays too
             ax.anchorInfo = AutoAxis.AnchorInfo.empty(0,1);
             
@@ -84,18 +123,19 @@ classdef AutoAxis < handle
         function installCallbacks(ax)
 %             lh(1) = addlistener(ax.axh, {'XLim', 'YLim'}, ...
 %                 'PostSet', @ax.updateLimsCallback);
-            figh = getParentFigure(ax.axh);
+            figh = ax.getParentFigure();
             set(zoom(ax.axh),'ActionPostCallback',@ax.updateLimsCallback);
             set(pan(figh),'ActionPostCallback',@ax.updateLimsCallback);
             set(figh, 'ResizeFcn', @ax.updateFigSizeCallback);
             %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
-            
-            function fig = getParentFigure(fig)
-                % if the object is a figure or figure descendent, return the
-                % figure. Otherwise return [].
-                while ~isempty(fig) & ~strcmp('figure', get(fig,'type'))
-                  fig = get(fig,'parent');
-                end
+        end
+        
+        function fig = getParentFigure(ax)
+            % if the object is a figure or figure descendent, return the
+            % figure. Otherwise return [].
+            fig = ax.axh;
+            while ~isempty(fig) && ~strcmp('figure', get(fig,'type'))
+              fig = get(fig,'parent');
             end
         end
         
@@ -117,7 +157,7 @@ classdef AutoAxis < handle
             ax.update();
         end
         
-        function flag = isMultipleCall(ax)
+        function flag = isMultipleCall(ax) %#ok<MANU>
             flag = false; 
             % Get the stack
             s = dbstack();
@@ -161,7 +201,7 @@ classdef AutoAxis < handle
             end
         end
         
-        function names = listHandleCollections(ax)
+        function names = listHandleCollections(ax) %#ok<MANU>
             % return a list of all handle collection properties
             names = {'hBelowX', 'hLeftY'};
         end
@@ -205,6 +245,14 @@ classdef AutoAxis < handle
         function addXLabel(ax, varargin)
             % anchors and formats the existing x label
             
+            p = inputParser();
+            p.addOptional('xlabel', '', @ischar);
+            p.parse(varargin{:});
+            
+            if ~isempty(p.Results.xlabel)
+                xlabel(ax.axh, p.Results.xlabel);
+            end
+            
             import AutoAxis.PositionType;
             
             if ~isempty(ax.hXLabel)
@@ -226,7 +274,8 @@ classdef AutoAxis < handle
             ax.addAnchor(ai);
             
             % and in the middle of the x axis
-            ai = AutoAxis.AnchorInfo(hlabel, PositionType.HCenter, ax.axh, PositionType.HCenter);
+            ai = AutoAxis.AnchorInfo(hlabel, PositionType.HCenter, ...
+                ax.axh, PositionType.HCenter, 0, 'xLabel centered on x axis');
             ax.addAnchor(ai);
             ax.hXLabel = hlabel;
         end
@@ -234,6 +283,14 @@ classdef AutoAxis < handle
         function addYLabel(ax, varargin)
             % anchors and formats the existing y label
             import AutoAxis.PositionType;
+            
+            p = inputParser();
+            p.addOptional('ylabel', '', @ischar);
+            p.parse(varargin{:});
+            
+            if ~isempty(p.Results.ylabel)
+                ylabel(ax.axh, p.Results.ylabel);
+            end
             
             hlabel = get(ax.axh, 'YLabel');
             set(hlabel, 'Visible', 'on', ...
@@ -250,7 +307,8 @@ classdef AutoAxis < handle
             ax.addAnchor(ai);
             
             % and in the middle of the y axis
-            ai = AutoAxis.AnchorInfo(hlabel, PositionType.VCenter, ax.axh, PositionType.VCenter);
+            ai = AutoAxis.AnchorInfo(hlabel, PositionType.VCenter, ...
+                ax.axh, PositionType.VCenter, 0, 'yLabel centered on y axis');
             ax.addAnchor(ai);
             
             ax.hYLabel = hlabel;
@@ -303,8 +361,60 @@ classdef AutoAxis < handle
             ax.addYLabel();
         end
         
-        function addTitle(ax)
+        function addAutoScaleBarX(ax, varargin)
+            % adds a scale bar to the x axis that will automatically update
+            % its length to match the major tick interval along the x axis
+            if ~isempty(ax.autoScaleBarX)
+                % delete the old objects
+                delete(ax.autoScaleBarX.ht);
+                delete(ax.autoScaleBarX.hr);
+                
+                % remove from handle collection
+                remove = [ax.autoScaleBarX.hr; ax.autoScaleBarX.ht];
+            else
+                remove = [];
+            end
+            
+            [ax.autoScaleBarX.hr, ax.autoScaleBarX.ht] = ax.addScaleBar('x', ...
+                'thickness', ax.scaleBarThickness', 'units', ax.xUnits);
+            
+            % remove after the new ones are added by addTickBridge
+            % so that the existing anchors aren't deleted
+            ax.removeHandles(remove);
+        end
+        
+        function addAutoScaleBarY(ax, varargin)
+            % adds a scale bar to the x axis that will automatically update
+            % its length to match the major tick interval along the x axis
+            if ~isempty(ax.autoScaleBarY)
+                % delete the old objects
+                delete(ax.autoScaleBarY.ht);
+                delete(ax.autoScaleBarY.hr);
+                
+                % remove from handle collection
+                remove = [ax.autoScaleBarY.hr; ax.autoScaleBarY.ht];
+            else
+                remove = [];
+            end
+            
+            [ax.autoScaleBarY.hr, ax.autoScaleBarY.ht] = ax.addScaleBar('y', ...
+                'thickness', ax.scaleBarThickness, 'units', ax.yUnits);
+            
+            % remove after the new ones are added by addTickBridge
+            % so that the existing anchors aren't deleted
+            ax.removeHandles(remove);
+        end
+        
+        function addTitle(ax, varargin)
             import AutoAxis.PositionType;
+            
+            p = inputParser();
+            p.addOptional('title', '', @ischar);
+            p.parse(varargin{:});
+            
+            if ~isempty(p.Results.title)
+                title(ax.axh, p.Results.title);
+            end
             
             hlabel = get(gca, 'Title');
             %hlabel = text(0, 0, str,
@@ -315,12 +425,105 @@ classdef AutoAxis < handle
                 set(hlabel, 'EdgeColor', 'r');
             end
             ai = AutoAxis.AnchorInfo(hlabel, PositionType.Bottom, ...
-                ax.axh, PositionType.Top, ax.axisMargin(4));
+                ax.axh, PositionType.Top, ax.axisMargin(4), 'Title above axis');
             ax.addAnchor(ai);
-            ai = AutoAxis.AnchorInfo(hlabel, PositionType.HCenter, ax.axh, PositionType.HCenter);
+            ai = AutoAxis.AnchorInfo(hlabel, PositionType.HCenter, ...
+                ax.axh, PositionType.HCenter, 0, 'Title centered on axis');
             ax.addAnchor(ai);
             
             ax.hTitle = hlabel;
+        end
+        
+        function addTicklessLabels(ax, varargin)
+            % add labels to x or y axis where ticks would appear but
+            % without the tick marks, i.e. positioned labels
+            import AutoAxis.AnchorInfo;
+            import AutoAxis.PositionType;
+            
+            p = inputParser();
+            p.addRequired('orientation', @ischar);
+            p.addParamValue('tick', [], @isvector);
+            p.addParamValue('tickLabel', {}, @(x) isempty(x) || iscellstr(x));
+            p.addParamValue('tickAlignment', [], @(x) isempty(x) || iscellstr(x));
+            p.CaseSensitive = false;
+            p.parse(varargin{:});
+            
+            axh = ax.axh;
+            useX = strcmp(p.Results.orientation, 'x');
+            if ~isempty(p.Results.tick)
+                ticks = p.Results.tick;
+                labels = p.Results.tickLabel;
+            else
+                ticks = get(axh, 'XTick');
+                labels = get(axh, 'XTickLabel');
+                labels = strtrim(mat2cell(labels, ones(size(labels,1),1), size(labels, 2)));
+            end
+            
+            if isempty(labels)
+                labels = sprintfc('%g', ticks);
+            end
+            
+            if isempty(p.Results.tickAlignment)
+                if useX
+                    tickAlignment = repmat({'center'}, numel(ticks), 1);
+                else
+                    tickAlignment = repmat({'middle'}, numel(ticks), 1);
+                end
+            else
+                tickAlignment = p.Result.tickAlignment;
+            end
+            
+            color = ax.tickColor;
+            fontSize = ax.tickFontSize;
+            
+            % generate line, ignore length here, we'll anchor that later
+            if useX
+                xtext = ticks;
+                ytext = 0 * ticks;
+                ha = tickAlignment;
+                va = repmat({'top'}, numel(ticks), 1);
+                offset = ax.axisMargin(2);
+                
+            else
+                % y axis labels
+                xtext = 0* ticks;
+                ytext = ticks;
+                ha = repmat({'right'}, numel(ticks), 1);
+                va = tickAlignment;
+                offset = ax.axisMargin(1);
+            end
+            
+            ht = nan(numel(ticks), 1);
+            for i = 1:numel(ticks)
+                ht(i) = text(xtext(i), ytext(i), labels{i}, ...
+                    'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
+                    'Interpreter', 'none');
+            end
+            set(ht, 'Clipping', 'off', 'Margin', 0.1, 'FontSize', fontSize, ...
+                    'Color', color);
+                
+            if ax.debug
+                set(ht, 'EdgeColor', 'r');
+            end
+            
+            % build anchor for labels to axis
+            if useX
+                ai = AnchorInfo(ht, PositionType.Top, ax.axh, ...
+                    PositionType.Bottom, offset, 'xTicklessLabels below axis');
+                ax.addAnchor(ai);
+            else
+                ai = AnchorInfo(ht, PositionType.Right, ...
+                    ax.axh, PositionType.Left, offset, 'yTicklessLabels left of axis');
+                ax.addAnchor(ai);
+            end
+            
+            % add handles to handle collections
+            ht = makecol(ht);
+            if useX
+                ax.addHandlesToCollection('hBelowX', ht);
+            else
+                ax.addHandlesToCollection('hLeftY', ht);
+            end
         end
         
         function [hl, ht] = addTickBridge(ax, varargin)
@@ -330,43 +533,41 @@ classdef AutoAxis < handle
             import AutoAxis.PositionType;
             
             p = inputParser();
-            p.addOptional('orientation', 'x', @ischar);
-            p.addParamValue('XTick', [], @isvector);
-            p.addParamValue('XTickLabel', {}, @(x) isempty(x) || iscellstr);
-            p.addParamValue('YTick', [], @isvector);
-            p.addParamValue('YTickLabel', {}, @iscellstr);
+            p.addRequired('orientation', @ischar);
+            p.addParamValue('tick', [], @isvector);
+            p.addParamValue('tickLabel', {}, @(x) isempty(x) || iscellstr(x));
+            p.addParamValue('tickAlignment', [], @(x) isempty(x) || iscellstr(x));
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
             axh = ax.axh; %#ok<*PROP>
-            if ~isempty(p.Results.XTick)
-                useX = true;
-                ticks = p.Results.XTick;
-                labels = p.Results.XTickLabel;
-                
-            elseif ~isempty(p.Results.YTick)
-                useX = false;
-                ticks = p.Results.YTick;
-                labels = p.Results.YTickLabel;
-                
-            elseif strcmp(p.Results.orientation, 'x')
-                useX = true;
-                ticks = get(axh, 'XTick');
-                labels = get(axh, 'XTickLabel');
-                labels = strtrim(mat2cell(labels, ones(size(labels,1),1), size(labels, 2)));
-                
-            elseif strcmp(p.Results.orientation, 'y')
-                useX = false;
-                ticks = get(axh, 'YTick');
-                labels = get(axh, 'YTickLabel');
-                labels = strtrim(mat2cell(labels, ones(size(labels,1),1), size(labels, 2)));
-                
+            useX = strcmp(p.Results.orientation, 'x');
+            if ~isempty(p.Results.tick)
+                ticks = p.Results.tick;
+                labels = p.Results.tickLabel;
             else
-                error('Please specify orientation as ''x'' or ''y'' or specify ''XTick'' or ''YTick''');
+                if useX
+                    ticks = get(axh, 'XTick');
+                    labels = get(axh, 'XTickLabel');
+                else
+                    ticks = get(axh, 'YTick');
+                    labels = get(axh, 'YTickLabel');
+                end
+                labels = strtrim(mat2cell(labels, ones(size(labels,1),1), size(labels, 2)));
             end
             
             if isempty(labels)
                 labels = sprintfc('%g', ticks);
+            end
+            
+            if isempty(p.Results.tickAlignment)
+                if useX
+                    tickAlignment = repmat({'center'}, numel(ticks), 1);
+                else
+                    tickAlignment = repmat({'middle'}, numel(ticks), 1);
+                end
+            else
+                tickAlignment = p.Results.tickAlignment;
             end
             
             tickLen = ax.tickLength;
@@ -384,9 +585,9 @@ classdef AutoAxis < handle
                 
                 xtext = ticks;
                 ytext = repmat(lo, size(ticks));
-                ha = 'center';
-                va = 'top';
-                offset = ax.axisMargin(1);
+                ha = tickAlignment;
+                va = repmat({'top'}, numel(ticks), 1);
+                offset = ax.axisMargin(2);
                 
             else
                 % y axis ticks
@@ -399,19 +600,19 @@ classdef AutoAxis < handle
                 
                 xtext = repmat(lo, size(ticks));
                 ytext = ticks;
-                ha = 'right';
-                va = 'middle';
-                offset = ax.axisMargin(2);
+                ha = repmat({'right'}, numel(ticks), 1);
+                va = tickAlignment;
+                offset = ax.axisMargin(1);
             end
             
             hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Color', color);
             set(hl, 'Clipping', 'off', 'YLimInclude', 'off', 'XLimInclude', 'off');
             ht = nan(numel(ticks), 1);
             for i = 1:numel(ticks)
-                ht(i) = text(xtext(i), ytext(i), labels{i});
+                ht(i) = text(xtext(i), ytext(i), labels{i}, ...
+                    'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i});
             end
-            set(ht, 'HorizontalAlignment', ha, 'VerticalAlignment', va, ...
-                    'Clipping', 'off', 'Margin', 0.1, 'FontSize', fontSize, ...
+            set(ht, 'Clipping', 'off', 'Margin', 0.1, 'FontSize', fontSize, ...
                     'Color', color);
                 
             if ax.debug
@@ -464,27 +665,49 @@ classdef AutoAxis < handle
             p = inputParser();
             p.addRequired('x', @isscalar);
             p.addOptional('label', '', @ischar);
+            p.addParamValue('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
             p.addParamValue('marker', 'o', @(x) isempty(x) || ischar(x));
-            p.addParamValue('markerSize', 0.1, @isscalar);
-            p.addParamValue('markerColor', [0.5 0.5 0.5], @(x) isvector(x) || isempty(x) || isempty(x));
+            p.addParamValue('markerSize', 0.4, @isscalar);
+            p.addParamValue('markerColor', [0.1 0.1 0.1], @(x) isvector(x) || ischar(x) || isempty(x));
+            p.addParamValue('interval', [], @(x) isempty(x) || isvector(x)); % add a rectangle interval behind the marker to indicate a range of locations
+            p.addParamValue('intervalColor', [0.5 0.5 0.5], @(x) isvector(x) || ischar(x) || isempty(x));
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
             label = p.Results.label;
             
-            markerSizePoints = p.Results.markerSize * 72 / 2.54;
+            markerSize = p.Results.markerSize;
+            markerSizePoints = markerSize * 72 / 2.54;
             if strcmp(p.Results.marker, '.')
                 markerSizePoints = markerSizePoints * 2;
             end
             
             yl = get(ax.axh, 'YLim');
+            
+            % add the interval rectangle if necessary, so that it sits
+            % beneath the marker
+            hr = [];
+            hasInterval = false;
+            if ~isempty(p.Results.interval)
+                interval = p.Results.interval;
+                assert(numel(interval) == 2, 'Interval must be a vector with length 2');
+                
+                if interval(2) - interval(1) > 0
+                    hasInterval = true;
+                    % set the height later
+                    hr = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), 1], ...
+                        'EdgeColor', 'none', 'FaceColor', p.Results.intervalColor, ...
+                        'YLimInclude', 'off', 'XLimInclude', 'off', 'Clipping', 'off');
+                end
+            end
+            
             hm = plot(p.Results.x, yl(1), 'Marker', p.Results.marker, ...
                 'MarkerSize', markerSizePoints, 'MarkerFaceColor', p.Results.markerColor, ...
                 'MarkerEdgeColor', 'none', 'YLimInclude', 'off', 'XLimInclude', 'off', ...
                 'Clipping', 'off');
             
             ht = text(p.Results.x, yl(1), p.Results.label, ...
-                'FontSize', ax.tickFontSize, 'Color', ax.tickFontColor, ...
+                'FontSize', ax.tickFontSize, 'Color', p.Results.labelColor, ...
                 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
             
             ai = AutoAxis.AnchorInfo(hm, PositionType.Top, ...
@@ -496,10 +719,184 @@ classdef AutoAxis < handle
                 hm, PositionType.Bottom, ax.tickLabelOffset, ...
                 sprintf('markerX label ''%s'' to marker', label));
             ax.addAnchor(ai);
-            
+                   
+            if hasInterval
+                ai = AutoAxis.AnchorInfo(hr, PositionType.Height, ...
+                    [], markerSize/3, 0, 'markerX interval rect height');
+                ax.addAnchor(ai);
+                ai = AutoAxis.AnchorInfo(hr, PositionType.VCenter, ...
+                    hm, PositionType.VCenter, 0, 'markerX interval rect to marker');
+                ax.addAnchor(ai);
+            end
+                        
             % add to hBelowX handle collection to update the dependent
             % anchors
-            ax.addHandlesToCollection('hBelowX', [hm; ht]);
+            ax.addHandlesToCollection('hBelowX', [hm; ht; hr]);
+        end
+        
+        function [hr, ht] = addScaleBar(ax, varargin)
+            % add rectangular scale bar with text label to either the x or
+            % y axis, at the lower right corner
+            import AutoAxis.AnchorInfo;
+            import AutoAxis.PositionType;
+            
+            p = inputParser();
+            p.addRequired('orientation', @ischar);
+            p.addParamValue('length', [], @isvector);
+            p.addParamValue('thickness', ax.tickLength, @isscalar);
+            p.addParamValue('units', '', @ischar);
+            p.CaseSensitive = false;
+            p.parse(varargin{:});
+            
+            axh = ax.axh; %#ok<*PROP>
+            useX = strcmp(p.Results.orientation, 'x');
+            if ~isempty(p.Results.length)
+                len = p.Results.length;
+            else
+                ticks = get(gca, 'XTick');
+                len = ticks(end) - ticks(end-1);
+            end
+            
+            if isempty(p.Results.units)
+                label = sprintf('%g', len);
+            else
+                label = sprintf('%g %s', len, p.Results.units);
+            end
+           
+            color = ax.tickColor;
+            fontSize = ax.tickFontSize;
+            thickness = p.Results.thickness;
+            
+            xl = get(axh, 'XLim');
+            yl = get(axh, 'YLim');
+            if useX
+                hr = rectangle('Position', [xl(2) - len, yl(1), len, thickness]);
+                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top');
+            else
+                hr = rectangle('Position', [xl(2) - thickness, yl(1), thickness, len]);
+                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
+            end
+            
+            set(hr, 'FaceColor', color, 'EdgeColor', 'none', 'Clipping', 'off', ...
+                'XLimInclude', 'off', 'YLimInclude', 'off');
+            set(ht, 'FontSize', fontSize, 'Margin', 0.1, 'Color', color, 'Clipping', 'off');
+                
+            if ax.debug
+                set(ht, 'EdgeColor', 'r');
+            end
+            
+            % build anchor for rectangle and label
+            if useX
+                ai = AnchorInfo(hr, PositionType.Height, [], thickness, 0, 'xScaleBar thickness');
+                ax.addAnchor(ai);
+                ai = AnchorInfo(hr, PositionType.Top, ax.axh, ...
+                    PositionType.Bottom, ax.axisMargin(2), 'xScaleBar below axis');
+                ax.addAnchor(ai);
+                ai = AnchorInfo(hr, PositionType.Right, ax.axh, ...
+                    PositionType.Right, ax.axisMargin(3) + thickness, 'xScaleBar right edge of axis');
+                ax.addAnchor(ai);
+                ai = AnchorInfo(ht, PositionType.Top, hr, PositionType.Bottom, 0, 'xScaleBarLabel below xScaleBar');
+                ax.addAnchor(ai);
+                ai = AnchorInfo(ht, PositionType.Right, hr, PositionType.Right, 0, 'xScaleBarLabel right edge of xScaleBar');
+                ax.addAnchor(ai);
+            else
+                ai = AnchorInfo(hr, PositionType.Width, [], thickness, 0, 'yScaleBar thickness');
+                ax.addAnchor(ai);
+                ai = AnchorInfo(hr, PositionType.Left, ax.axh, ...
+                    PositionType.Right, ax.axisMargin(3), 'yScaleBar right of axis');
+                ax.addAnchor(ai);
+                ai = AnchorInfo(hr, PositionType.Bottom, ax.axh, ...
+                    PositionType.Bottom, ax.axisMargin(2) + thickness, 'yScaleBar bottom edge of axis');
+                ax.addAnchor(ai);
+                ai = AnchorInfo(ht, PositionType.Left, hr, PositionType.Right, 0, 'yScaleBarLabel right of yScaleBar');
+                ax.addAnchor(ai);
+                ai = AnchorInfo(ht, PositionType.Top, hr, PositionType.Top, 0, 'yScaleBarLabel top edge of xScaleBar');
+                ax.addAnchor(ai);
+            end
+           
+            % add handles to handle collections
+            if useX
+                ax.addHandlesToCollection('hBelowX', [hr; ht]);
+            else
+                ax.addHandlesToCollection('hRightY', [hr; ht]);
+            end
+        end
+        
+        function [hr, ht] = addIntervalX(ax, varargin)
+            % add rectangular bar with text label to either the x or
+            % y axis, at the lower right corner
+            import AutoAxis.AnchorInfo;
+            import AutoAxis.PositionType;
+            
+            p = inputParser();
+            p.addRequired('interval', @(x) isvector(x) && numel(x) == 2);
+            p.addOptional('label', '', @ischar);
+            p.addParamValue('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
+            p.addParamValue('thickness', 0.4, @isscalar);
+            p.addParamValue('color', [0.1 0.1 0.1], @(x) isvector(x) || ischar(x) || isempty(x));    
+            p.addParamValue('errorInterval', [], @(x) isvector(x) && numel(x) == 2); % a background rectangle drawn to indicate error in the placement of the main interval
+            p.addParamValue('errorIntervalColor', [0.5 0.5 0.5], @(x) isvector(x) || isempty(x) || ischar(x));
+            p.CaseSensitive = false;
+            p.parse(varargin{:});
+            
+            axh = ax.axh; %#ok<*PROP>
+            
+            interval = p.Results.interval;
+            color = p.Results.color;
+            label = p.Results.label;
+            errorInterval = p.Results.errorInterval;
+            errorIntervalColor = p.Results.errorIntervalColor;
+            fontSize = ax.tickFontSize;
+            thickness = p.Results.thickness;
+            
+            yl = get(axh, 'YLim');
+            if ~isempty(errorInterval)
+                hre = rectangle('Position', [errorInterval(1), yl(1), ...
+                    errorInterval(2)-errorInterval(1), thickness/3]);
+                set(hre, 'FaceColor', errorIntervalColor, 'EdgeColor', 'none', ...
+                    'Clipping', 'off', 'XLimInclude', 'off', 'YLimInclude', 'off');
+            else
+                hre = [];
+            end
+            hri = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), thickness]);
+            
+            hr = [hri; hre];
+            ht = text(mean(interval), yl(1), label, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+
+            set(hri, 'FaceColor', color, 'EdgeColor', 'none', 'Clipping', 'off', ...
+                'XLimInclude', 'off', 'YLimInclude', 'off');
+            
+            set(ht, 'FontSize', fontSize, 'Margin', 0.1, 'Color', p.Results.labelColor);
+                
+            if ax.debug
+                set(ht, 'EdgeColor', 'r');
+            end
+            
+            % build anchor for rectangle and label
+            ai = AnchorInfo(hri, PositionType.Height, [], thickness, 0, ...
+                sprintf('interval ''%s'' thickness', label));
+            ax.addAnchor(ai);
+            ai = AnchorInfo(hri, PositionType.Top, ax.axh, ...
+                PositionType.Bottom, ax.axisMargin(2), ...
+                sprintf('interval ''%s'' below axis', label));
+            ax.addAnchor(ai);
+
+            ai = AnchorInfo(ht, PositionType.Top, ...
+                hr, PositionType.Bottom, ax.tickLabelOffset, ...
+                sprintf('interval label ''%s'' below interval', label));
+            ax.addAnchor(ai);
+
+            if ~isempty(hre)
+                ai = AnchorInfo(hre, PositionType.Height, [], thickness/3, 0, ...
+                    sprintf('interval ''%s'' error thickness', label));
+                ax.addAnchor(ai);
+                ai = AnchorInfo(hre, PositionType.VCenter, hri, PositionType.VCenter, 0, ...
+                    sprintf('interval ''%s'' error centered in interval', label));
+                ax.addAnchor(ai);
+            end  
+           
+            % add handles to handle collections
+            ax.addHandlesToCollection('hBelowX', [hr; ht]);
         end
         
         function addAnchor(ax, info)
@@ -518,6 +915,12 @@ classdef AutoAxis < handle
             end
             if ~isempty(ax.autoAxisY)
                 ax.addAutoAxisY();
+            end
+            if ~isempty(ax.autoScaleBarX)
+                ax.addAutoScaleBarX();
+            end
+            if ~isempty(ax.autoScaleBarY)
+                ax.addAutoScaleBarY();
             end
             if ~isempty(ax.hXLabel)
                 set(ax.hXLabel, 'Visible', 'on');
@@ -727,7 +1130,8 @@ classdef AutoAxis < handle
             % paper units figure 
 
             if isempty(ha)
-                pos = [];
+                pos = posa;
+                return;
             end
             
             loc = ax.getOrCreateLocationInfo(ha);
@@ -840,6 +1244,19 @@ classdef AutoAxis < handle
                                 pos = lim(1);
                             case PositionType.Right
                                 pos = lim(2);
+                        end
+                        
+                    case 'rectangle'
+                        posv = get(h, 'Position');
+                        switch posType
+                            case PositionType.Top
+                                pos = posv(2) + posv(4);
+                            case PositionType.Bottom
+                                pos = posv(2);
+                            case PositionType.Left
+                                pos = posv(1);
+                            case PositionType.Right
+                                pos = posv(1) + posv(3);
                         end
                 end
                 
@@ -1025,6 +1442,30 @@ classdef AutoAxis < handle
                                 p(1) = value - xoff;
                             case PositionType.HCenter
                                 p(1) = value - ext(3)/2 - xoff;
+                        end
+
+                        set(h, 'Position', p);
+                        
+                    case 'rectangle'
+                        p = get(h, 'Position'); % [left, bottom, width, height]
+                        
+                        switch posType
+                            case PositionType.Top
+                                p(2) = value - p(4);
+                            case PositionType.Bottom
+                                p(2) = value;
+                            case PositionType.VCenter
+                                p(2) = value - p(4)/2;
+                            case PositionType.Height
+                                p(4) = value;
+                            case PositionType.Right
+                                p(1) = value - p(3);
+                            case PositionType.Left
+                                p(1) = value;
+                            case PositionType.HCenter
+                                p(1) = value - p(3)/2;
+                            case PositionType.Width
+                                p(3) = value;
                         end
 
                         set(h, 'Position', p);
