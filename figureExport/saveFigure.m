@@ -19,6 +19,7 @@ function fileList = saveFigure(varargin)
     p.addParamValue('convertFromPdf', true, @islogical);
     p.addParamValue('copy', true, @islogical);
     p.addParamValue('fixPcolor', true, @islogical);
+    p.addParamValue('quiet', false, @islogical);
     p.KeepUnmatched = true;
     p.parse(varargin{:});
     hfig = p.Results.hfig;
@@ -26,6 +27,7 @@ function fileList = saveFigure(varargin)
     ext = p.Results.ext;
     convertFromPdf = p.Results.convertFromPdf;
     fixPcolor = p.Results.fixPcolor;
+    quiet = p.Results.quiet;
 
     if isempty(ext)
         % no extension list specified, figure out what it should be
@@ -50,7 +52,9 @@ function fileList = saveFigure(varargin)
         file = getFileName('fig');
         fileList{end+1} = file;
         
-        printmsg('fig', file);
+        if ~quiet
+            printmsg('fig', file);
+        end
         saveas(hfig, file, 'fig');
     end
     
@@ -71,7 +75,9 @@ function fileList = saveFigure(varargin)
             % use the right file name
             file = getFileName('pdf');
             fileList{end+1} = file;
-            printmsg('pdf', file);
+            if ~quiet
+                printmsg('pdf', file);
+            end
         else
             % use a temp file name
             file = [tempname '.pdf'];
@@ -88,7 +94,10 @@ function fileList = saveFigure(varargin)
     if ismember('png', ext)
         file = getFileName('png'); 
         fileList{end+1} = file;
-        printmsg('png', file);
+
+        if ~quiet
+            printmsg('png', file);
+        end
         
         % set font to Myriad Pro
         figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
@@ -102,7 +111,9 @@ function fileList = saveFigure(varargin)
     if ismember('hires.png', ext)
         file = getFileName('hires.png'); 
         fileList{end+1} = file;
-        printmsg('hires.png', file);
+        if ~quiet
+            printmsg('hires.png', file);
+        end
         % set font to Myriad Pro
         figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
             
@@ -121,7 +132,10 @@ function fileList = saveFigure(varargin)
         figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
         fileList{end+1} = file;
         file = getFileName('svg');
-        printmsg('svg', file);
+
+        if ~quiet
+            printmsg('svg', file);
+        end
         plot2svg(file, hfigCopy);
     end
     
@@ -130,7 +144,10 @@ function fileList = saveFigure(varargin)
         figSetFont(hfigCopy, 'FontName', 'SUBSTITUTEFONT');
         fileList{end+1} = file;
         file = getFileName('eps');
-        printmsg('eps', file);
+
+        if ~quiet
+            printmsg('eps', file);
+        end
         export_fig(hfigCopy, file);
     end
 

@@ -251,6 +251,23 @@ classdef AutoAxis < handle
         end
     end
     
+    methods(Static)
+        function ax = replace(axh)
+            % automatically replace title, axis labels, and ticks
+
+            if nargin < 1
+                axh = gca;
+            end
+
+            ax = AutoAxis(axh);
+            axis(axh, 'off');
+            ax.addAutoAxisX();
+            ax.addAutoAxisY();
+            ax.addTitle();
+            ax.update();
+        end
+    end
+
     methods 
         function addXLabel(ax, varargin)
             % anchors and formats the existing x label
@@ -426,7 +443,7 @@ classdef AutoAxis < handle
                 title(ax.axh, p.Results.title);
             end
             
-            hlabel = get(gca, 'Title');
+            hlabel = get(ax.axh, 'Title');
             %hlabel = text(0, 0, str,
             set(hlabel, 'FontSize', ax.titleFontSize, 'Color', ax.titleFontColor, ...
                 'Margin', 0.1, 'HorizontalAlign', 'center', ...
@@ -507,7 +524,7 @@ classdef AutoAxis < handle
             for i = 1:numel(ticks)
                 ht(i) = text(xtext(i), ytext(i), labels{i}, ...
                     'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
-                    'Interpreter', 'none');
+                    'Interpreter', 'none', 'Parent', ax.axh);
             end
             set(ht, 'Clipping', 'off', 'Margin', 0.1, 'FontSize', fontSize, ...
                     'Color', color);
@@ -615,12 +632,13 @@ classdef AutoAxis < handle
                 offset = ax.axisMargin(1);
             end
             
-            hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Color', color);
+            hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Color', color, 'Parent', ax.axh);
             set(hl, 'Clipping', 'off', 'YLimInclude', 'off', 'XLimInclude', 'off');
             ht = nan(numel(ticks), 1);
             for i = 1:numel(ticks)
                 ht(i) = text(xtext(i), ytext(i), labels{i}, ...
-                    'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i});
+                    'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
+                    'Parent', ax.axh);
             end
             set(ht, 'Clipping', 'off', 'Margin', 0.1, 'FontSize', fontSize, ...
                     'Color', color);
@@ -707,18 +725,19 @@ classdef AutoAxis < handle
                     % set the height later
                     hr = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), 1], ...
                         'EdgeColor', 'none', 'FaceColor', p.Results.intervalColor, ...
-                        'YLimInclude', 'off', 'XLimInclude', 'off', 'Clipping', 'off');
+                        'YLimInclude', 'off', 'XLimInclude', 'off', 'Clipping', 'off', 'Parent', ax.axh);
                 end
             end
             
             hm = plot(p.Results.x, yl(1), 'Marker', p.Results.marker, ...
                 'MarkerSize', markerSizePoints, 'MarkerFaceColor', p.Results.markerColor, ...
                 'MarkerEdgeColor', 'none', 'YLimInclude', 'off', 'XLimInclude', 'off', ...
-                'Clipping', 'off');
+                'Clipping', 'off', 'Parent', ax.axh);
             
             ht = text(p.Results.x, yl(1), p.Results.label, ...
                 'FontSize', ax.tickFontSize, 'Color', p.Results.labelColor, ...
-                'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+                'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', ...
+                'Parent', ax.axh);
             
             ai = AutoAxis.AnchorInfo(hm, PositionType.Top, ...
                 ax.axh, PositionType.Bottom, ax.axisMargin(2), ...
@@ -754,7 +773,7 @@ classdef AutoAxis < handle
             p.addRequired('orientation', @ischar);
             p.addParamValue('length', [], @isvector);
             p.addParamValue('thickness', ax.tickLength, @isscalar);
-            p.addParamValue('units', '', @ischar);
+            p.addParamValue('units', '', @(x) isempty(x) || ischar(x));
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -763,7 +782,7 @@ classdef AutoAxis < handle
             if ~isempty(p.Results.length)
                 len = p.Results.length;
             else
-                ticks = get(gca, 'XTick');
+                ticks = get(ax.axh, 'XTick');
                 len = ticks(end) - ticks(end-1);
             end
             
@@ -780,11 +799,15 @@ classdef AutoAxis < handle
             xl = get(axh, 'XLim');
             yl = get(axh, 'YLim');
             if useX
-                hr = rectangle('Position', [xl(2) - len, yl(1), len, thickness]);
-                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top');
+                hr = rectangle('Position', [xl(2) - len, yl(1), len, thickness], ...
+                    'Parent', ax.axh);
+                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'right', ...
+                    'VerticalAlignment', 'top', 'Parent', ax.axh);
             else
-                hr = rectangle('Position', [xl(2) - thickness, yl(1), thickness, len]);
-                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'left', 'VerticalAlignment', 'top');
+                hr = rectangle('Position', [xl(2) - thickness, yl(1), thickness, len], ...
+                    'Parent', ax.axh);
+                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'left', ...
+                    'VerticalAlignment', 'top', 'Parent', ax.axh);
             end
             
             set(hr, 'FaceColor', color, 'EdgeColor', 'none', 'Clipping', 'off', ...
@@ -862,16 +885,19 @@ classdef AutoAxis < handle
             yl = get(axh, 'YLim');
             if ~isempty(errorInterval)
                 hre = rectangle('Position', [errorInterval(1), yl(1), ...
-                    errorInterval(2)-errorInterval(1), thickness/3]);
+                    errorInterval(2)-errorInterval(1), thickness/3], ...
+                    'Parent', ax.axh);
                 set(hre, 'FaceColor', errorIntervalColor, 'EdgeColor', 'none', ...
                     'Clipping', 'off', 'XLimInclude', 'off', 'YLimInclude', 'off');
             else
                 hre = [];
             end
-            hri = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), thickness]);
+            hri = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), thickness], ...
+                'Parent', ax.axh);
             
             hr = [hri; hre];
-            ht = text(mean(interval), yl(1), label, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+            ht = text(mean(interval), yl(1), label, 'HorizontalAlignment', 'center', ...
+                'VerticalAlignment', 'top', 'Parent', ax.axh);
 
             set(hri, 'FaceColor', color, 'EdgeColor', 'none', 'Clipping', 'off', ...
                 'XLimInclude', 'off', 'YLimInclude', 'off');
@@ -945,9 +971,11 @@ classdef AutoAxis < handle
             end
 
             % reset the processed flag
-            [ax.anchorInfo.processed] = deal(false);
+            if ~isempty(ax.anchorInfo)
+                [ax.anchorInfo.processed] = deal(false);
             
-            ax.processAnchors(ax.anchorInfo);
+                ax.processAnchors(ax.anchorInfo);
+            end
             
             % cache the current limits for checking for changes in
             % callbacks
