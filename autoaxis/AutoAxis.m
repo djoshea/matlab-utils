@@ -130,6 +130,16 @@ classdef AutoAxis < handle
             %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
         end
         
+         function uninstall(ax)
+%             lh(1) = addlistener(ax.axh, {'XLim', 'YLim'}, ...
+%                 'PostSet', @ax.updateLimsCallback);
+            return;
+            figh = ax.getParentFigure();
+            set(pan(figh),'ActionPostCallback', []);
+            set(figh, 'ResizeFcn', []);
+            %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
+        end
+        
         function fig = getParentFigure(ax)
             % if the object is a figure or figure descendent, return the
             % figure. Otherwise return [].
@@ -834,7 +844,7 @@ classdef AutoAxis < handle
             p.addParamValue('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
             p.addParamValue('thickness', 0.4, @isscalar);
             p.addParamValue('color', [0.1 0.1 0.1], @(x) isvector(x) || ischar(x) || isempty(x));    
-            p.addParamValue('errorInterval', [], @(x) isvector(x) && numel(x) == 2); % a background rectangle drawn to indicate error in the placement of the main interval
+            p.addParamValue('errorInterval', [], @(x) isempty(x) || (isvector(x) && numel(x) == 2)); % a background rectangle drawn to indicate error in the placement of the main interval
             p.addParamValue('errorIntervalColor', [0.5 0.5 0.5], @(x) isvector(x) || isempty(x) || ischar(x));
             p.CaseSensitive = false;
             p.parse(varargin{:});
@@ -905,6 +915,11 @@ classdef AutoAxis < handle
         end
         
         function update(ax)
+            if ~ishandle(ax.axh)
+                ax.uninstall();
+                return;
+            end
+            
             ax.locMap = ValueMap('KeyType', 'any', 'ValueType', 'any'); % allow handle vectors
 
             ax.updateAxisScaling();
