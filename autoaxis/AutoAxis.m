@@ -1,29 +1,50 @@
 classdef AutoAxis < handle
     
     properties
-        axisInset = [2.2 2.2 1 2]; % [left bottom right top] inset around axes from outer position
-        axisMargin = [0.2 0.2 0.2 0.2]; % [left bottom right top] margin between axes and label
+        % units used by all properties and anchor measurements
+        % set this before creating any anchors
+        units = 'centimeters';
+        
+        % gap between axis limits (Position) and OuterPosition of axes
+        % only used when axis is not managed by panel
+        axisInset = [2.2 2.2 1 2]; % [left bottom right top] 
+        
+        % spacing between axes and any ticks, lines, marks along each axis
+        axisPadding = [0.2 0.2 0.2 0.2]; % [left bottom right top] 
+        
+        % manual spacing between axis border and x labels, y labels
+        % where NaN, these labels will be anchored below anything attached
+        % to axis (ticks, tick labels, markers, etc.). Otherwise will be
+        % manually spaced in cm
+        axisLabelManualOffsets = [NaN NaN NaN NaN];
     
+        % when the corresponding value in axisLabelManualOffsets is NaN, 
+        % xlabel and ylabel will be anchored above the corresponding axis
+        % border objects (e.g. hBelowX, including ticks and tick labels).
+        % this sets that spacing between the outer edge of those items and
+        % the label's inner edge
+        axisLabelTickOffset = [0 0 0 0]; % cm
+       
+        % ticks and tick labels
         tickColor
-        tickLength = 0.2; % cm
+        tickLength = 0.2;
         tickLineWidth
         tickFontColor
         tickFontSize
         tickLabelOffset = 0.1; % cm
         
+        % axis x/y labels
         labelFontSize
         labelFontColor
-        labelOffset = 0; % cm
         
         titleFontSize
         titleFontColor
         
+        % scale bar 
         scaleBarThickness = 0.2; % cm
         xUnits = '';
         yUnits = '';
-        
-        axisTickLength % cm
-        
+
         debug = false;
     end
     
@@ -77,23 +98,94 @@ classdef AutoAxis < handle
     end
     
     methods(Static)
+        function figureCallback(figh, varargin)
+            if AutoAxis.isMultipleCall(), return, end;
+            AutoAxis.updateFigure(figh);
+        end
+        
+        function flag = isMultipleCall()
+            % determine whether callback is being called within itself
+            flag = false; 
+            % Get the stack
+            s = dbstack();
+            if numel(s) <= 2
+                % Stack too short for a multiple call
+                return
+            end
+
+            % How many calls to the calling function are in the stack?
+            names = {s(:).name};
+            TF = strcmp(s(2).name,names);
+            count = sum(TF);
+            if count>1
+                % More than 1
+                flag = true; 
+            end
+        end
+        
+        function updateFigure(figh)
+            % call auto axis update for every managed axis in a figure
+            if nargin < 1
+                figh = gcf;
+            end
+            
+            axCell = AutoAxis.recoverForFigure(figh);
+            for i = 1:numel(axCell)
+                axCell{i}.update();
+            end
+        end
+        
+        function fig = getParentFigure(axh)
+            % if the object is a figure or figure descendent, return the
+            % figure. Otherwise return [].
+            fig = axh;
+            while ~isempty(fig) && ~strcmp('figure', get(fig,'type'))
+              fig = get(fig,'parent');
+            end
+        end
+        
+        function p = getPanelForFigure(figh)
+            % return a handle to the panel object associated with figure
+            % figh or [] if not associated with a panel
+            p = panel.recover(figh);
+        end
+        
+        function axCell = recoverForFigure(figh)
+            % recover the AutoAxis instances associated with all axes in
+            % figure handle figh
+            hAxes = findobj(figh, 'Type', 'axes');
+            axCell = cell(numel(hAxes), 1);
+            for i = 1:numel(hAxes)
+                axCell{i} = AutoAxis.recoverForAxis(hAxes(i));
+            end
+            
+            axCell = axCell(~cellfun(@isempty, axCell));
+        end
+        
+        function ax = recoverForAxis(axh)
+            % recover the AutoAxis instance associated with the axis handle
+            % axh
+           ud = get(axh, 'UserData');
+           if isempty(ud) || ~isstruct(ud) || ~isfield(ud, 'autoAxis')
+               ax = [];
+           else
+               ax = ud.autoAxis;
+           end
+        end
+        
         function ax = createOrRecoverInstance(ax, axh)
             % if an instance is stored in this axis' UserData.autoAxis
             % then return the existing instance, otherwise create a new one
             % and install it
             
-            ud = get(axh, 'UserData');
-            if isempty(ud) || ~isstruct(ud) || ~isfield(ud, 'autoAxis') || isempty(ud.autoAxis)
+            axTest = AutoAxis.recoverForAxis(axh);
+            if isempty(axTest)
+                % not installed, create new
                 ax.initializeNewInstance(axh);
-                if ~isstruct(ud)
-                    ud = struct('autoAxis', ax);
-                else
-                    ud.autoAxis = ax;
-                end
-                set(axh, 'UserData', ud);
+                ax.installInstanceForAxis(axh);
             else
                 % return the existing instance
-                ax = ud.autoAxis;
+                ax = axTest;
             end
         end
     end
@@ -119,24 +211,25 @@ classdef AutoAxis < handle
             ax.titleFontSize = sz;
             ax.titleFontColor = [0 0 0] / 255;
         end
+             
+        function installInstanceForAxis(ax, axh)
+            ud = get(axh, 'UserData');
+             if ~isstruct(ud)
+                ud = struct('autoAxis', ax);
+            else
+                ud.autoAxis = ax;
+            end
+            set(axh, 'UserData', ud);
+        end
         
         function installCallbacks(ax)
 %             lh(1) = addlistener(ax.axh, {'XLim', 'YLim'}, ...
 %                 'PostSet', @ax.updateLimsCallback);
-            figh = ax.getParentFigure();
-            set(zoom(ax.axh),'ActionPostCallback',@ax.updateLimsCallback);
-            set(pan(figh),'ActionPostCallback',@ax.updateLimsCallback);
-            set(figh, 'ResizeFcn', @ax.updateFigSizeCallback);
+            figh = AutoAxis.getParentFigure(ax.axh);
+            set(zoom(ax.axh),'ActionPostCallback',@ax.figureCallback);
+            set(pan(figh),'ActionPostCallback',@AutoAxis.figureCallback);
+            set(figh, 'ResizeFcn', @ax.figureCallback);
             %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
-        end
-        
-        function fig = getParentFigure(ax)
-            % if the object is a figure or figure descendent, return the
-            % figure. Otherwise return [].
-            fig = ax.axh;
-            while ~isempty(fig) && ~strcmp('figure', get(fig,'type'))
-              fig = get(fig,'parent');
-            end
         end
         
         function tf = checkLimsChanged(ax)
@@ -149,30 +242,6 @@ classdef AutoAxis < handle
                 
             if ax.checkLimsChanged()
                 ax.update();
-            end
-        end
-        
-        function updateFigSizeCallback(ax, varargin)
-            if ax.isMultipleCall(), return, end;
-            ax.update();
-        end
-        
-        function flag = isMultipleCall(ax) %#ok<MANU>
-            flag = false; 
-            % Get the stack
-            s = dbstack();
-            if numel(s) <= 2
-                % Stack too short for a multiple call
-                return
-            end
-
-            % How many calls to the calling function are in the stack?
-            names = {s(:).name};
-            TF = strcmp(s(2).name,names);
-            count = sum(TF);
-            if count>1
-                % More than 1
-                flag = true; 
             end
         end
         
@@ -286,7 +355,7 @@ classdef AutoAxis < handle
             
             % anchor below the hBelowX objects
             ai = AutoAxis.AnchorInfo(hlabel, PositionType.Top, ...
-                ax.hBelowX, PositionType.Bottom, ax.labelOffset, ...
+                ax.hBelowX, PositionType.Bottom, ax.axisLabelTickOffset(2), ...
                 'xlabel below hBelowX');
             ax.addAnchor(ai);
             
@@ -320,7 +389,7 @@ classdef AutoAxis < handle
             
             % anchor left of hLeftY objects
             ai = AutoAxis.AnchorInfo(hlabel, PositionType.Right, ...
-                ax.hLeftY, PositionType.Left, ax.labelOffset);
+                ax.hLeftY, PositionType.Left, ax.axisLabelTickOffset(1));
             ax.addAnchor(ai);
             
             % and in the middle of the y axis
@@ -442,7 +511,7 @@ classdef AutoAxis < handle
                 set(hlabel, 'EdgeColor', 'r');
             end
             ai = AutoAxis.AnchorInfo(hlabel, PositionType.Bottom, ...
-                ax.axh, PositionType.Top, ax.axisMargin(4), 'Title above axis');
+                ax.axh, PositionType.Top, ax.axisPadding(4), 'Title above axis');
             ax.addAnchor(ai);
             ai = AutoAxis.AnchorInfo(hlabel, PositionType.HCenter, ...
                 ax.axh, PositionType.HCenter, 0, 'Title centered on axis');
@@ -499,7 +568,7 @@ classdef AutoAxis < handle
                 ytext = 0 * ticks;
                 ha = tickAlignment;
                 va = repmat({'top'}, numel(ticks), 1);
-                offset = ax.axisMargin(2);
+                offset = ax.axisPadding(2);
                 
             else
                 % y axis labels
@@ -507,7 +576,7 @@ classdef AutoAxis < handle
                 ytext = ticks;
                 ha = repmat({'right'}, numel(ticks), 1);
                 va = tickAlignment;
-                offset = ax.axisMargin(1);
+                offset = ax.axisPadding(1);
             end
             
             ht = nan(numel(ticks), 1);
@@ -604,7 +673,7 @@ classdef AutoAxis < handle
                 ytext = repmat(lo, size(ticks));
                 ha = tickAlignment;
                 va = repmat({'top'}, numel(ticks), 1);
-                offset = ax.axisMargin(2);
+                offset = ax.axisPadding(2);
                 
             else
                 % y axis ticks
@@ -619,7 +688,7 @@ classdef AutoAxis < handle
                 ytext = ticks;
                 ha = repmat({'right'}, numel(ticks), 1);
                 va = tickAlignment;
-                offset = ax.axisMargin(1);
+                offset = ax.axisPadding(1);
             end
             
             hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Color', color, 'Parent', ax.axh);
@@ -730,7 +799,7 @@ classdef AutoAxis < handle
                 'Parent', ax.axh);
             
             ai = AutoAxis.AnchorInfo(hm, PositionType.Top, ...
-                ax.axh, PositionType.Bottom, ax.axisMargin(2), ...
+                ax.axh, PositionType.Bottom, ax.axisPadding(2), ...
                 sprintf('markerX ''%s'' to bottom of axis', label));
             ax.addAnchor(ai);
             
@@ -813,10 +882,10 @@ classdef AutoAxis < handle
                 ai = AnchorInfo(hr, PositionType.Height, [], thickness, 0, 'xScaleBar thickness');
                 ax.addAnchor(ai);
                 ai = AnchorInfo(hr, PositionType.Top, ax.axh, ...
-                    PositionType.Bottom, ax.axisMargin(2), 'xScaleBar below axis');
+                    PositionType.Bottom, ax.axisPadding(2), 'xScaleBar below axis');
                 ax.addAnchor(ai);
                 ai = AnchorInfo(hr, PositionType.Right, ax.axh, ...
-                    PositionType.Right, ax.axisMargin(3) + thickness, 'xScaleBar right edge of axis');
+                    PositionType.Right, ax.axisPadding(3) + thickness, 'xScaleBar right edge of axis');
                 ax.addAnchor(ai);
                 ai = AnchorInfo(ht, PositionType.Top, hr, PositionType.Bottom, 0, 'xScaleBarLabel below xScaleBar');
                 ax.addAnchor(ai);
@@ -826,10 +895,10 @@ classdef AutoAxis < handle
                 ai = AnchorInfo(hr, PositionType.Width, [], thickness, 0, 'yScaleBar thickness');
                 ax.addAnchor(ai);
                 ai = AnchorInfo(hr, PositionType.Left, ax.axh, ...
-                    PositionType.Right, ax.axisMargin(3), 'yScaleBar right of axis');
+                    PositionType.Right, ax.axisPadding(3), 'yScaleBar right of axis');
                 ax.addAnchor(ai);
                 ai = AnchorInfo(hr, PositionType.Bottom, ax.axh, ...
-                    PositionType.Bottom, ax.axisMargin(2) + thickness, 'yScaleBar bottom edge of axis');
+                    PositionType.Bottom, ax.axisPadding(2) + thickness, 'yScaleBar bottom edge of axis');
                 ax.addAnchor(ai);
                 ai = AnchorInfo(ht, PositionType.Left, hr, PositionType.Right, 0, 'yScaleBarLabel right of yScaleBar');
                 ax.addAnchor(ai);
@@ -903,7 +972,7 @@ classdef AutoAxis < handle
                 sprintf('interval ''%s'' thickness', label));
             ax.addAnchor(ai);
             ai = AnchorInfo(hri, PositionType.Top, ax.axh, ...
-                PositionType.Bottom, ax.axisMargin(2), ...
+                PositionType.Bottom, ax.axisPadding(2), ...
                 sprintf('interval ''%s'' below axis', label));
             ax.addAnchor(ai);
 
@@ -979,7 +1048,14 @@ classdef AutoAxis < handle
             % get data to paper conversion
             set(axh,'Units','centimeters');
             
-            set(axh, 'LooseInset', ax.axisInset);
+            % determine if we're inside a panel object
+            figh = AutoAxis.getParentFigure(axh);
+            p = AutoAxis.getPanelForFigure(figh);
+            if isempty(p)
+                % only do this outside of a panel, otherwise defer to the
+                % panel's margins
+                set(axh, 'LooseInset', ax.axisInset);
+            end
             
             axpos = get(axh,'Position');
             ax.xDataToUnits = axpos(3)/axwidth;

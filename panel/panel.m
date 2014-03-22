@@ -3149,7 +3149,7 @@ classdef (Sealed = true) panel < handle
 			
 			% position it
 			try
-				set(p.h_object, 'position', p.getObjectPosition(), 'units', 'normalized');
+				set(p.h_object, 'Position', p.getObjectPosition(), 'units', 'normalized');
 			catch err
 				if strcmp(err.identifier, 'MATLAB:hg:set_chck:DimensionsOutsideRange')
 					w = warning('query', 'backtrace');

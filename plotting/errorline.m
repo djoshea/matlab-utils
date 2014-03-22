@@ -1,4 +1,4 @@
-function [hPts hLine] = errorline(x,y,e, varargin)
+function [hPts, hLine] = errorline(x,y,e, varargin)
 % like errorbar, except plots vertical lines that look nice 
 
     marker = '.';
