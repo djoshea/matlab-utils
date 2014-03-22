@@ -174,6 +174,35 @@ classdef TensorUtils
             end
             
         end
+        
+        function t = buildCombinatorialStructTensor(varargin)
+            % Given all struct vector arguments passed in, constructs a 
+            % tensor struct array containing the merged version of each
+            % struct array
+            
+            nByArg = cellfun(@numel, varargin);
+            fieldsByArg = cellfun(@fieldnames, varargin, 'UniformOutput', false);
+            allFields = cat(1, fieldsByArg{:});
+                 
+            asCells = cell(nargin, 1);
+            nArg = numel(varargin);
+            for iArg = 1:nArg
+                % get as vector with size nByArg(iArg) entries
+                flatVector = varargin{iArg}(:);
+                % struct2cell returns nFields x nByArg(iArg) cell array,
+                % which we transpose
+                thisAsCell = struct2cell(flatVector)';
+                % which we orient to have size nFields along dim nargin+1
+                % and size nByArg(iArg) along dim iArg
+                thisAsCellOriented = TensorUtils.orientSliceAlongDims(thisAsCell, [iArg, nArg+1]);
+                % and expand to be the same size as the full combinatorial tensor
+                asCells{iArg} = TensorUtils.singletonExpandToSize(thisAsCellOriented, nByArg);
+            end
+                
+            % combined will be size [nByArg(:) nFieldsTotal)
+            combined = cat(nargin+1, asCells{:});
+            t = cell2struct(combined, allFields, nArg+1);
+        end
     end
     
     methods(Static) % Dimensions and sizes
@@ -743,7 +772,7 @@ classdef TensorUtils
     
     methods(Static) % Size expansion
         function out = singletonExpandToSize(in, szOut)
-            % expand singleton dimensions to match szOut
+            % expand singleton dimensions to match szOut using repmat
             szIn = size(in);
             repCounts = szOut;
             repCounts(szIn ~= 1) = 1;
