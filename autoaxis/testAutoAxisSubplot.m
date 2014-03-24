@@ -10,14 +10,6 @@ function testAutoAxisSubplot()
     p.units = 'cm';
     p.margin = [2.2 2.2 1 1];
     p.de.margin = 0.4;
-%     p.margin =  [2 2 0.5 0.5];
-%     p(1).margin = 0;
-%     p(2).margin = 0;
-%     p(3).margin = 0;
-%     p(1,1).margin = 0.5;
-%     p(1,2).margin = 0.5;
-%     p(2,1).margin = 0.5;
-%     p(2,2).margin = 0.5;
     p.setCallback(@callbackFn);
 
     axh = nan(R,C);

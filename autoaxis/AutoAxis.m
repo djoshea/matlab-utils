@@ -98,6 +98,15 @@ classdef AutoAxis < handle
     end
     
     methods(Static)
+        function hideInLegend(h)
+            % prevent object h from appearing in legend by default
+            for i = 1:numel(h)
+                ann = get(h(i), 'Annotation');
+                leg = get(ann, 'LegendInformation');
+                set(leg, 'IconDisplayStyle', 'off');
+            end
+        end
+        
         function figureCallback(figh, varargin)
             if AutoAxis.isMultipleCall(), return, end;
             AutoAxis.updateFigure(figh);
@@ -147,7 +156,10 @@ classdef AutoAxis < handle
         function p = getPanelForFigure(figh)
             % return a handle to the panel object associated with figure
             % figh or [] if not associated with a panel
-            p = panel.recover(figh);
+            p = OuterPanel.recover(figh);
+            if isempty(p)
+                p = panel.recover(figh);
+            end
         end
         
         function axCell = recoverForFigure(figh)
@@ -692,6 +704,7 @@ classdef AutoAxis < handle
             end
             
             hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Color', color, 'Parent', ax.axh);
+            AutoAxis.hideInLegend(hl);
             set(hl, 'Clipping', 'off', 'YLimInclude', 'off', 'XLimInclude', 'off');
             ht = nan(numel(ticks), 1);
             for i = 1:numel(ticks)
@@ -785,6 +798,7 @@ classdef AutoAxis < handle
                     hr = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), 1], ...
                         'EdgeColor', 'none', 'FaceColor', p.Results.intervalColor, ...
                         'YLimInclude', 'off', 'XLimInclude', 'off', 'Clipping', 'off', 'Parent', ax.axh);
+                    AutoAxis.hideInLegend(hr);
                 end
             end
             
@@ -792,6 +806,7 @@ classdef AutoAxis < handle
                 'MarkerSize', markerSizePoints, 'MarkerFaceColor', p.Results.markerColor, ...
                 'MarkerEdgeColor', 'none', 'YLimInclude', 'off', 'XLimInclude', 'off', ...
                 'Clipping', 'off', 'Parent', ax.axh);
+            AutoAxis.hideInLegend(hm);
             
             ht = text(p.Results.x, yl(1), p.Results.label, ...
                 'FontSize', ax.tickFontSize, 'Color', p.Results.labelColor, ...
@@ -860,11 +875,13 @@ classdef AutoAxis < handle
             if useX
                 hr = rectangle('Position', [xl(2) - len, yl(1), len, thickness], ...
                     'Parent', ax.axh);
+                AutoAxis.hideInLegend(hr);
                 ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'right', ...
                     'VerticalAlignment', 'top', 'Parent', ax.axh);
             else
                 hr = rectangle('Position', [xl(2) - thickness, yl(1), thickness, len], ...
                     'Parent', ax.axh);
+                AutoAxis.hideInLegend(hr);
                 ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'left', ...
                     'VerticalAlignment', 'top', 'Parent', ax.axh);
             end
@@ -946,6 +963,7 @@ classdef AutoAxis < handle
                 hre = rectangle('Position', [errorInterval(1), yl(1), ...
                     errorInterval(2)-errorInterval(1), thickness/3], ...
                     'Parent', ax.axh);
+                AutoAxis.hideInLegend(hre);
                 set(hre, 'FaceColor', errorIntervalColor, 'EdgeColor', 'none', ...
                     'Clipping', 'off', 'XLimInclude', 'off', 'YLimInclude', 'off');
             else
@@ -953,6 +971,7 @@ classdef AutoAxis < handle
             end
             hri = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), thickness], ...
                 'Parent', ax.axh);
+            AutoAxis.hideInLegend(hri);
             
             hr = [hri; hre];
             ht = text(mean(interval), yl(1), label, 'HorizontalAlignment', 'center', ...
@@ -1051,7 +1070,7 @@ classdef AutoAxis < handle
             % determine if we're inside a panel object
             figh = AutoAxis.getParentFigure(axh);
             p = AutoAxis.getPanelForFigure(figh);
-            if isempty(p)
+            if isempty(p) || isa(p, 'OuterPanel')
                 % only do this outside of a panel, otherwise defer to the
                 % panel's margins
                 set(axh, 'LooseInset', ax.axisInset);
