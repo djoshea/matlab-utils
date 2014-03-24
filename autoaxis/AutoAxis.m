@@ -244,6 +244,25 @@ classdef AutoAxis < handle
             %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
         end
         
+         function uninstall(ax)
+%             lh(1) = addlistener(ax.axh, {'XLim', 'YLim'}, ...
+%                 'PostSet', @ax.updateLimsCallback);
+            return;
+            figh = ax.getParentFigure();
+            set(pan(figh),'ActionPostCallback', []);
+            set(figh, 'ResizeFcn', []);
+            %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
+        end
+        
+        function fig = getParentFigure(ax)
+            % if the object is a figure or figure descendent, return the
+            % figure. Otherwise return [].
+            fig = ax.axh;
+            while ~isempty(fig) && ~strcmp('figure', get(fig,'type'))
+              fig = get(fig,'parent');
+            end
+        end
+        
         function tf = checkLimsChanged(ax)
             tf = ~isequal(get(ax.axh, 'XLim'), ax.lastXLim) || ...
                 ~isequal(get(ax.axh, 'YLim'), ax.lastYLim);
@@ -1019,6 +1038,11 @@ classdef AutoAxis < handle
         end
         
         function update(ax)
+            if ~ishandle(ax.axh)
+                ax.uninstall();
+                return;
+            end
+            
             ax.locMap = ValueMap('KeyType', 'any', 'ValueType', 'any'); % allow handle vectors
 
             ax.updateAxisScaling();
