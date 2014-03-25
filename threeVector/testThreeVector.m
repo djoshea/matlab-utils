@@ -1,19 +1,42 @@
-function testThreeVector()
+function h = testThreeVector()
 
-figure(1); clf; set(gcf, 'Color', 'w');
-P = peaks(40);
-C = del2(P);
-surf(P,C);
-colormap hot
-view([322 39]);
+    usePanel = false;
+    figure(1); clf; set(gcf, 'Color', 'w');
 
-xlabel('X');
-ylabel('Y');
-zlabel('Z');
-hold on; axis off; axis tight;
-set(gca, 'LooseInset', [ 0 0 0 0 ]);
+    if usePanel
+        p = OuterPanel();
+        R = 2;
+        C = 2;
+        p.pack(R,C);
 
-tv = ThreeVector(gca);
-% tv.installCallbacks();
-rotate3d on;
+        for r = 1:R
+            for c = 1:C
+                p(r,c).select();
+                doTV();
+            end
+        end
+    else
+        h = doTV();
+    end
+
+end
+
+
+function h = doTV()
+    P = peaks(40);
+    C = del2(P);
+    h = surf(P,C);
+    colormap hot
+    view([322 39]);
+
+    hold on; axis off; axis tight;
+    set(gca, 'LooseInset', [ 0 0 0 0 ]);
+    xlabel('X');
+    ylabel('Y');
+    zlabel('Z');
+
+    tv = ThreeVector(gca);
+
+    %rotate3d on;
+end
 

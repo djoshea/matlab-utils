@@ -2,14 +2,29 @@ classdef ThreeVector < handle
 % This class draws three vectors in the lower right corner of an axis which
 % indicate the orientation of the x, y, and z axes using a three pronged
 % symbol. It installs callback methods to update these axes vectors when
-% the plot is zoomed, rotated, panned, etc.
+% the plot is zoomed, rotated, panned, or resized. It also updates the
+% vector labels when xlabel, ylabel, zlabel are set, or xlim, ylim, or zlim
+% are changed.
+%
+%
+% Usage:
+%   tv = ThreeVector() % install for current axis
+%   tv = ThreeVector(axh)
+%       install for specific axis. if already installed,
+%       returns the handle to the previously installed instance
 % 
 % Author: Dan O'Shea, {my first name} AT djoshea DOT com (c) 2014
 %
-% NOTE: This class utilizes code for computing the data to figure space
-% coordinate transformation matrix, which was authored by
-% MinLong Kwong. This file Exchange submission is found here:
-% http://www.mathworks.com/matlabcentral/fileexchange/43896
+% NOTE: This class graciously utilizes code from the following authors:
+%
+% MinLong Kwong: For computing the data to figure space coordinate 
+%   transformation matrix.
+%   http://www.mathworks.com/matlabcentral/fileexchange/43896
+%
+% Malcolm Lidierth: For the isMultipleCall utility to prevent callback
+%   re-entrancy
+%   http://undocumentedmatlab.com/blog/controlling-callback-re-entrancy/
+%
 
     properties
         axisInset = [0.3 0.3]; % in cm [left bottom]
@@ -30,6 +45,8 @@ classdef ThreeVector < handle
         
         hv % handles to x,y,z vectors
         ht % handles to x,y,z text labels
+        
+        handleTags % information used to recover handles when saving
     end
     
     methods
@@ -41,65 +58,10 @@ classdef ThreeVector < handle
             end
             
             tv = ThreeVector.createOrRecoverInstance(tv, axh);
-        end
-    end
-    
-    methods(Static)
-        function tv = createOrRecoverInstance(tv, axh)
-            % if an instance is stored in this axis' UserData.threeVector
-            % then return the existing instance, otherwise create a new one
-            % and install it
-            
-            ud = get(axh, 'UserData');
-            if isempty(ud) || ~isstruct(ud) || ~isfield(ud, 'threeVector') || isempty(ud.threeVector)
-                tv.initializeNewInstance(axh);
-                if ~isstruct(ud)
-                    ud = struct('threeVector', tv);
-                else
-                    ud.threeVector = tv;
-                end
-                set(axh, 'UserData', ud);
-            else
-                % return the existing instance
-                tv = ud.threeVector;
-            end
-        end
-    end
-    
-    methods    
-        function initializeNewInstance(tv, axh)
-            % set property values for new instance
-            tv.axh = axh;
-            tv.fontSize = get(0, 'DefaultAxesFontSize');
-            tv.lineWidth = 2;
-            tv.fontColor = [0.1 0.1 0.1];
-            tv.lineColor = [0.4 0.4 0.4];
-            
-            tv.initialize();
-            tv.update();
-            tv.installCallbacks();
-        end
-        
-        function initialize(tv)
-            % draw the axis vectors and the text labels
-            if ~isempty(tv.hv)
-                delete(tv.hv);
-            end
-            tv.hv(1) = plot3([0 1], [0 1], [0 1], '-');
-            tv.hv(2) = plot3([0 1], [0 1], [0 1], '-');
-            tv.hv(3) = plot3([0 1], [0 1], [0 1], '-');
-
-            if ~isempty(tv.ht)
-                delete(tv.ht);
-            end
-            
-            tv.ht(1) = text(0, 1, 'X', 'HorizontalAlign', 'Left');
-            tv.ht(2) = text(0, 2, 'Y', 'HorizontalAlign', 'Left');
-            tv.ht(3) = text(0, 3, 'Z', 'HorizontalAlign', 'Left');
-        end
+        end        
         
         function update(tv)
-            % update the position and orientation of all axis vectors
+            % reposition and redraw all ThreeVector annotations for axis
             
             axh = tv.axh; %#ok<*PROP>
             axis(axh, 'vis3d'); % this is evidently important for ensuring that all vectors stay visible
@@ -124,6 +86,8 @@ classdef ThreeVector < handle
             offsetX = tv.axisInset(1) * xUnitsToNorm;
             vectorLength = tv.vectorLength * xUnitsToNorm;
 
+            % convert the lower left corner of the figure to data
+            % coordinates
             cornerFig = [outerPos(1)+offsetX; outerPos(2)+offsetY; 0];
             cornerData = tv.convertFigToData(cornerFig);
             sX = 1;
@@ -133,9 +97,10 @@ classdef ThreeVector < handle
             ends = [cornerData+vecAx(:, 1), cornerData+vecAx(:, 2), cornerData+vecAx(:, 3)];
             % ends is x,y,z,1 coordinates (rows) for x axis, y axis, z axis endpoints (cols)
 
-            % translate the axis indicators to avoid leaving the outer position box
             allPointsData = [cornerData, ends];
             allPointsFig = tv.convertDataToFig(allPointsData);
+            
+            %allPointsFig(:, 3) = 0;
            
             corner = allPointsFig(:, 1);
             endX = allPointsFig(:, 2);
@@ -154,7 +119,12 @@ classdef ThreeVector < handle
             
             allPointsFig = [corner endX endY endZ endXText endYText endZText];
             
-            % offset the 
+            % might need to play with this value. Set too high and opengl
+            % will clip it, set too low and data will cover up the
+            % annotations.
+            allPointsFig(3, :) = 0.3;
+            
+            % translate the axis indicators to avoid leaving the outer position box
             xMin = min(allPointsFig(1, :));
             if xMin < outerPos(1) + offsetX
                 allPointsFig(1, :) = allPointsFig(1, :) + outerPos(1) + offsetX - xMin;
@@ -164,6 +134,8 @@ classdef ThreeVector < handle
                 allPointsFig(2, :) = allPointsFig(2, :) + outerPos(2) + offsetY  - yMin;
             end
 
+            %allPointsFig(3, :) = allPointsFig(3, :) + 10;
+            
             allPoints = tv.convertFigToData(allPointsFig);
 
             corner = allPoints(:, 1);
@@ -201,6 +173,279 @@ classdef ThreeVector < handle
             set(tv.ht, 'Visible', 'on');
             set(tv.hv, 'Visible', 'on');
         end
+    end
+    
+    methods(Static, Access=protected)
+        function tv = createOrRecoverInstance(tv, axh)
+            % if an instance is stored in this axis' UserData.autoAxis
+            % then return the existing instance, otherwise create a new one
+            % and install it
+            
+            tvTest = ThreeVector.recoverForAxis(axh);
+            if isempty(tvTest)
+                % not installed, create and install new instance
+                tv.initializeNewInstance(axh);
+                tv.installInstanceForAxis(axh);
+            else
+                % return the existing instance
+                tv = tvTest;
+            end
+        end
+        
+         function [tvCell, hAxes] = recoverForFigure(figh)
+            % recover the AutoAxis instances associated with all axes in
+            % figure handle figh
+            if nargin < 1, figh = gcf; end
+            hAxes = findobj(figh, 'Type', 'axes');
+            tvCell = cell(numel(hAxes), 1);
+            for i = 1:numel(hAxes)
+                tvCell{i} = ThreeVector.recoverForAxis(hAxes(i));
+            end
+            
+            mask = ~cellfun(@isempty, tvCell);
+            tvCell = tvCell(mask);
+            hAxes = hAxes(mask);
+        end
+        
+        function ax = recoverForAxis(axh)
+            % recover the AutoAxis instance associated with the axis handle
+            % axh
+            if nargin < 1, axh = gca; end
+            ud = get(axh, 'UserData');
+            if isempty(ud) || ~isstruct(ud) || ~isfield(ud, 'threeVector')
+                ax = [];
+            else
+                ax = ud.threeVector;
+            end
+        end
+        
+        function hideInLegend(h)
+            % prevent object h from appearing in legend by default
+            for i = 1:numel(h)
+                ann = get(h(i), 'Annotation');
+                leg = get(ann, 'LegendInformation');
+                set(leg, 'IconDisplayStyle', 'off');
+            end
+        end
+        
+        function figureCallback(figh, varargin)
+            % update all axes with installed ThreeVectors in a figure
+            if ThreeVector.isMultipleCall(), return, end;
+            ThreeVector.updateFigure(figh);
+        end
+             
+        function preUpdateCallback(varargin)
+            % callback called before update
+            if ThreeVector.isMultipleCall(), return, end;
+            if isfield(varargin{2}, 'Axes')
+                axh = varargin{2}.Axes;
+                tv = ThreeVector.recoverForAxis(axh);
+                set(tv.ht, 'Visible', 'off');
+                set(tv.hv, 'Visible', 'off');
+            end
+        end
+        
+        function axisCallback(varargin)
+            % callback called on specific axis
+            if ThreeVector.isMultipleCall(), return, end;
+            if isfield(varargin{2}, 'Axes')
+                axh = varargin{2}.Axes;
+                tv = ThreeVector.recoverForAxis(axh);
+                tv.updateAxh(axh);
+                tv.update();
+            end
+        end
+        
+         function updateFigure(figh)
+            % call update for every managed axis in a figure
+            if nargin < 1, figh = gcf; end
+            [tvCell, hAxes] = ThreeVector.recoverForFigure(figh);
+            for i = 1:numel(tvCell)
+                % we pass along the axis handle so that the update method
+                % can appropriately update it's internal axis handle when
+                % save/load has occurred
+                tvCell{i}.updateAxh(hAxes(i));
+                tvCell{i}.update();
+            end
+        end
+        
+        function fig = getParentFigure(axh)
+            % if the object is a figure or figure descendent, return the
+            % figure. Otherwise return [].
+            fig = axh;
+            while ~isempty(fig) && ~strcmp('figure', get(fig,'type'))
+              fig = get(fig,'parent');
+            end
+        end
+        
+        function flag = isMultipleCall()
+            % returns true if this callback has been called in a nested
+            % fashion, which can help to avoid reentrancy.
+            % Copied from Malcolm Lidierth's utility
+            % http://undocumentedmatlab.com/blog/controlling-callback-re-entrancy/
+            flag = false; 
+            % Get the stack
+            s = dbstack();
+            if numel(s) <= 2
+                % Stack too short for a multiple call
+                return
+            end
+
+            % How many calls to the calling function are in the stack?
+            names = {s(:).name};
+            TF = strcmp(s(2).name,names);
+            count = sum(TF);
+            if count>1
+                % More than 1
+                flag = true; 
+            end
+        end
+    end
+    
+    methods(Access=protected)
+        function installInstanceForAxis(tv, axh)
+            % store instance in UserData
+            ud = get(axh, 'UserData');
+            if ~isstruct(ud)
+                ud = struct('threeVector', tv);
+            else
+                ud.autoAxis = tv;
+            end
+            set(axh, 'UserData', ud);
+         end
+        
+        function initializeNewInstance(tv, axh)
+            % set property values for new instance
+            tv.axh = axh;
+            tv.fontSize = get(0, 'DefaultAxesFontSize');
+            tv.lineWidth = 2;
+            tv.fontColor = [0.1 0.1 0.1];
+            tv.lineColor = [0.4 0.4 0.4];
+            
+            tv.initialize();
+            tv.update();
+            tv.installCallbacks();
+        end
+        
+        function initialize(tv)
+            % draw the axis vectors and the text labels
+            if ~isempty(tv.hv)
+                delete(tv.hv);
+            end
+            tv.hv(1) = plot3([0 1], [0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axh);
+            tv.hv(2) = plot3([0 1], [0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axh);
+            tv.hv(3) = plot3([0 1], [0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axh);
+
+            if ~isempty(tv.ht)
+                delete(tv.ht);
+            end
+            
+            tv.ht(1) = text(0, 1, 'X', 'HorizontalAlign', 'Left', 'Parent', tv.axh);
+            tv.ht(2) = text(0, 2, 'Y', 'HorizontalAlign', 'Left', 'Parent', tv.axh);
+            tv.ht(3) = text(0, 3, 'Z', 'HorizontalAlign', 'Left', 'Parent', tv.axh);
+            
+            ThreeVector.hideInLegend(tv.hv);
+            ThreeVector.hideInLegend(tv.ht);
+            
+            % tag handles so that they can be recovered on save/load
+            handleStruct.hv = tv.hv;
+            handleStruct.ht = tv.ht;
+            tv.tagHandlesForRecovery(handleStruct);
+        end
+        
+        function reinstallPostLoad(tv)
+            % recover handles via tags, and reinstall callbacks
+            
+            h = tv.recoverTaggedHandles();
+            tv.hv = h.hv;
+            tv.ht = h.ht;
+            
+            tv.installInstanceForAxis(tv.axh);
+            tv.installCallbacks();
+        end
+        
+        function updateAxh(tv, axh)
+            % update the internal axis handle .axh when called from callback
+            % recovering handles and reinstalling callbacks if necessary
+            
+            if tv.axh ~= axh
+                % new handles being used, recover everything
+                tv.axh = axh;
+                tv.reinstallPostLoad();
+            end
+        end
+        
+        function installCallbacks(tv)
+            % install update callbacks for zoom, pan, rotate, resize, x/y/z
+            % label changes, x/y/z lims changes
+            figh = ThreeVector.getParentFigure(tv.axh);
+            
+            set(zoom(tv.axh),'ActionPreCallback',@ThreeVector.preUpdateCallback);
+            set(zoom(tv.axh),'ActionPostCallback',@ThreeVector.axisCallback);
+            
+            set(pan(figh),'ActionPreCallback',@ThreeVector.preUpdateCallback);
+            set(pan(figh),'ActionPostCallback',@ThreeVector.axisCallback);
+            set(figh, 'ResizeFcn', @ThreeVector.figureCallback);
+            
+            set(rotate3d(tv.axh),'ActionPreCallback',@ThreeVector.preUpdateCallback);
+            set(rotate3d(tv.axh), 'ActionPostCallback', @ThreeVector.axisCallback);
+            
+            addlistener(tv.axh, {'XLim', 'YLim', 'ZLim'}, 'PostSet', @tv.localCallback);
+            addlistener(get(tv.axh, 'XLabel'), 'String', 'PostSet', @tv.localCallback);
+            addlistener(get(tv.axh, 'YLabel'), 'String', 'PostSet', @tv.localCallback);
+            addlistener(get(tv.axh, 'ZLabel'), 'String', 'PostSet', @tv.localCallback);
+        end
+        
+        function localCallback(tv, varargin)
+            % perform an update. This method must be called with the
+            % correct ThreeVector instance, whereas
+            % ThreeVector.axisCallback will automatically find the right
+            % ThreeVector instance for the active axis.
+            
+            if ThreeVector.isMultipleCall(), return, end;
+            tv.update();
+        end
+        
+        function tagHandlesForRecovery(tv, s)
+            % for each field in s, for each element j in s.field, set 'Tag'
+            % on that handle to be 'field__j' and store 'field__j' as
+            % tv.handleTags.field{j}. This is used by recoverTaggedHandles
+            % to repopulate stored handles upon figure loading or copying
+            
+            flds = fieldnames(s);
+            for iField = 1:numel(flds)
+                f = flds{iField};
+                tv.handleTags.(f) = cell(numel(s.(f)), 1);
+                for j = 1:numel(s.(f))
+                    str = sprintf('%s__%d', f, j);
+                    tv.handleTags.(f){j} = str;
+                    set(s.(f)(j), 'Tag', str);
+                end
+            end
+        end
+        
+        function h = recoverTaggedHandles(tv)
+            % for each field in handleTags, for each element in
+            % handleTags.field{j}, find the handle graphics object with tag
+            % 'field__j' and store the handle of that object in h.field(j)
+            
+            flds = fieldnames(tv.handleTags);
+            for iField = 1:numel(flds)
+                f = flds{iField};
+                h.(f) = nan(numel(tv.handleTags.(f)), 1);
+                for j = 1:numel(tv.handleTags.(f))
+                    tag = tv.handleTags.(f){j};
+                    val = findobj(tv.axh, 'Tag', tag);
+                    if isempty(val)
+                        warning('Could not recover tagged handle %s', tag);
+                    end
+                    h.(f)(j) = val;
+                end
+            end
+        end
+    end
+    
+    methods % methods for computing positions of annotations
         
         function ptsData = convertFigToData(tv, ptsFig)
              % ptsFig, ptsData are 3 x N matrices
@@ -345,63 +590,6 @@ classdef ThreeVector < handle
                 matrixRotate * matrixRescale * matrixTranslate;
         end
         
-    end
-    
-    methods % update callback logic
-        function installCallbacks(tv)
-%             lh(1) = addlistener(ax.axh, {'XLim', 'YLim'}, ...
-%                 'PostSet', @ax.updateLimsCallback);
-            figh = tv.getParentFigure();
-            set(zoom(tv.axh),'ActionPreCallback',@tv.preUpdateCallback);
-            set(zoom(tv.axh),'ActionPostCallback',@tv.updateCallback);
-            
-            set(pan(figh),'ActionPreCallback',@tv.preUpdateCallback);
-            set(pan(figh),'ActionPostCallback',@tv.updateCallback);
-            set(figh, 'ResizeFcn', @tv.updateCallback);
-            
-            set(rotate3d(tv.axh),'ActionPreCallback',@tv.preUpdateCallback);
-            set(rotate3d(tv.axh), 'ActionPostCallback', @tv.updateCallback);
-            %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
-        end
-        
-        function preUpdateCallback(tv, varargin)
-            set(tv.ht, 'Visible', 'off');
-            set(tv.hv, 'Visible', 'off');
-        end
-        
-        function fig = getParentFigure(tv)
-            % if the object is a figure or figure descendent, return the
-            % figure. Otherwise return [].
-            fig = tv.axh;
-            while ~isempty(fig) && ~strcmp('figure', get(fig,'type'))
-              fig = get(fig,'parent');
-            end
-        end
-
-        function updateCallback(tv, varargin)
-            if tv.isMultipleCall(), return, end;
-            tv.update();
-        end
-        
-        function flag = isMultipleCall(tv) %#ok<MANU>
-            flag = false; 
-            % Get the stack
-            s = dbstack();
-            if numel(s) <= 2
-                % Stack too short for a multiple call
-                return
-            end
-
-            % How many calls to the calling function are in the stack?
-            names = {s(:).name};
-            TF = strcmp(s(2).name,names);
-            count = sum(TF);
-            if count>1
-                % More than 1
-                flag = true; 
-            end
-        end
-
     end
 end
 

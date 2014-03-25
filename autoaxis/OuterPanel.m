@@ -3853,7 +3853,7 @@ classdef (Sealed = true) OuterPanel < handle
 			defprop.fontname = get(0, 'defaultAxesFontName');
 			defprop.fontsize = get(0, 'defaultAxesFontSize');
 			defprop.fontweight = 'normal';
-			defprop.margin = {[15 15 5 5] 'mm'};
+			defprop.margin = {[0 0 0 0] 'mm'};
 			
 			% not inherited properties
 			defprop.align = false;

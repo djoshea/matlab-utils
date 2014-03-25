@@ -165,6 +165,7 @@ classdef AutoAxis < handle
         function axCell = recoverForFigure(figh)
             % recover the AutoAxis instances associated with all axes in
             % figure handle figh
+            if nargin < 1, figh = gcf; end
             hAxes = findobj(figh, 'Type', 'axes');
             axCell = cell(numel(hAxes), 1);
             for i = 1:numel(hAxes)
