@@ -1,17 +1,32 @@
 classdef ThreeVector < handle
-% This class draws three vectors in the lower right corner of an axis which
+% This class draws three vectors in the lower, left corner of an axis which
 % indicate the orientation of the x, y, and z axes using a three pronged
-% symbol. It installs callback methods to update these axes vectors when
+% symbol. The ends of the vectors are labeled according to the axis xlabel,
+% ylabel, zlabel. 
+% It installs callback methods to update these axes vectors when
 % the plot is zoomed, rotated, panned, or resized. It also updates the
 % vector labels when xlabel, ylabel, zlabel are set, or xlim, ylim, or zlim
 % are changed.
 %
 %
 % Usage:
-%   tv = ThreeVector() % install for current axis
+%   tv = ThreeVector() 
+%       install for current axis
 %   tv = ThreeVector(axh)
 %       install for specific axis. if already installed,
-%       returns the handle to the previously installed instance
+%       returns the handle to the previously installed instance after
+%       updating
+%   tv.update() 
+%       force an update on the axis associated with tv
+%
+%   Properties: setting these will automatically result in an update()
+%        fontSize  : font size used for axis labels, defaults to get(axh, 'FontSize')
+%        fontColor : 3 x 1 color vector or plot-color-string (e.g. 'k')
+%          used to label axes, defaults to 0.1 gray
+%        lineWidth : line width used for axis vectors
+%        lineColor : 3 x 1 color vector or plot-color-string (e.g. 'k') for
+%          axis vector lines, defaults to 0.4 gray
+%
 % 
 % Author: Dan O'Shea, {my first name} AT djoshea DOT com (c) 2014
 %
@@ -39,6 +54,10 @@ classdef ThreeVector < handle
     properties(SetAccess=protected)
         axh % handle of axis to control
         
+        axhOverlay % handle of axis to use as overlay
+        
+        axhOverlayTag % tag used to find axhOverlay in figure
+        
         figToData % transformation matrix figure -> data
         dataToFig % transformation matrix data -> figure
         cornerData % x/y/z by bottomLeft/topRight matrix in data coordinates of visual axis corners
@@ -58,19 +77,22 @@ classdef ThreeVector < handle
             end
             
             tv = ThreeVector.createOrRecoverInstance(tv, axh);
+            tv.update();
         end        
         
         function update(tv)
             % reposition and redraw all ThreeVector annotations for axis
             
             axh = tv.axh; %#ok<*PROP>
-            axis(axh, 'vis3d'); % this is evidently important for ensuring that all vectors stay visible
+            axhOverlay = tv.axhOverlay;
+            if isempty(axh) || isempty(axhOverlay), return, end
+            %axis(axh, 'vis3d'); % this is evidently important for ensuring that all vectors stay visible
             
             % get data to paper conversion
-            set(axh, 'Units', 'centimeters');
-            posPaper = get(axh, 'Position');
-            set(axh, 'Units', 'normalized');
-            posNorm = get(axh, 'Position');
+            set(axhOverlay, 'Units', 'centimeters');
+            posPaper = get(axhOverlay, 'Position');
+            set(axhOverlay, 'Units', 'normalized');
+            posNorm = get(axhOverlay, 'Position');
 
             xUnitsToNorm = posNorm(3)/posPaper(3);
             yUnitsToNorm = posNorm(4)/posPaper(4);
@@ -79,7 +101,8 @@ classdef ThreeVector < handle
             tv.updateTransforms();
 
             %set(axh, 'OuterPosition', [0.1 0.1 0.8 0.8]);
-            outerPos = get(axh, 'OuterPosition');
+            %outerPos = get(axhOverlay, 'Position');
+            outerPos = [0 0 1 1];
 
             % size of three vector box in axis units
             offsetY = tv.axisInset(2) * yUnitsToNorm;
@@ -99,8 +122,6 @@ classdef ThreeVector < handle
 
             allPointsData = [cornerData, ends];
             allPointsFig = tv.convertDataToFig(allPointsData);
-            
-            %allPointsFig(:, 3) = 0;
            
             corner = allPointsFig(:, 1);
             endX = allPointsFig(:, 2);
@@ -119,11 +140,6 @@ classdef ThreeVector < handle
             
             allPointsFig = [corner endX endY endZ endXText endYText endZText];
             
-            % might need to play with this value. Set too high and opengl
-            % will clip it, set too low and data will cover up the
-            % annotations.
-            allPointsFig(3, :) = 0.3;
-            
             % translate the axis indicators to avoid leaving the outer position box
             xMin = min(allPointsFig(1, :));
             if xMin < outerPos(1) + offsetX
@@ -133,10 +149,13 @@ classdef ThreeVector < handle
             if yMin < outerPos(2) + offsetY
                 allPointsFig(2, :) = allPointsFig(2, :) + outerPos(2) + offsetY  - yMin;
             end
-
-            %allPointsFig(3, :) = allPointsFig(3, :) + 10;
             
-            allPoints = tv.convertFigToData(allPointsFig);
+            % no need to convert back to data coordinates since we're
+            % plotting in the overlay axis whose data coords match the
+            % figure coordinates
+            %allPoints = tv.convertFigToData(allPointsFig);
+            allPoints = allPointsFig;
+            allPoints(3, :) = 0;
 
             corner = allPoints(:, 1);
             endX = allPoints(:, 2);
@@ -175,6 +194,28 @@ classdef ThreeVector < handle
         end
     end
     
+    methods % Auto-update proprerty setters
+        function set.fontSize(tv, v)
+            tv.fontSize = v;
+            tv.update();
+        end
+        
+        function set.fontColor(tv, v) 
+            tv.fontColor = ThreeVector.convertColor(v);
+            tv.update();
+        end
+        
+        function set.lineWidth(tv, v)
+            tv.lineWidth = v;
+            tv.update();
+        end
+
+        function set.lineColor(tv, v)
+            tv.lineColor = ThreeVector.convertColor(v);
+            tv.update();
+        end
+    end
+    
     methods(Static, Access=protected)
         function tv = createOrRecoverInstance(tv, axh)
             % if an instance is stored in this axis' UserData.autoAxis
@@ -192,7 +233,7 @@ classdef ThreeVector < handle
             end
         end
         
-         function [tvCell, hAxes] = recoverForFigure(figh)
+        function [tvCell, hAxes] = recoverForFigure(figh)
             % recover the AutoAxis instances associated with all axes in
             % figure handle figh
             if nargin < 1, figh = gcf; end
@@ -300,6 +341,33 @@ classdef ThreeVector < handle
                 flag = true; 
             end
         end
+        
+        function cvec = convertColor(c)
+            if ~ischar(c)
+                cvec = c;
+            else
+                switch c
+                    case 'b'
+                        cvec = [0 0 1];
+                    case 'g'
+                        cvec = [0 1 0];
+                    case 'r'
+                        cvec = [1 0 0];
+                    case 'c'
+                        cvec = [0 1 1];
+                    case 'm'
+                        cvec = [1 0 1];
+                    case 'y'
+                        cvec = [1 1 0];
+                    case 'k'
+                        cvec = [0 0 0];
+                    case 'w'
+                        cvec = [1 1 1];
+                    otherwise
+                        error('Unknown color string');
+                end
+            end
+        end
     end
     
     methods(Access=protected)
@@ -317,7 +385,7 @@ classdef ThreeVector < handle
         function initializeNewInstance(tv, axh)
             % set property values for new instance
             tv.axh = axh;
-            tv.fontSize = get(0, 'DefaultAxesFontSize');
+            tv.fontSize = get(tv.axh, 'FontSize');
             tv.lineWidth = 2;
             tv.fontColor = [0.1 0.1 0.1];
             tv.lineColor = [0.4 0.4 0.4];
@@ -328,34 +396,67 @@ classdef ThreeVector < handle
         end
         
         function initialize(tv)
+            figh = ThreeVector.getParentFigure(tv.axh);
+            
+            % create an overlay axis with unique tag, store the tag
+            % set to match outer postition with x/y lims [0 1]
+            tv.axhOverlayTag = tv.generateTagForAxis();
+            tv.axhOverlay = axes('Position', [0 0 1 1], 'Color', 'none', ...
+                'XLim', [0 1], 'YLim', [0 1], 'Tag', tv.axhOverlayTag, 'HitTest', 'off', ...
+                'Parent', figh);
+            %set(tv.axhOverlay, 'LooseInset', [0 0 0 0]);
+            uistack(tv.axhOverlay, 'top');
+            hold(tv.axhOverlay, 'on');
+            
             % draw the axis vectors and the text labels
             if ~isempty(tv.hv)
                 delete(tv.hv);
             end
-            tv.hv(1) = plot3([0 1], [0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axh);
-            tv.hv(2) = plot3([0 1], [0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axh);
-            tv.hv(3) = plot3([0 1], [0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axh);
+            tv.hv(1) = plot3([0 1], [0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axhOverlay);
+            tv.hv(2) = plot3([0 1], [0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axhOverlay);
+            tv.hv(3) = plot3([0 1], [0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axhOverlay);
 
             if ~isempty(tv.ht)
                 delete(tv.ht);
             end
             
-            tv.ht(1) = text(0, 1, 'X', 'HorizontalAlign', 'Left', 'Parent', tv.axh);
-            tv.ht(2) = text(0, 2, 'Y', 'HorizontalAlign', 'Left', 'Parent', tv.axh);
-            tv.ht(3) = text(0, 3, 'Z', 'HorizontalAlign', 'Left', 'Parent', tv.axh);
+            tv.ht(1) = text(0, 1, 'X', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay);
+            tv.ht(2) = text(0, 2, 'Y', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay);
+            tv.ht(3) = text(0, 3, 'Z', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay);
             
-            ThreeVector.hideInLegend(tv.hv);
-            ThreeVector.hideInLegend(tv.ht);
+            axis(tv.axhOverlay, 'off');
+            
+            %ThreeVector.hideInLegend(tv.hv);
+            %ThreeVector.hideInLegend(tv.ht);
             
             % tag handles so that they can be recovered on save/load
+            handleStruct = struct();
             handleStruct.hv = tv.hv;
             handleStruct.ht = tv.ht;
             tv.tagHandlesForRecovery(handleStruct);
         end
         
+        function tag = generateTagForAxis(tv)
+            % generate a random string tag to use for the transparent
+            % overlay axis
+            
+            s = RandStream('mt19937ar', 'Seed', tv.axh);
+            letters = 'a':'z';
+            tag = ['axis_' letters(randi(s, 26, 10, 1) + 1)];
+        end
+        
         function reinstallPostLoad(tv)
             % recover handles via tags, and reinstall callbacks
             
+            % first find overlay axes
+            figh = ThreeVector.getParentFigure(tv.axh);
+            h = findobj(figh, 'Type', 'axes', 'Tag', tv.axhOverlayTag);
+            if isempty(h)
+                warning('Could not recover tagged handle %s', tag);
+            end
+            tv.axhOverlay = h;
+            
+            % then find objects within overlay axes
             h = tv.recoverTaggedHandles();
             tv.hv = h.hv;
             tv.ht = h.ht;
@@ -435,7 +536,8 @@ classdef ThreeVector < handle
                 h.(f) = nan(numel(tv.handleTags.(f)), 1);
                 for j = 1:numel(tv.handleTags.(f))
                     tag = tv.handleTags.(f){j};
-                    val = findobj(tv.axh, 'Tag', tag);
+                    % important that we search inside axhOverlay
+                    val = findobj(tv.axhOverlay, 'Tag', tag);
                     if isempty(val)
                         warning('Could not recover tagged handle %s', tag);
                     end
@@ -445,8 +547,7 @@ classdef ThreeVector < handle
         end
     end
     
-    methods % methods for computing positions of annotations
-        
+    methods(Access=protected) % methods for computing positions of annotations
         function ptsData = convertFigToData(tv, ptsFig)
              % ptsFig, ptsData are 3 x N matrices
              % row 1 is X, row 2 is Y, row 3 is Z

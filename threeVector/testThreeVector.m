@@ -16,16 +16,16 @@ function h = testThreeVector()
             end
         end
     else
-        h = doTV();
+        doTV();
     end
 
 end
 
 
-function h = doTV()
+function doTV()
     P = peaks(40);
     C = del2(P);
-    h = surf(P,C);
+    surf(P,C);
     colormap hot
     view([322 39]);
 
@@ -35,7 +35,7 @@ function h = doTV()
     ylabel('Y');
     zlabel('Z');
 
-    tv = ThreeVector(gca);
+    ThreeVector(gca);
 
     %rotate3d on;
 end
