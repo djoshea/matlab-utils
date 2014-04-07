@@ -7,7 +7,7 @@ classdef AutoAxis < handle
         
         % gap between axis limits (Position) and OuterPosition of axes
         % only used when axis is not managed by panel
-        axisInset = [2.2 2.2 1 2]; % [left bottom right top] 
+        axisInset = [2.2 2.2 1 1]; % [left bottom right top] 
         
         % spacing between axes and any ticks, lines, marks along each axis
         axisPadding = [0.2 0.2 0.2 0.2]; % [left bottom right top] 
@@ -23,7 +23,7 @@ classdef AutoAxis < handle
         % border objects (e.g. hBelowX, including ticks and tick labels).
         % this sets that spacing between the outer edge of those items and
         % the label's inner edge
-        axisLabelTickOffset = [0 0 0 0]; % cm
+        axisLabelTickOffset = [0.5 0.5 0.5 0.5]; % cm
        
         % ticks and tick labels
         tickColor
@@ -178,12 +178,13 @@ classdef AutoAxis < handle
         function ax = recoverForAxis(axh)
             % recover the AutoAxis instance associated with the axis handle
             % axh
-           ud = get(axh, 'UserData');
-           if isempty(ud) || ~isstruct(ud) || ~isfield(ud, 'autoAxis')
-               ax = [];
-           else
-               ax = ud.autoAxis;
-           end
+            if nargin < 1, axh = gca; end
+            ud = get(axh, 'UserData');
+            if isempty(ud) || ~isstruct(ud) || ~isfield(ud, 'autoAxis')
+                ax = [];
+            else
+                ax = ud.autoAxis;
+            end
         end
         
         function ax = createOrRecoverInstance(ax, axh)
@@ -450,8 +451,10 @@ classdef AutoAxis < handle
             import AutoAxis.PositionType;
             if ~isempty(ax.autoAxisY)
                 % delete the old objects
-                delete(ax.autoAxisY.ht);
-                delete(ax.autoAxisY.hl);
+                try
+                    delete(ax.autoAxisY.ht);
+                    delete(ax.autoAxisY.hl);
+                catch, end
                 
                 % remove from handle collection
                 remove = [ax.autoAxisY.ht; ax.autoAxisY.hl];

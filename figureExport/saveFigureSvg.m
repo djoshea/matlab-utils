@@ -1,32 +1,28 @@
-function fileList = saveFigure(varargin)
-% saveFigure(hfig, name, ext)
+function fileList = saveFigureSvg(varargin)
+% saveFigure(name, exts, figh)
 %
-% hfig : figure handle, default=gcf
 % name : name for figure, default='out', as one of the following
 %   string : string.ext will be used for each extension
 %   cellstr : each entry corresponds to one extension
 %   struct : name.(ext) will be used for each extension
 %   function_handle : name(ext) must return the name
-% ext : cell array of extensions, default={'fig', 'png', 'svg', 'eps', 'pdf'}
+% hfig : figure handle, default=gcf
+% ext : cell array of extensions, default={'pdf', 'png', 'svg'}
 
     extList = {'fig', 'png', 'hires.png', 'svg', 'eps', 'pdf'};
-    extListDefault = extList;
+    extListDefault = {'pdf', 'png', 'svg'};
 
     p = inputParser;
-    p.addOptional('hfig', gcf, @ishandle);
     p.addOptional('name', '', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
     p.addOptional('ext', [], @(x) ischar(x) || iscellstr(x));
-    p.addParamValue('convertFromPdf', true, @islogical);
+    p.addOptional('figh', gcf, @ishandle);
     p.addParamValue('copy', true, @islogical);
-    p.addParamValue('fixPcolor', true, @islogical);
-    p.addParamValue('quiet', false, @islogical);
+    p.addParamValue('quiet', true, @islogical);
     p.KeepUnmatched = true;
     p.parse(varargin{:});
-    hfig = p.Results.hfig;
+    hfig = p.Results.figh;
     name = p.Results.name;
     ext = p.Results.ext;
-    convertFromPdf = p.Results.convertFromPdf;
-    fixPcolor = p.Results.fixPcolor;
     quiet = p.Results.quiet;
 
     if isempty(ext)
@@ -35,7 +31,13 @@ function fileList = saveFigure(varargin)
             ext = fieldnames(name);
         elseif iscell(name)
             ext = cellfun(@getExtension, name, 'UniformOutput', false);
+        elseif ischar(name)
+            ext = getExtension(name);
         else
+            ext = [];
+        end
+        
+        if isempty(ext)
             ext = extListDefault;
         end
     end 
@@ -62,17 +64,40 @@ function fileList = saveFigure(varargin)
     if p.Results.copy
         hfigCopy = copyfig(hfig);
         set(hfigCopy, 'NumberTitle', 'off', 'Name', 'Copy of Figure -- Temporary');
-        
     else
         hfigCopy = hfig;
     end
+   
+    % start with svg format, convert to pdf, then to other formats
+    needSvg = any(ismember(setdiff(extList, 'fig'), ext));
+    needPdf = any(ismember(setdiff(extList, {'fig', 'svg'}), ext));
+    svgFile = '';
+    pdfFile = '';
     
-    % bitmap formats are built using imagemagick to convert from pdf
-    needPdfForConversion = any(ismember({'png', 'hires.png'}, ext)) && convertFromPdf;
+    if ismember('svg', ext) || needSvg
+        if ismember('svg', ext)
+            % use actual file name
+            file = getFileName('svg');
+            fileList{end+1} = file;
+            if ~quiet
+                printmsg('svg', file);
+            end
+        else
+            % use a temp file name
+            file = [tempname '.svg'];
+            tempList{end+1} = file;
+        end
         
-    if ismember('pdf', ext) || needPdfForConversion
+        svgFile = file;
+        
+        % set font to Myriad Pro
+        figSetFont(hfigCopy, 'FontName', 'Myriad Pro');
+        plot2svg(file, hfigCopy);
+    end
+    
+    if ismember('pdf', ext) || needPdf
         if ismember('pdf', ext)
-            % use the right file name
+            % use actual file name
             file = getFileName('pdf');
             fileList{end+1} = file;
             if ~quiet
@@ -83,11 +108,10 @@ function fileList = saveFigure(varargin)
             file = [tempname '.pdf'];
             tempList{end+1} = file;
         end
+
+        % convert to pdf using inkscape
+        convertSvgToPdf(svgFile, file);
         
-        % set everything to use a dummy font so that ghostscript can substitute
-        figSetFont(hfigCopy, 'FontName', 'SUBSTITUTEFONT');
-        
-        export_fig(hfigCopy, file, '-fixPcolor', true);   
         pdfFile = file;
     end
     
@@ -99,13 +123,7 @@ function fileList = saveFigure(varargin)
             printmsg('png', file);
         end
         
-        % set font to Myriad Pro
-        figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
-        if convertFromPdf
-            convertPdf(pdfFile, file);
-        else
-            export_fig(hfigCopy, file);
-        end
+        convertPdf(pdfFile, file);
     end
     
     if ismember('hires.png', ext)
@@ -114,29 +132,8 @@ function fileList = saveFigure(varargin)
         if ~quiet
             printmsg('hires.png', file);
         end
-        % set font to Myriad Pro
-        figSetFont(hfigCopy, 'FontName', 'MyriadPro-Regular');
-            
-        if convertFromPdf
-            convertPdf(pdfFile, file, true);
-        else
-            % suppress large image warning
-            s = warning('OFF', 'MATLAB:LargeImage');
-            export_fig(hfigCopy, file, '-r300');
-            warning(s);
-        end
-    end
-    
-    if ismember('svg', ext)
-        % set font to Myriad Pro
-        figSetFont(hfigCopy, 'FontName', 'Myriad Pro');
-        file = getFileName('svg');
-        fileList{end+1} = file;
-
-        if ~quiet
-            printmsg('svg', file);
-        end
-        plot2svg(file, hfigCopy);
+        
+        convertPdf(pdfFile, file, true);
     end
     
     if ismember('eps', ext)
@@ -148,7 +145,7 @@ function fileList = saveFigure(varargin)
         if ~quiet
             printmsg('eps', file);
         end
-        export_fig(hfigCopy, file);
+        export_fig(hfigCopy, file, '-fixPcolor', true);
     end
 
     if p.Results.copy
@@ -163,6 +160,31 @@ function fileList = saveFigure(varargin)
     return;
     
 %%%%%%%
+
+    function convertSvgToPdf(svgFile, pdfFile)
+        % use Inkscape to convert pdf
+        
+        if ismac
+            inkscapePath = '/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
+            if ~exist(inkscapePath, 'file')
+                error('Could not locate Inkscape at %s', inkscapePath);
+            end
+        else
+            inkscapePath = 'inkscape';
+        end
+        
+        % MATLAB has it's own older version of libtiff.so inside it, so we
+        % clear that path when calling imageMagick to avoid issues
+        cmd = sprintf('export LD_LIBRARY_PATH=""; export DYLD_LIBRARY_PATH=""; %s --export-pdf=%s %s', ...
+            inkscapePath, escapePathForShell(pdfFile), escapePathForShell(svgFile));
+        [status, result] = system(cmd);
+        
+        if status
+            fprintf('Error converting svg file. Is Inkscape configured correctly?\n');
+            fprintf(result);
+            fprintf('\n');
+        end
+    end
 
     function convertPdf(pdfFile, file, hires)
         % call imageMagick convert on pdfFile --> file
@@ -180,9 +202,9 @@ function fileList = saveFigure(varargin)
         
         % MATLAB has it's own older version of libtiff.so inside it, so we
         % clear that path when calling imageMagick to avoid issues
-        cmd = sprintf('export LD_LIBRARY_PATH=""; export DYLD_LIBRARY_PATH=""; convert -verbose -trim -density %d %s -resize %d%% %s', ...
+        cmd = sprintf('export LD_LIBRARY_PATH=""; export DYLD_LIBRARY_PATH=""; convert -verbose -density %d %s -resize %d%% %s', ...
             density, escapePathForShell(pdfFile), resize, escapePathForShell(file));
-        [status result] = system(cmd);
+        [status, result] = system(cmd);
         
         if status
             fprintf('Error converting pdf file. Is ImageMagick installed?\n');
@@ -195,7 +217,8 @@ function fileList = saveFigure(varargin)
         debug('Saving %s as %s\n', ex, file);
     end
     
-    function figSetFont(hfig, varargin);
+    function figSetFont(hfig, varargin)
+        % set all fonts in the figure
         hfont = findobj(hfig, '-property', 'FontName');
         set(hfont, varargin{:});
         drawnow;
@@ -230,6 +253,62 @@ function fileList = saveFigure(varargin)
     end
     
 end
+
+%COPYFIG Create a copy of a figure, without changing the figure
+%
+% Examples:
+%   fh_new = copyfig(fh_old)
+%
+% This function will create a copy of a figure, but not change the figure,
+% as copyobj sometimes does, e.g. by changing legends.
+%
+% IN:
+%    fh_old - The handle of the figure to be copied. Default: gcf.
+%
+% OUT:
+%    fh_new - The handle of the created figure.
+
+% Copyright (C) Oliver Woodford 2012
+function fh = copyfig(fh)
+
+    % Set the default
+    if nargin == 0
+        fh = gcf;
+    end
     
+    % store xlabel, ylabel, title visibility --> sometimes gets turned off
+    xvis = get(get(gca, 'XLabel'), 'Visible');
+    yvis = get(get(gca, 'YLabel'), 'Visible');
+    zvis = get(get(gca, 'ZLabel'), 'Visible');
+    tvis = get(get(gca, 'Title'), 'Visible');
+    
+    xpos = get(get(gca, 'XLabel'), 'Position');
+    ypos = get(get(gca, 'YLabel'), 'Position');
+    zpos = get(get(gca, 'ZLabel'), 'Position');
+    tpos = get(get(gca, 'Title'), 'Position');
+    
+    % Is there a legend?
+    if isempty(findobj(fh, 'Type', 'axes', 'Tag', 'legend'))
+        % Safe to copy using copyobj
+        fh = copyobj(fh, 0);
+    else
+        % copyobj will change the figure, so save and then load it instead
+        tmp_nam = [tempname '.fig'];
+        hgsave(fh, tmp_nam);
+        fh = hgload(tmp_nam);
+        delete(tmp_nam);
+    end
+    
+    % restore visibility
+    set(get(gca, 'XLabel'), 'Visible', xvis);
+    set(get(gca, 'YLabel'), 'Visible', yvis);
+    set(get(gca, 'ZLabel'), 'Visible', zvis);
+    set(get(gca, 'Title'), 'Visible', tvis);
+    
+    set(get(gca, 'XLabel'), 'Position', xpos);
+    set(get(gca, 'YLabel'), 'Position', ypos);
+    set(get(gca, 'ZLabel'), 'Position', zpos);
+    set(get(gca, 'Title'), 'Position', tpos);
+end
 
     
