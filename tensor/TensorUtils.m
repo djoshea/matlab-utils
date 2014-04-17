@@ -459,7 +459,7 @@ classdef TensorUtils
             
         end
         
-        function [res mask] = selectAlongDimension(t, dim, select, squeezeResult)
+        function [res, mask] = selectAlongDimension(t, dim, select, squeezeResult)
             if nargin < 4
                 squeezeResult = false;
             end

@@ -66,11 +66,11 @@ function fileList = saveFigureSvg(varargin)
         else
             % single file name with no extension, use extension list
             % (default if not found)
-            if ~iscell(ext)
-                ext = {ext};
-            end
             if isempty(ext)
                 ext = extListDefault; 
+            end
+            if ~iscell(ext)
+                ext = {ext};
             end
             for iE = 1:numel(ext)
                 fileInfo(ext{iE}) = GetFullPath(sprintf('%s.%s', name, ext{iE}));

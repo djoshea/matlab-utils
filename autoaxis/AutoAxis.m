@@ -7,7 +7,7 @@ classdef AutoAxis < handle
         
         % gap between axis limits (Position) and OuterPosition of axes
         % only used when axis is not managed by panel
-        axisInset = [2.2 2.2 1 1]; % [left bottom right top] 
+        axisInset = [3 2.5 1 1]; % [left bottom right top] 
         
         % spacing between axes and any ticks, lines, marks along each axis
         axisPadding = [0.2 0.2 0.2 0.2]; % [left bottom right top] 
@@ -31,7 +31,7 @@ classdef AutoAxis < handle
         tickLineWidth
         tickFontColor
         tickFontSize
-        tickLabelOffset = 0.1; % cm
+        tickLabelOffset = 0.2; % cm
         
         % axis x/y labels
         labelFontSize
