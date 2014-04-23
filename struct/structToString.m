@@ -1,5 +1,8 @@
-function str = structToString(s)
+function str = structToString(s, separator)
 % given a struct s with string or numeric vector values, convert to string
+    if nargin < 2
+        separator = ' ';
+    end
 
     fields = fieldnames(s);
     if isempty(fields)
@@ -8,7 +11,7 @@ function str = structToString(s)
     end
     vals = structfun(@convertToString, s);
 
-    str = strjoin(cellfun(@(fld, val) [fld '=' val], fields, vals, 'UniformOutput', false), ' ');
+    str = strjoin(cellfun(@(fld, val) [fld '=' val], fields, vals, 'UniformOutput', false), separator);
     
     return;
     

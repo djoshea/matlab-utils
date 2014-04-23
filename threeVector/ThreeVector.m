@@ -116,7 +116,7 @@ classdef ThreeVector < handle
             
             axh = tv.axh; %#ok<*PROP>
             axhOverlay = tv.axhOverlay;
-            if isempty(axh) || isempty(axhOverlay), return, end
+            if isempty(axh) || isempty(axhOverlay) || ~ishandle(axhOverlay), return, end
             
             % update the position of the overlay axis
             pos = get(axh, 'OuterPosition');

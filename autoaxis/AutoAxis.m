@@ -428,8 +428,8 @@ classdef AutoAxis < handle
             import AutoAxis.PositionType;
             if ~isempty(ax.autoAxisX)
                 % delete the old axes
-                delete(ax.autoAxisX.ht);
-                delete(ax.autoAxisX.hl);
+                try delete(ax.autoAxisX.ht); catch, end
+                try delete(ax.autoAxisX.hl); catch, end
                 
                 remove = [ax.autoAxisX.ht; ax.autoAxisX.hl];
             else
@@ -478,8 +478,8 @@ classdef AutoAxis < handle
             % its length to match the major tick interval along the x axis
             if ~isempty(ax.autoScaleBarX)
                 % delete the old objects
-                delete(ax.autoScaleBarX.ht);
-                delete(ax.autoScaleBarX.hr);
+                try delete(ax.autoScaleBarX.ht); catch, end
+                try delete(ax.autoScaleBarX.hr); catch, end;
                 
                 % remove from handle collection
                 remove = [ax.autoScaleBarX.hr; ax.autoScaleBarX.ht];
@@ -972,17 +972,27 @@ classdef AutoAxis < handle
             fontSize = ax.tickFontSize;
             thickness = p.Results.thickness;
             
+            hr = [];
+            ht = [];
+            if interval(2) <= interval(1)
+                warning('Skipping interval: endpoints must be monotonically increasing');
+                return;
+            end
+            
             yl = get(axh, 'YLim');
             if ~isempty(errorInterval)
-                hre = rectangle('Position', [errorInterval(1), yl(1), ...
-                    errorInterval(2)-errorInterval(1), thickness/3], ...
-                    'Parent', ax.axh);
-                AutoAxis.hideInLegend(hre);
-                set(hre, 'FaceColor', errorIntervalColor, 'EdgeColor', 'none', ...
-                    'Clipping', 'off', 'XLimInclude', 'off', 'YLimInclude', 'off');
+                if errorInterval(2) > errorInterval(1)
+                    hre = rectangle('Position', [errorInterval(1), yl(1), ...
+                        errorInterval(2)-errorInterval(1), thickness/3], ...
+                        'Parent', ax.axh);
+                    AutoAxis.hideInLegend(hre);
+                    set(hre, 'FaceColor', errorIntervalColor, 'EdgeColor', 'none', ...
+                        'Clipping', 'off', 'XLimInclude', 'off', 'YLimInclude', 'off');
+                end
             else
                 hre = [];
             end
+           
             hri = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), thickness], ...
                 'Parent', ax.axh);
             AutoAxis.hideInLegend(hri);
@@ -1027,6 +1037,130 @@ classdef AutoAxis < handle
             ax.addHandlesToCollection('hBelowX', [hr; ht]);
         end
         
+        function [hl, ht] = addLabeledSpan(ax, varargin)
+            % add line and text objects to the axis that replace the normal
+            % axes. 'span' is 2 x N matrix
+            import AutoAxis.AnchorInfo;
+            import AutoAxis.PositionType;
+            
+            p = inputParser();
+            p.addRequired('orientation', @ischar);
+            p.addParamValue('span', [], @ismatrix); % 2 X N matrix of [ start; stop ] limits
+            p.addParamValue('label', {}, @(x) isempty(x) || ischar(x) || iscell(x));
+            p.addParamValue('color', {}, @(x) ischar(x) || iscell(x) || ismatrix(x));
+            p.addParamValue('adjustInset', false, @islogical);
+            p.CaseSensitive = false;
+            p.parse(varargin{:});
+            
+            axh = ax.axh; %#ok<*PROP>
+            useX = strcmp(p.Results.orientation, 'x');
+            span = p.Results.span;
+            label = p.Results.label;
+            fontSize = ax.tickFontSize;
+            lineWidth = ax.tickLineWidth;
+            color = p.Results.color;
+            adjustInset = p.Results.adjustInset;
+            
+            % check sizes
+            nSpan = size(span, 2);
+            assert(size(span, 1) == 2, 'span must be 2 x N matrix of limits');
+            if ischar(label)
+                label = {label};
+            end
+            assert(numel(label) == nSpan, 'numel(label) must match size(span, 2)');
+            
+            if ischar(color)
+                color = {color};
+            end
+            if isscalar(color) && nSpan > 1
+                color = repmat(color, nSpan, 1);
+            end
+            
+            % generate line, ignore length here, we'll anchor that later
+            if useX
+                % x axis lines
+                xvals = [span(1, :); span(2, :)];
+                yvals = zeros(size(xvals));
+                xtext = mean(span, 1);
+                ytext = zeros(size(xtext));
+                ha = repmat({'center'}, size(xtext));
+                va = repmat({'top'}, size(xtext));
+                offset = ax.axisPadding(2);
+                
+            else
+                % y axis lines
+                yvals = [span(1, :); span(2, :)];
+                xvals = zeros(size(yvals));
+                ytext = mean(span, 1);
+                xtext = zeros(size(ytext));
+                ha = repmat({'right'}, size(xtext));
+                va = repmat({'middle'}, size(xtext));
+                offset = ax.axisPadding(1);
+            end
+            
+            hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Parent', ax.axh);
+            for i = 1:nSpan
+                if iscell(color)
+                    set(hl(i), 'Color', color{i});
+                else
+                    set(hl(i), 'Color', color(i, :));
+                end
+            end
+            AutoAxis.hideInLegend(hl);
+            set(hl, 'Clipping', 'off', 'YLimInclude', 'off', 'XLimInclude', 'off');
+            ht = nan(nSpan, 1);
+            for i = 1:nSpan
+                ht(i) = text(xtext(i), ytext(i), label{i}, ...
+                    'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
+                    'Parent', ax.axh);
+                if iscell(color)
+                    set(ht(i), 'Color', color{i});
+                else
+                    set(ht(i), 'Color', color(i, :));
+                end
+            end
+            set(ht, 'Clipping', 'off', 'Margin', 0.1, 'FontSize', fontSize);
+                
+            if ax.debug
+                set(ht, 'EdgeColor', 'r');
+            end
+            
+            % build anchor for lines
+            if useX
+                ai = AnchorInfo(hl, PositionType.Top, ax.axh, ...
+                    PositionType.Bottom, offset, 'xLabeledSpan below axis');
+                ax.addAnchor(ai);
+            else
+                ai = AnchorInfo(hl, PositionType.Right, ...
+                    ax.axh, PositionType.Left, offset, 'yLabeledSpan left of axis');
+                ax.addAnchor(ai);
+            end
+            
+            % anchor labels to lines
+            if useX
+                ai = AnchorInfo(ht, PositionType.Top, ...
+                    hl, PositionType.Bottom, ax.tickLabelOffset, ...
+                    'xLabeledSpan below ticks');
+                ax.addAnchor(ai);
+            else
+                ai = AnchorInfo(ht, PositionType.Right, ...
+                    hl, PositionType.Left, ax.tickLabelOffset, ...
+                    'yLabeledSpan left of ticks');
+                ax.addAnchor(ai);
+            end
+            
+            % add handles to handle collections
+            ht = makecol(ht);
+            hl = makecol(hl);
+            if useX
+                ax.addHandlesToCollection('hBelowX', [hl; ht]);
+            else
+                ax.addHandlesToCollection('hLeftY', [hl; ht]);
+            end
+        end   
+    end
+    
+    methods
         function addAnchor(ax, info)
             ind = numel(ax.anchorInfo) + 1;
             ax.anchorInfo(ind) = info;

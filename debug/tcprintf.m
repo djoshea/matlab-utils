@@ -52,16 +52,19 @@ function tcprintf(style, fmatString, varargin)
         end
         return;
     end
+    
+    % generate the final string
+    str = sprintf(fmatString, varargin{:});
 
     if strcmp(style, 'inline') || isempty(style)
         % use {style string} style inline tagging of format codes
         % style matches
         pat = '(?<style>(?<!\\){[^}]+})*(?<text>((\\{)|[^{])+)*';
-        formatPairs = regexp(fmatString, pat, 'names');
+        formatPairs = regexp(str, pat, 'names');
     else
         % use a single style element
         formatPairs.style = style;
-        formatPairs.text = fmatString;
+        formatPairs.text = str;
     end
     
     % dump as plaintext if not in terminal or in data tip
@@ -69,7 +72,7 @@ function tcprintf(style, fmatString, varargin)
         % print the message without color and return
         textPieces = {formatPairs.text};
         fmatString = [textPieces{:}];
-        fprintf(fmatString, varargin{:});
+        fprintf(str);
         return;
     end
     
@@ -83,8 +86,8 @@ function tcprintf(style, fmatString, varargin)
     end
 
     % concatenate the component strings
-    fullStr = [stringCell{:}];
-    contents = sprintf(fullStr, varargin{:});
+    contents = [stringCell{:}];
+    %contents = sprintf(fullStr, varargin{:});
     
     % re-escape any %% that were transformed into % by sprintf
     contents = strrep(contents, '%', '%%');
@@ -138,7 +141,7 @@ function codeStr = getCodeStringForStyle(style)
     end
 
     % use \\ because this will be fed into fprintf
-    codeStr = ['\\033[', strjoin(codes, ';'), 'm'];
+    codeStr = ['\033[', strjoin(codes, ';'), 'm'];
 end
 
 function [colorName backColorName bright underline blink] = parseStyleTokens(values)
