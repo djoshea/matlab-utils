@@ -500,8 +500,10 @@ classdef AutoAxis < handle
             % its length to match the major tick interval along the x axis
             if ~isempty(ax.autoScaleBarY)
                 % delete the old objects
-                delete(ax.autoScaleBarY.ht);
-                delete(ax.autoScaleBarY.hr);
+                try
+                    delete(ax.autoScaleBarY.ht);
+                    delete(ax.autoScaleBarY.hr);
+                catch, end
                 
                 % remove from handle collection
                 remove = [ax.autoScaleBarY.hr; ax.autoScaleBarY.ht];
