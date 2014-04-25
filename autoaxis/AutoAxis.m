@@ -1203,6 +1203,9 @@ classdef AutoAxis < handle
                 ax.processAnchors(ax.anchorInfo);
             end
             
+            valid = [ax.anchorInfo.valid];
+            ax.anchorInfo = ax.anchorInfo(valid);
+            
             % cache the current limits for checking for changes in
             % callbacks
             ax.lastXLim = get(ax.axh, 'XLim');
@@ -1268,7 +1271,7 @@ classdef AutoAxis < handle
         end
            
         
-        function processAnchor(ax, info)
+        function valid = processAnchor(ax, info)
             import AutoAxis.PositionType;
             
             if info.processed
@@ -1277,7 +1280,8 @@ classdef AutoAxis < handle
             if isempty(info.h) || ~all(ishandle(info.h)) || ...
                 (~isempty(info.ha) && ~all(ishandle(info.ha)))
                 info.valid = false;
-                warning('Invalid anchor %s encountered', info.desc);
+                valid = false;
+                %warning('Invalid anchor %s encountered', info.desc);
                 return;
             end
             
@@ -1321,6 +1325,8 @@ classdef AutoAxis < handle
 
             % and actually set the position of the data
             ax.updatePositionData(info.h, info.pos);
+            
+            valid = true;
         end
         
         function info = findAnchorsSpecifying(ax, hVec, posType)

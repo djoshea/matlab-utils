@@ -71,7 +71,7 @@ function tcprintf(style, fmatString, varargin)
     if ~usingTerminal || inDataTip
         % print the message without color and return
         textPieces = {formatPairs.text};
-        fmatString = [textPieces{:}];
+        str = [textPieces{:}];
         fprintf(str);
         return;
     end

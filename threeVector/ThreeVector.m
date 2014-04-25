@@ -336,7 +336,7 @@ classdef ThreeVector < handle
             xlabel('X');
             ylabel('Y');
             zlabel('Z');
-            axis vis3d;
+            %axis vis3d;
             
             tv = ThreeVector(gca);
             rotate3d on;
