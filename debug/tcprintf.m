@@ -54,6 +54,7 @@ function tcprintf(style, fmatString, varargin)
     end
     
     % generate the final string
+    fmatString = strrep(strrep(fmatString, '\{', '\\{'), '\}', '\\}'); 
     str = sprintf(fmatString, varargin{:});
 
     if strcmp(style, 'inline') || isempty(style)
@@ -61,6 +62,10 @@ function tcprintf(style, fmatString, varargin)
         % style matches
         pat = '(?<style>(?<!\\){[^}]+})*(?<text>((\\{)|[^{])+)*';
         formatPairs = regexp(str, pat, 'names');
+        for i = 1:numel(formatPairs)
+            formatPairs(i).text = strrep(formatPairs(i).text, '\{', '{');
+            formatPairs(i).text = strrep(formatPairs(i).text, '\}', '}');
+        end
     else
         % use a single style element
         formatPairs.style = style;
