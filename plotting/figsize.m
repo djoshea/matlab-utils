@@ -1,4 +1,4 @@
-function figSize(varargin)
+function figsize(varargin)
 % figsize(figh, height, width)
 % figsize(height, width) - uses gcf by default
 % 
@@ -23,4 +23,9 @@ figPos = get(figh,'Position');
 set(figh, 'PaperPositionMode', 'auto');
 newPos = [figPos(1), figPos(2), width, height];
 set(figh, 'Position', newPos);
+
+au = AutoAxis.recoverForAxis(gca);
+if ~isempty(au)
+    au.update();
+end
 

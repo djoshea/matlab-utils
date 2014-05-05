@@ -26,8 +26,8 @@ function fileList = saveFigureSvg(varargin)
 
     p = inputParser;
     p.addOptional('name', '', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
-    p.addOptional('ext', [], @(x) ischar(x) || iscellstr(x));
     p.addOptional('figh', gcf, @ishandle);
+    p.addParamValue('ext', [], @(x) ischar(x) || iscellstr(x));
     p.addParamValue('copy', true, @islogical);
     p.addParamValue('quiet', true, @islogical);
     p.KeepUnmatched = true;

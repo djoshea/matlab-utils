@@ -23,7 +23,7 @@ classdef AutoAxis < handle
         % border objects (e.g. hBelowX, including ticks and tick labels).
         % this sets that spacing between the outer edge of those items and
         % the label's inner edge
-        axisLabelTickOffset = [0.5 0.5 0.5 0.5]; % cm
+        axisLabelOffset = [2.0 1.5 1.5 1.5]; % cm
        
         % ticks and tick labels
         tickColor
@@ -141,6 +141,18 @@ classdef AutoAxis < handle
             axCell = AutoAxis.recoverForFigure(figh);
             for i = 1:numel(axCell)
                 axCell{i}.update();
+            end
+        end
+        
+        function updateIfInstalled(axh)
+            if nargin < 1
+                axh = gca;
+            end
+            
+            au = AutoAxis.recoverForAxis(axh);
+            if ~isempty(au)
+                au.update();
+                au.installCallbacks();
             end
         end
         
@@ -378,10 +390,15 @@ classdef AutoAxis < handle
             end
             
             % anchor below the hBelowX objects
+%             ai = AutoAxis.AnchorInfo(hlabel, PositionType.Top, ...
+%                 ax.hBelowX, PositionType.Bottom, ax.axisLabelOffset(2), ...
+%                 'xlabel below hBelowX');
+            
+            % anchor below axis
             ai = AutoAxis.AnchorInfo(hlabel, PositionType.Top, ...
-                ax.hBelowX, PositionType.Bottom, ax.axisLabelTickOffset(2), ...
-                'xlabel below hBelowX');
-            ax.addAnchor(ai);
+                ax.axh, PositionType.Bottom, ax.axisLabelOffset(2), ...
+                'xlabel below axis');
+            ax.addAnchor(ai)
             
             % and in the middle of the x axis
             ai = AutoAxis.AnchorInfo(hlabel, PositionType.HCenter, ...
@@ -412,8 +429,12 @@ classdef AutoAxis < handle
             end
             
             % anchor left of hLeftY objects
+%             ai = AutoAxis.AnchorInfo(hlabel, PositionType.Right, ...
+%                 ax.hLeftY, PositionType.Left, ax.axisLabelOffset(1));
+            
+            % anchor left of axis
             ai = AutoAxis.AnchorInfo(hlabel, PositionType.Right, ...
-                ax.hLeftY, PositionType.Left, ax.axisLabelTickOffset(1));
+                ax.axh, PositionType.Left, ax.axisLabelOffset(1));
             ax.addAnchor(ai);
             
             % and in the middle of the y axis
@@ -872,7 +893,11 @@ classdef AutoAxis < handle
             if ~isempty(p.Results.length)
                 len = p.Results.length;
             else
-                ticks = get(ax.axh, 'XTick');
+                if useX
+                    ticks = get(ax.axh, 'XTick');
+                else
+                    ticks = get(ax.axh, 'YTick');
+                end
                 len = ticks(end) - ticks(end-1);
             end
             
@@ -899,7 +924,8 @@ classdef AutoAxis < handle
                     'Parent', ax.axh);
                 AutoAxis.hideInLegend(hr);
                 ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'left', ...
-                    'VerticalAlignment', 'top', 'Parent', ax.axh);
+                    'VerticalAlignment', 'top', 'Parent', ax.axh, ...
+                    'Rotation', -90);
             end
             
             set(hr, 'FaceColor', color, 'EdgeColor', 'none', 'Clipping', 'off', ...
@@ -1173,6 +1199,8 @@ classdef AutoAxis < handle
                 ax.uninstall();
                 return;
             end
+            
+            axis(ax.axh, 'off');
             
             ax.locMap = ValueMap('KeyType', 'any', 'ValueType', 'any'); % allow handle vectors
 
