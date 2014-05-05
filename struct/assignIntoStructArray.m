@@ -43,10 +43,18 @@ function S = assignIntoStructArray(S, fld, vals, idx)
         end
         vals = repmat(vals, 1, numel(fld));
     end 
-
-    assert(nnz(idx) == size(vals, 1) && numel(fld) == size(vals, 2), ...
-        'Vals must be scalar, vector of nnz(idx), or matrix of nnz(idx) x numel(fld)');
-
+        
+    if numel(idx) == size(vals, 1)
+        vals = vals(idx, :);
+    elseif islogical(idx) && nnz(idx) == size(vals, 1)
+        % correct size already
+    else
+        error('size(vals, 1) must match either numel(idx) or nnz(idx)');
+    end
+    
+    assert(numel(fld) == size(vals, 2), ...
+        'size(vals, 2) must match numel(fields)');
+    
     createdS = isempty(S);    
     
     for iFld = 1:length(fld)

@@ -309,9 +309,11 @@ classdef TensorUtils
             % converts back to linear indices using sub2ind
             
             ndims = length(sz);
-            if ndims == 2 && any(sz==1)
-                ndims = 1;
-            end
+            % DO NOT UNCOMMENT. THIS WILL BREAK THINGS SINCE SZ CAN HAVE
+            % SZ(1) == 1.
+             if ndims == 2 && sz(2) == 1 && size(mat, 2) == 1
+                 ndims = 1;
+             end
             subsCell = arrayfun(@(dim) mat(:, dim), 1:ndims, 'UniformOutput', false);
             
             inds = sub2ind(sz, subsCell{:});
