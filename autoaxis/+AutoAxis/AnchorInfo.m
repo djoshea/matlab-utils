@@ -1,4 +1,4 @@
-classdef AnchorInfo < handle
+classdef AnchorInfo < handle & matlab.mixin.Copyable
     properties
         desc = ''; % description for debugging purposes
         
@@ -11,7 +11,7 @@ classdef AnchorInfo < handle
         pos % AutoAxisPositionType value for this object
         posa % AutoAxisPositionType value or numerical scalar in paper units
         
-        margin % gap between h point and anchor point in paper units
+        margin % gap between h point and anchor point in paper units, can be string if expression
         
         %data % scalar value indicating the data coordinate used when posAnchro is Data
     end  
@@ -23,7 +23,7 @@ classdef AnchorInfo < handle
             p.addOptional('pos', [], @(x) isempty(x) || isa(x, 'AutoAxis.PositionType'));
             p.addOptional('ha', [], @(x) isvector(x) || isempty(x));
             p.addOptional('posa', [], @(x) isempty(x) || isa(x, 'AutoAxis.PositionType') || isscalar(x));
-            p.addOptional('margin', 0, @(x) isscalar(x));
+            p.addOptional('margin', 0, @(x) ischar(x) || isscalar(x));
             p.addOptional('desc', '', @ischar);
             
             p.parse(varargin{:});

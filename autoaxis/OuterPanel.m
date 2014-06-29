@@ -150,8 +150,6 @@
 % Release Version 2.6
 % ############################################################
 
-
-
 classdef (Sealed = true) OuterPanel < handle
 	
 	% panel is an alternative to subplot
@@ -159,11 +157,6 @@ classdef (Sealed = true) OuterPanel < handle
 	% for detailed reference information, use "doc panel". to
 	% learn how to use panel, work through the demos (in the
 	% "demo" folder), starting with "demopanel1".
-	
-	
-	
-	
-	
 	
 	%% ---- PROPERTIES ----
 	

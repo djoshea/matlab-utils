@@ -1,13 +1,15 @@
 import AutoAxis.PositionType;
 import AutoAxis.AnchorInfo;
-clf;
+close all;
+
+figure(1), clf, set(1, 'Color', 'w');
 
 t = linspace(-6,6,300);
 xlim([-5 5]);
 ylim([-5 5]);
 
 avals = linspace(0.5, 5, 20);
-cmap = jet(numel(avals));
+cmap = copper(numel(avals));
 for i = 1:numel(avals)
     y = avals(i)*sin(2*pi*0.5*t);
     plot(t, y, '-', 'Color', cmap(i, :), 'LineWidth', 2);
@@ -16,21 +18,22 @@ end
 
 % playing around with a dot and label
 
-hm = plot(5.5,4, 'o', 'MarkerSize', 20, 'MarkerFaceColor', 'b', 'MarkerEdgeColor', 'none');
-ht = text(1,1, 'Anchored Label', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
+%hm = plot(5.5,4, 'o', 'MarkerSize', 20, 'MarkerFaceColor', 'b', 'MarkerEdgeColor', 'none');
+%ht = text(1,1, 'Anchored Label', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
 
 au = AutoAxis();
 
-au.addAnchor(AnchorInfo(ht, PositionType.Top, hm, PositionType.Bottom));
-au.addAnchor(AnchorInfo(ht, PositionType.HCenter, hm, PositionType.HCenter));
+%au.addAnchor(AnchorInfo(ht, PositionType.Top, hm, PositionType.Bottom));
+%au.addAnchor(AnchorInfo(ht, PositionType.HCenter, hm, PositionType.HCenter));
 
 ylabel('Y Label');
 au.addAutoAxisY();
 %au.addTicklessLabels('y', 'tick', -5:5);
 au.addTitle('Plot Title');
 
-useAutoAxisX = false;
+useAutoAxisX = true;
 if useAutoAxisX
+    xlabel('X Label');
     au.addAutoAxisX();
 else
     au.addTickBridge('x', 'tick', -5:-3);
@@ -51,12 +54,16 @@ else
     au.addXLabel('X Label');
     au.yUnits = 'Hz';
     au.addAutoScaleBarY();
-    au.axisInset(3) = 2;
 end
 
+au.axisMarginLeft = 2.5;
+au.axisMarginBottom = 2.5;
+au.axisLabelOffsetLeft = 1.3;
+au.axisLabelOffsetBottom = 1.3;
 
 axis off
 au.update();
 au.installCallbacks();
+
 auVec(i) = au;
 
