@@ -1,18 +1,14 @@
-function testAutoAxisSubplot2()
+function testAutoAxisPanel2()
     import AutoAxis.PositionType;
     import AutoAxis.AnchorInfo;
     clf;
-    R = 2;
+    R = 1;
     C = 2;
-    
+
     p = OuterPanel();
     p.pack(R,C);
     p.units = 'cm';
-    %p.margin = 0;
-    %p.de.margin = 0;
-    %p.margin = [2.2 2.2 1 1];
-    %p.de.margin = 0.4;
-    %p.setCallback(@callbackFn);
+    p.setCallback(@callbackFn);
 
     axh = nan(R,C);
     au = cell(R,C);
@@ -38,37 +34,36 @@ function testAutoAxisSubplot2()
 
             ha = AutoAxis(axh(r,c));
 
-            % [left bottom right top]
-            ha.axisMargin = [2 2 0 0];
+            if r == R
+               % p(r,c).marginbottom = 2.2; 
+            end
+            p(r,c).xlabel('X Label');
+            ha.addAutoAxisX();
+%                 
+            if r == 1
+            %    p(r,c).margintop = 1;
+            end
             
-%             if r == R
-                p(r,c).xlabel('X Label');
-                ha.addAutoAxisX();
-                %p(r,c).marginbottom = 2.2;
-% %             end
-%             if r == 1
-%                 p(r,c).margintop = 1;
-%             end
-%             if c == 1
-                p(r,c).ylabel('Y Label');
+            p(r,c).ylabel('Y Label');
                 ha.addAutoAxisY();
-                
-                %p(r,c).marginleft = 2.2;
-%             end
-%             if c == C
+            if c == 1
+%                 p(r,c).marginleft = 2.2;
+            end
+            if c == C
 %                 p(r,c).marginright = 1;
-%             end
+            end
 
-            %ha.update();
+            ha.axisMargin = [2 2 0 0];
             ha.installCallbacks();
             au{r,c} = ha;
         end
     end
 
     AutoAxis.updateFigure();
+    
 end
 
-function callbackFn(data)
+function callbackFn(~)
     AutoAxis.updateFigure;
 end
 

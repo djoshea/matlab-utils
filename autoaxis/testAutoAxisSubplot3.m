@@ -5,8 +5,6 @@ function testAutoAxisSubplot()
     R = 2;
     C = 2;
     
-    
-
     axh = nan(R,C);
     au = cell(R,C);
 
@@ -32,17 +30,13 @@ function testAutoAxisSubplot()
 
             ha = AutoAxis(axh(r,c));
 
-            % [left bottom right top]
-            %ha.axisInset = [0 0 0 0];
-            
-%             if r == R
             xlabel('X Label');
             ha.addAutoAxisX();
             ylabel('Y Label');
             ha.addAutoAxisY(); 
           
             %ha.update();
-            %ha.installCallbacks();
+            ha.installCallbacks();
             au{r,c} = ha;
         end
     end
@@ -51,6 +45,6 @@ function testAutoAxisSubplot()
 end
 
 function callbackFn(data)
-    AutoAxis.updateFigure;
+    AutoAxis.updateFigure();
 end
 

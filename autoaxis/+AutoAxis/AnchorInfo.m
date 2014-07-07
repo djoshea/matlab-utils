@@ -2,7 +2,6 @@ classdef AnchorInfo < handle & matlab.mixin.Copyable
     properties
         desc = ''; % description for debugging purposes
         
-        processed = false; % logical indicating whether it has already been processed this round
         valid = true;
         
         h % handle or vector of handles of object(s) to position
@@ -15,6 +14,14 @@ classdef AnchorInfo < handle & matlab.mixin.Copyable
         
         %data % scalar value indicating the data coordinate used when posAnchro is Data
     end  
+    
+    properties(Hidden, SetAccess=?AutoAxis)
+        % boolean flag for internal use. when pos is Height or Width,
+        % indicates what should be fixed when scaling the height or width
+        % e.g. if posScaleFixed is Top, the height should be changed by
+        % moving the bottom down, keeping the Top fixed
+        posScaleFixed
+    end
     
     methods
         function ai = AnchorInfo(varargin)

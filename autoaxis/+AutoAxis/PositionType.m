@@ -45,6 +45,11 @@ classdef PositionType < uint32
             import AutoAxis.PositionType;
             tf = ismember(pos, [PositionType.Bottom, PositionType.Top, PositionType.VCenter, PositionType.Height]);
         end
+        
+        function tf = specifiesSize(pos)
+            import AutoAxis.PositionType;
+            tf = ismember(pos, [PositionType.Width, PositionType.Height]);
+        end
 
         function fields = getLocationFieldsAffected(pos)
             % list PositionType fields potentially affected by this type of anchor

@@ -12,7 +12,7 @@ avals = linspace(0.5, 5, 20);
 cmap = copper(numel(avals));
 for i = 1:numel(avals)
     y = avals(i)*sin(2*pi*0.5*t);
-    plot(t, y, '-', 'Color', cmap(i, :), 'LineWidth', 2);
+    patchline(t, y, 'EdgeColor', cmap(i, :), 'LineWidth', 2, 'EdgeAlpha', 0.5);
     hold on
 end
 
@@ -30,7 +30,6 @@ ylabel('Y Label');
 title('Plot Title');
 
 au.addAutoAxisY();
-%au.addTicklessLabels('y', 'tick', -5:5);
 au.addTitle();
 
 useAutoAxisX = true;

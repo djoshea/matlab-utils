@@ -1,5 +1,7 @@
-classdef LocationInfo < handle
+classdef LocationSpec < handle & matlab.mixin.Copyable
    
+     % Specifed properties inferred from properties beginning with v*
+     % or NaN if not specified
     properties(Dependent)
         top
         bottom
@@ -12,27 +14,40 @@ classdef LocationInfo < handle
         width
     end
 
-    properties(Access=protected)
-        vtop = NaN;
-        vbottom = NaN;
-        vvcenter = NaN;
-        vheight = NaN;
+    % Manually specified values which inform and are set by the properties above
+    properties(SetAccess=protected) 
+        stop = NaN;
+        sbottom = NaN;
+        svcenter = NaN;
+        sheight = NaN;
         
-        vleft = NaN;
-        vright = NaN;
-        vhcenter = NaN;
-        vwidth = NaN;
+        sleft = NaN;
+        sright = NaN;
+        shcenter = NaN;
+        swidth = NaN;
     end
-
+    
     methods
+        function flush(loc)
+            loc.stop = NaN;
+            loc.sbottom = NaN;
+            loc.svcenter = NaN;
+            loc.sheight = NaN;
+
+            loc.sleft = NaN;
+            loc.sright = NaN;
+            loc.shcenter = NaN;
+            loc.swidth = NaN;
+        end
+        
         function [t, b, vc, h] = computeY(loc)
-            [t, b, vc, h] = loc.solveSys(loc.vtop, loc.vbottom, ...
-                loc.vvcenter, loc.vheight);
+            [t, b, vc, h] = loc.solveSys(loc.stop, loc.sbottom, ...
+                loc.svcenter, loc.sheight);
         end
         
         function [r, l, hc, w] = computeX(loc)
-            [r, l, hc, w] = loc.solveSys(loc.vright, loc.vleft, ...
-                loc.vhcenter, loc.vwidth);
+            [r, l, hc, w] = loc.solveSys(loc.sright, loc.sleft, ...
+                loc.shcenter, loc.swidth);
         end
         
         function [hi, lo, mid, r] = solveSys(loc, hi, lo, mid, r)
@@ -51,8 +66,8 @@ classdef LocationInfo < handle
             if nnz(known) < 2
                 % can't do any better
                 return;
-            elseif nnz(known) > 2
-                error('Overconstrained position spec');
+            elseif nnz(known) == 4
+                return;
             end
             
             % solve for the unknown values
@@ -81,7 +96,7 @@ classdef LocationInfo < handle
 %            
 %            [tf, idx] = ismember(which, {'top', 'bottom', 'vcenter', 'height'});
 %            if tf
-%                yVals = [loc.vtop, loc.vbottom, loc.vvcenter, loc.vheight];
+%                yVals = [loc.stop, loc.sbottom, loc.svcenter, loc.sheight];
 %                
 %                % figure out which specifications to keep
 %                ySpec = find(~isnan(yVals));
@@ -91,10 +106,10 @@ classdef LocationInfo < handle
 %                    yVals(ySpec(2:end)) = NaN;
 %                end
 %                
-%                loc.vtop = yVals(1);
-%                loc.vbottom = yVals(2);
-%                loc.vvcenter = yVals(3);
-%                loc.vheight = yVals(4);
+%                loc.stop = yVals(1);
+%                loc.sbottom = yVals(2);
+%                loc.svcenter = yVals(3);
+%                loc.sheight = yVals(4);
 %            end
 %              
 %         end
@@ -106,7 +121,7 @@ classdef LocationInfo < handle
         end
 
         function set.top(loc, v)
-            loc.vtop = v;
+            loc.stop = v;
         end
 
         function v = get.bottom(loc)
@@ -114,7 +129,7 @@ classdef LocationInfo < handle
         end
 
         function set.bottom(loc, v)
-            loc.vbottom = v;
+            loc.sbottom = v;
         end
         
         function v = get.vcenter(loc)
@@ -122,7 +137,7 @@ classdef LocationInfo < handle
         end
         
         function set.vcenter(loc, v)
-            loc.vvcenter = v;
+            loc.svcenter = v;
         end
 
         function v = get.height(loc)
@@ -130,7 +145,7 @@ classdef LocationInfo < handle
         end
 
         function set.height(loc, v)
-            loc.vheight = v;
+            loc.sheight = v;
         end
 
         function v = get.left(loc)
@@ -138,7 +153,7 @@ classdef LocationInfo < handle
         end
 
         function set.left(loc, v)
-            loc.vleft = v;
+            loc.sleft = v;
         end
 
         function v = get.right(loc)
@@ -146,7 +161,7 @@ classdef LocationInfo < handle
         end
 
         function set.right(loc, v)
-            loc.vright = v;
+            loc.sright = v;
         end
         
         function v = get.hcenter(loc)
@@ -154,7 +169,7 @@ classdef LocationInfo < handle
         end
         
         function set.hcenter(loc, v)
-            loc.vhcenter = v;
+            loc.shcenter = v;
         end
 
         function v = get.width(loc)
@@ -162,7 +177,7 @@ classdef LocationInfo < handle
         end
 
         function set.width(loc, v)
-            loc.vwidth = v;
+            loc.swidth = v;
         end
     end
 

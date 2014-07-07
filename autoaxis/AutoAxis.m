@@ -7,34 +7,32 @@ classdef AutoAxis < handle
 %   re-entrancy
 %   http://undocumentedmatlab.com/blog/controlling-callback-re-entrancy/
 %
+
+    properties(Dependent, Hidden) % Utility properties that read/write through 
+        axisPaddingLeft
+        axisPaddingBottom
+        axisPaddingTop
+        axisPaddingRight
+        
+        axisMarginLeft
+        axisMarginBottom
+        axisMarginTop
+        axisMarginRight
+        
+        axisLabelOffsetLeft
+        axisLabelOffsetBottom
+        axisLabelOffsetTop
+        axisLabelOffsetRight
+    end
+
     properties
         % units used by all properties and anchor measurements
         % set this before creating any anchors
         units = 'centimeters';
         
-        % gap between axis limits (Position) and OuterPosition of axes
-        % only used when axis is not managed by panel
-        axisMargin = [2.5 2.5 1 1]; % [left bottom right top] 
-        
-        % spacing between axes and any ticks, lines, marks along each axis
-        axisPadding = [0.2 0.2 0.2 0.2]; % [left bottom right top] 
-        
-%         % manual spacing between axis border and x labels, y labels
-%         % where NaN, these labels will be anchored below anything attached
-%         % to axis (ticks, tick labels, markers, etc.). Otherwise will be
-%         % manually spaced in cm 
-%         % objects (e.g. belowX, including ticks and tick labels).
-%         axisLabelManualOffsets = [NaN NaN NaN NaN];
-%     
-        % xlabel and ylabel will be anchored to the corresponding axis
-        % border 
-        % this sets that spacing between the outer edge of those items and
-        % the label's inner edge
-        axisLabelOffset = [1.0 1.0 1.0 1.0]; % cm
-        
         % ticks and tick labels
         tickColor
-        tickLength = 0.2;
+        tickLength = 0.15;
         tickLineWidth
         tickFontColor
         tickFontSize
@@ -54,25 +52,31 @@ classdef AutoAxis < handle
         scaleBarThickness = 0.2; % cm
         xUnits = '';
         yUnits = '';
+        keepAutoScaleBarsEqual = false;
 
         debug = false;
     end
     
-    properties(Dependent) % Utility properties that read/write through 
-        axisPaddingLeft
-        axisPaddingBottom
-        axisPaddingTop
-        axisPaddingRight
+    properties(Hidden)
+        % gap between axis limits (Position) and OuterPosition of axes
+        % only used when axis is not managed by panel
+        axisMargin = [2.5 2.5 1.5 1.5]; % [left bottom right top] 
         
-        axisMarginLeft
-        axisMarginBottom
-        axisMarginTop
-        axisMarginRight
+        % spacing between axes and any ticks, lines, marks along each axis
+        axisPadding = [0.2 0.2 0.2 0.2]; % [left bottom right top] 
         
-        axisLabelOffsetLeft
-        axisLabelOffsetBottom
-        axisLabelOffsetTop
-        axisLabelOffsetRight
+%         % manual spacing between axis border and x labels, y labels
+%         % where NaN, these labels will be anchored below anything attached
+%         % to axis (ticks, tick labels, markers, etc.). Otherwise will be
+%         % manually spaced in cm 
+%         % objects (e.g. belowX, including ticks and tick labels).
+%         axisLabelManualOffsets = [NaN NaN NaN NaN];
+%     
+        % xlabel and ylabel will be anchored to the corresponding axis
+        % border 
+        % this sets that spacing between the outer edge of those items and
+        % the label's inner edge
+        axisLabelOffset = [1.0 1.0 1.0 1.0]; % cm
     end
       
     methods % Implementations for dependent properties above
@@ -173,8 +177,11 @@ classdef AutoAxis < handle
         end
     end
         
-    properties(SetAccess=protected)
+    properties(Hidden, SetAccess=protected)
         axh % axis handle to which I am attached
+        
+        usingOverlay = false;
+        axhDraw % axis handle into which I am drawing
         
         anchorInfo % array of AutoAxisAnchorInfo objects that I enforce on update()
         
@@ -182,8 +189,9 @@ classdef AutoAxis < handle
         % see .derefAnchorInfo
         anchorInfoDeref
         
-        locMap % list of LocationInfo objects,
-        locHandles = {} % cell array of handle vectors corresponding to the elements of locMap
+        refreshNeeded = true;
+        
+        mapLocationCurrent % list of LocationCurrent objects,
         
         collections = struct(); % struct which contains named collections of handles
         
@@ -201,7 +209,7 @@ classdef AutoAxis < handle
         lastYLim
     end
 
-    properties(SetAccess=protected)
+    properties(Hidden, SetAccess=protected)
         xDataToUnits
         yDataToUnits
         
@@ -210,6 +218,9 @@ classdef AutoAxis < handle
         
         xDataToPixels
         yDataToPixels
+        
+        xReverse % true/false if xDir is reverse
+        yReverse % true/false if yDir is reverse
     end
     
     methods
@@ -235,6 +246,28 @@ classdef AutoAxis < handle
         function figureCallback(figh, varargin)
             if AutoAxis.isMultipleCall(), return, end;
             AutoAxis.updateFigure(figh);
+        end
+        
+        function figureDeferredCallback(figh, varargin)
+            figData = get(figh, 'UserData');
+            hTimer = [];
+            if isstruct(figData) && isfield(figData, 'hTimer') 
+                hTimer = figData.hTimer;
+            end
+            if ~isempty(hTimer) && isa(hTimer, 'timer')
+                % stop the timer to delay it's triggering
+                stop(hTimer);
+            else
+                % create the timer
+                hTimer = timer('StartDelay', 0.1, 'TimerFcn', @(varargin) AutoAxis.figureCallback(figh));
+                if ~isstruct(figData), figData = struct(); end
+                figData.hTimer = hTimer;
+                set(figh, 'UserData', figData);
+            end
+            
+            % start it soon
+            tStart = now + 0.1 / (60^2*24);
+            startat(hTimer, tStart);
         end
         
         function flag = isMultipleCall()
@@ -345,6 +378,26 @@ classdef AutoAxis < handle
         function initializeNewInstance(ax, axh)
             ax.axh = axh;
             
+            % determine whether we're drawing into an overlay axis
+            % or directly into this axis
+            figh = AutoAxis.getParentFigure(ax.axh);
+            if strcmp(get(figh, 'Renderer'), 'OpenGL')
+                % create the overlay axis
+                ax.usingOverlay = true;
+                
+                % create the overlay axis on top, without changing current
+                % axes
+                oldCA = gca; % cache gca
+                ax.axhDraw = axes('Position', [0 0 1 1], 'Parent', figh);
+                axis(ax.axhDraw, axis(ax.axh));
+                axes(oldCA); % restore old gca
+                
+                ax.updateOverlayAxisPositioning();
+            else
+                ax.usingOverlay = false;
+                ax.axhDraw = ax.axh;
+            end
+            
             %ax.hMap = containers.Map('KeyType', 'char', 'ValueType', 'any'); % allow handle arrays too
             ax.anchorInfo = AutoAxis.AnchorInfo.empty(0,1);
             ax.anchorInfoDeref = [];
@@ -357,12 +410,12 @@ classdef AutoAxis < handle
             ax.tickLineWidth = 1;
             ax.tickFontSize = sz;
             ax.tickFontColor = [2 2 2] / 255;
-            
             ax.labelFontColor = [1 1 1] / 255;
             ax.labelFontSize = sz;
-            
             ax.titleFontSize = sz;
             ax.titleFontColor = [0 0 0] / 255;
+
+            ax.mapLocationCurrent = containers.Map('KeyType', 'double', 'ValueType', 'any');
         end
              
         function installInstanceForAxis(ax, axh)
@@ -381,19 +434,23 @@ classdef AutoAxis < handle
             figh = AutoAxis.getParentFigure(ax.axh);
             set(zoom(ax.axh),'ActionPostCallback',@ax.figureCallback);
             set(pan(figh),'ActionPostCallback',@AutoAxis.figureCallback);
-            set(figh, 'ResizeFcn', @ax.figureCallback);
-            %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
+            set(figh, 'ResizeFcn', @ax.figureCallback)
+            addlistener(ax.axh, 'YDir', 'PostSet', @(varargin) ax.axisCallback());
+            addlistener(ax.axh, 'XDir', 'PostSet', @(varargin) ax.axisCallback());
+            %set(figh, 'ResizeFcn', @(varargin) disp('resize'));
+            %addlistener(ax.axh, 'Position', 'PostSet', @(varargin) disp('axis size'));
+            %addlistener(figh, 'Position', 'PostSet', @ax.figureCallback);
         end
         
-         function uninstall(ax)
-%             lh(1) = addlistener(ax.axh, {'XLim', 'YLim'}, ...
-%                 'PostSet', @ax.updateLimsCallback);
-            return;
-            figh = ax.getParentFigure();
-            set(pan(figh),'ActionPostCallback', []);
-            set(figh, 'ResizeFcn', []);
-            %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
-        end
+%          function uninstall(~)
+% %             lh(1) = addlistener(ax.axh, {'XLim', 'YLim'}, ...
+% %                 'PostSet', @ax.updateLimsCallback);
+%             return;
+%             figh = ax.getParentFigure();
+%             set(pan(figh),'ActionPostCallback', []);
+%             set(figh, 'ResizeFcn', []);
+%             %addlistener(ax.axh, 'Position', 'PostSet', @ax.updateFigSizeCallback);
+%         end
         
         function tf = checkLimsChanged(ax)
             tf = ~isequal(get(ax.axh, 'XLim'), ax.lastXLim) || ...
@@ -406,6 +463,11 @@ classdef AutoAxis < handle
             if ax.checkLimsChanged()
                 ax.update();
             end
+        end
+        
+        function axisCallback(ax, varargin)
+            if ax.isMultipleCall(), return, end;
+            ax.update();
         end
         
         function addHandlesToCollection(ax, name, hvec)
@@ -424,7 +486,7 @@ classdef AutoAxis < handle
             ax.collections.(name) = newHvec;
         end
         
-        function names = listHandleCollections(ax) %#ok<MANU>
+        function names = listHandleCollections(ax)
             % return a list of all handle collection properties
             names = fieldnames(ax.collections);
         end
@@ -456,11 +518,11 @@ classdef AutoAxis < handle
             remove = false(numel(ax.anchorInfo), 1);
             for i = 1:numel(ax.anchorInfo)
                 ai = ax.anchorInfo(i);
-                if ~isempty(ai.h) && ~ischar(ai.h) % char would be collection reference
+                if ~isempty(ai.h) && ~ischar(ai.h) % char would be collection reference, ignore
                     ai.h = setdiff(ai.h, hvec);
                     if isempty(ai.h), remove(i) = true; end
                 end
-                if ~isempty(ai.ha) && ~ischar(ai.ha) % char would be collection refernce
+                if ~isempty(ai.ha) && ~ischar(ai.ha) % char would be collection reference, ignore
                     ai.ha = setdiff(ai.ha, hvec);
                     if isempty(ai.ha), remove(i) = true; end
                 end
@@ -578,10 +640,6 @@ classdef AutoAxis < handle
             end
             
             ax.addAnchor(ai);
-            % anchor left of axis
-            ai = AutoAxis.AnchorInfo(hlabel, PositionType.Right, ...
-                ax.axh, PositionType.Left, ax.axisLabelOffsetLeft);
-            ax.addAnchor(ai);
             
             % and in the middle of the y axis
             ai = AutoAxis.AnchorInfo(hlabel, PositionType.VCenter, ...
@@ -594,68 +652,80 @@ classdef AutoAxis < handle
         function addAutoAxisX(ax, varargin)
             import AutoAxis.PositionType;
             if ~isempty(ax.autoAxisX)
-                % delete the old axes
-                try delete(ax.autoAxisX.ht); catch, end
-                try delete(ax.autoAxisX.hl); catch, end
+                firstTime = false;
                 
-                remove = [ax.autoAxisX.ht; ax.autoAxisX.hl];
+                % delete the old axes
+                try delete(ax.autoAxisX.h); catch, end
+                remove = ax.autoAxisX.h;
             else
+                firstTime = true;
                 remove = [];
             end
             
-            [hl, ht] = ax.addTickBridge('x');
-            ax.autoAxisX.hl = hl;
-            ax.autoAxisX.ht = ht;
+            hlist = ax.addTickBridge('x', ...
+                'useAutoAxisCollections', true, ...
+                'addAnchors', firstTime);
+            ax.autoAxisX.h = hlist;
             
             % remove after the new ones are added by addTickBridge
             % so that anchors aren't deleted
             ax.removeHandles(remove);
             
-            ax.addXLabel();
+            if firstTime
+                ax.addXLabel();
+            end
         end
         
         function addAutoAxisY(ax, varargin)
             import AutoAxis.PositionType;
             if ~isempty(ax.autoAxisY)
+                firstTime = false;
                 % delete the old objects
                 try
-                    delete(ax.autoAxisY.ht);
-                    delete(ax.autoAxisY.hl);
-                catch, end
+                    delete(ax.autoAxisY.h);
+                catch
+                end
                 
                 % remove from handle collection
-                remove = [ax.autoAxisY.ht; ax.autoAxisY.hl];
+                remove = ax.autoAxisY.h;
             else
+                firstTime = true;
                 remove = [];
             end
             
-            [hl, ht] = ax.addTickBridge('y');
-            ax.autoAxisY.hl = hl;
-            ax.autoAxisY.ht = ht;
+            hlist = ax.addTickBridge('y', ...
+                'useAutoAxisCollections', true, ...
+                'addAnchors', firstTime);
+            ax.autoAxisY.h = hlist;
             
             % remove after the new ones are added by addTickBridge
             % so that anchors aren't deleted
             ax.removeHandles(remove);
             
-            ax.addYLabel();
+            if firstTime
+                ax.addYLabel();
+            end
         end
         
         function addAutoScaleBarX(ax, varargin)
             % adds a scale bar to the x axis that will automatically update
             % its length to match the major tick interval along the x axis
             if ~isempty(ax.autoScaleBarX)
+                firstTime = false;
+                
                 % delete the old objects
-                try delete(ax.autoScaleBarX.ht); catch, end
-                try delete(ax.autoScaleBarX.hr); catch, end;
+                try delete(ax.autoScaleBarX.h); catch, end
                 
                 % remove from handle collection
-                remove = [ax.autoScaleBarX.hr; ax.autoScaleBarX.ht];
+                remove = ax.autoScaleBarX.h;
             else
+                firstTime = true;
                 remove = [];
             end
             
-            [ax.autoScaleBarX.hr, ax.autoScaleBarX.ht] = ax.addScaleBar('x', ...
-                'thickness', ax.scaleBarThickness', 'units', ax.xUnits);
+            ax.autoScaleBarX.h = ax.addScaleBar('x', ...
+                'thickness', ax.scaleBarThickness', 'units', ax.xUnits, ...
+                'useAutoScaleBarCollection', true, 'addAnchors', firstTime);
             
             % remove after the new ones are added by addTickBridge
             % so that the existing anchors aren't deleted
@@ -666,20 +736,24 @@ classdef AutoAxis < handle
             % adds a scale bar to the x axis that will automatically update
             % its length to match the major tick interval along the x axis
             if ~isempty(ax.autoScaleBarY)
+                firstTime = false;
+                
                 % delete the old objects
                 try
-                    delete(ax.autoScaleBarY.ht);
-                    delete(ax.autoScaleBarY.hr);
-                catch, end
+                    delete(ax.autoScaleBarY.h);
+                catch
+                end
                 
                 % remove from handle collection
-                remove = [ax.autoScaleBarY.hr; ax.autoScaleBarY.ht];
+                remove = ax.autoScaleBarY.h;
             else
+                firstTime = true;
                 remove = [];
             end
             
-            [ax.autoScaleBarY.hr, ax.autoScaleBarY.ht] = ax.addScaleBar('y', ...
-                'thickness', ax.scaleBarThickness, 'units', ax.yUnits);
+            ax.autoScaleBarY.h = ax.addScaleBar('y', ...
+                'thickness', ax.scaleBarThickness, 'units', ax.yUnits, ...
+                'useAutoScaleBarCollections', true, 'addAnchors', firstTime);
             
             % remove after the new ones are added by addTickBridge
             % so that the existing anchors aren't deleted
@@ -783,7 +857,7 @@ classdef AutoAxis < handle
             for i = 1:numel(ticks)
                 ht(i) = text(xtext(i), ytext(i), labels{i}, ...
                     'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
-                    'Interpreter', 'none', 'Parent', ax.axh);
+                    'Interpreter', 'none', 'Parent', ax.axhDraw);
             end
             set(ht, 'Clipping', 'off', 'Margin', 0.1, 'FontSize', fontSize, ...
                     'Color', color);
@@ -812,7 +886,7 @@ classdef AutoAxis < handle
             end
         end
         
-        function [hl, ht] = addTickBridge(ax, varargin)
+        function [hlist] = addTickBridge(ax, varargin)
             % add line and text objects to the axis that replace the normal
             % axes
             import AutoAxis.AnchorInfo;
@@ -824,6 +898,9 @@ classdef AutoAxis < handle
             p.addParamValue('tickLabel', {}, @(x) isempty(x) || iscellstr(x));
             p.addParamValue('tickAlignment', [], @(x) isempty(x) || iscellstr(x));
             p.addParamValue('tickRotation', 0, @isscalar);
+            p.addParamValue('useAutoAxisCollections', false, @islogical);
+            p.addParamValue('addAnchors', true, @islogical);
+            
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -867,9 +944,11 @@ classdef AutoAxis < handle
             if useX
                 hi = 1;
                 lo = 0;
-                xvals = cat(2, [makerow(ticks); makerow(ticks)], ...
-                    [min(ticks); max(ticks)]);
-                yvals = cat(2, repmat([hi; lo], 1, numel(ticks)), [hi; hi]);
+                xvals = [makerow(ticks); makerow(ticks)];
+                yvals = repmat([hi; lo], 1, numel(ticks));
+                
+                xbridge = [min(ticks); max(ticks)];
+                ybridge = [hi; hi];
                 
                 xtext = ticks;
                 ytext = repmat(lo, size(ticks));
@@ -882,9 +961,11 @@ classdef AutoAxis < handle
                 lo = 0;
                 hi = 1;
                 
-                yvals = cat(2, [makerow(ticks); makerow(ticks)], ...
-                    [min(ticks); max(ticks)]);
-                xvals = cat(2, repmat([hi; lo], 1, numel(ticks)), [hi; hi]);
+                yvals = [makerow(ticks); makerow(ticks)];
+                xvals = repmat([hi; lo], 1, numel(ticks));
+                
+                xbridge = [hi; hi];
+                ybridge = [min(ticks); max(ticks)];
                 
                 xtext = repmat(lo, size(ticks));
                 ytext = ticks;
@@ -894,9 +975,12 @@ classdef AutoAxis < handle
             end
             
             % draw tick bridge
-            hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Color', color, 'Parent', ax.axh);
-            AutoAxis.hideInLegend(hl);
-            set(hl, 'Clipping', 'off', 'YLimInclude', 'off', 'XLimInclude', 'off');
+            hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Color', color, 'Parent', ax.axhDraw);
+            hb = line(xbridge, ybridge, 'LineWidth', lineWidth, 'Color', color, 'Parent', ax.axhDraw);
+            
+            AutoAxis.hideInLegend([hl; hb]);
+            
+            set([hl; hb], 'Clipping', 'off', 'YLimInclude', 'off', 'XLimInclude', 'off');
             
             % draw tick labels
             ht = nan(numel(ticks), 1);
@@ -904,7 +988,7 @@ classdef AutoAxis < handle
                 ht(i) = text(xtext(i), ytext(i), labels{i}, ...
                     'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
                     'Rotation', tickRotation, ...
-                    'Parent', ax.axh);
+                    'Parent', ax.axhDraw);
             end
             set(ht, 'Clipping', 'off', 'Margin', 0.1, 'FontSize', fontSize, ...
                     'Color', color);
@@ -913,43 +997,72 @@ classdef AutoAxis < handle
                 set(ht, 'EdgeColor', 'r');
             end
             
-            % build anchor for lines
-            if useX
-                ai = AnchorInfo(hl, PositionType.Top, ax.axh, ...
-                    PositionType.Bottom, offset, 'xTick below axis');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(hl, PositionType.Height, ...
-                    [], tickLen, 0, 'xTick length');
-                ax.addAnchor(ai);
+            if p.Results.useAutoAxisCollections
+                if useX
+                    ax.addHandlesToCollection('autoAxisXBridge', hb);
+                    ax.addHandlesToCollection('autoAxisXTicks', ht);
+                    ax.addHandlesToCollection('autoAxisXTickLabels', hl);
+                    hbRef = 'autoAxisXBridge';
+                    htRef = 'autoAxisXTicks';
+                    hlRef = 'autoAxisXTickLabels';
+                else
+                    ax.addHandlesToCollection('autoAxisYBridge', hb);
+                    ax.addHandlesToCollection('autoAxisYTicks', ht);
+                    ax.addHandlesToCollection('autoAxisYTickLabels', hl);
+                    hbRef = 'autoAxisYBridge';
+                    htRef = 'autoAxisYTicks';
+                    hlRef = 'autoAxisYTickLabels';
+                end
             else
-                ai = AnchorInfo(hl, PositionType.Right, ...
-                    ax.axh, PositionType.Left, offset, 'yTick left of axis');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(hl, PositionType.Width, ...
-                    [], tickLen, 0, 'yTick length');
-                ax.addAnchor(ai);
+                hbRef = hb;
+                htRef = ht;
+                hlRef = hl;
             end
             
-            % anchor labels to lines
-            if useX
-                ai = AnchorInfo(ht, PositionType.Top, ...
-                    hl, PositionType.Bottom, ax.tickLabelOffset, ...
-                    'xTickLabels below ticks');
-                ax.addAnchor(ai);
-            else
-                ai = AnchorInfo(ht, PositionType.Right, ...
-                    hl, PositionType.Left, ax.tickLabelOffset, ...
-                    'yTickLabels left of ticks');
-                ax.addAnchor(ai);
+            % build anchor for lines
+            if p.Results.addAnchors
+                if useX
+                    ai = AnchorInfo(hbRef, PositionType.Top, ax.axh, ...
+                        PositionType.Bottom, offset, 'xTickBridge below axis');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(hlRef, PositionType.Top, hbRef, ...
+                        PositionType.Bottom, 0, 'xTick below xTickBridge');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(hlRef, PositionType.Height, ...
+                        [], tickLen, 0, 'xTick length');
+                    ax.addAnchor(ai);
+                else
+                    ai = AnchorInfo(hbRef, PositionType.Right, ...
+                        ax.axh, PositionType.Left, offset, 'yTickBridge left of axis');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(hlRef, PositionType.Right, ...
+                        hbRef, PositionType.Left, 0, 'yTick left of yTickBridge');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(hlRef, PositionType.Width, ...
+                        [], tickLen, 0, 'yTick length');
+                    ax.addAnchor(ai);
+                end
+
+                % anchor labels to lines
+                if useX
+                    ai = AnchorInfo(htRef, PositionType.Top, ...
+                        hlRef, PositionType.Bottom, ax.tickLabelOffset, ...
+                        'xTickLabels below ticks');
+                    ax.addAnchor(ai);
+                else
+                    ai = AnchorInfo(htRef, PositionType.Right, ...
+                        hlRef, PositionType.Left, ax.tickLabelOffset, ...
+                        'yTickLabels left of ticks');
+                    ax.addAnchor(ai);
+                end
             end
             
             % add handles to handle collections
-            ht = makecol(ht);
-            hl = makecol(hl);
+            hlist = cat(1, makecol(ht), makecol(hl), hb);
             if useX
-                ax.addHandlesToCollection('belowX', [hl; ht]);
+                ax.addHandlesToCollection('belowX', hlist);
             else
-                ax.addHandlesToCollection('leftY', [hl; ht]);
+                ax.addHandlesToCollection('leftY', hlist);
             end
         end   
         
@@ -991,7 +1104,7 @@ classdef AutoAxis < handle
                     % set the height later
                     hr = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), 1], ...
                         'EdgeColor', 'none', 'FaceColor', p.Results.intervalColor, ...
-                        'YLimInclude', 'off', 'XLimInclude', 'off', 'Clipping', 'off', 'Parent', ax.axh);
+                        'YLimInclude', 'off', 'XLimInclude', 'off', 'Clipping', 'off', 'Parent', ax.axhDraw);
                     AutoAxis.hideInLegend(hr);
                 end
             end
@@ -999,13 +1112,13 @@ classdef AutoAxis < handle
             hm = plot(p.Results.x, yl(1), 'Marker', p.Results.marker, ...
                 'MarkerSize', markerSizePoints, 'MarkerFaceColor', p.Results.markerColor, ...
                 'MarkerEdgeColor', 'none', 'YLimInclude', 'off', 'XLimInclude', 'off', ...
-                'Clipping', 'off', 'Parent', ax.axh);
+                'Clipping', 'off', 'Parent', ax.axhDraw);
             AutoAxis.hideInLegend(hm);
             
             ht = text(p.Results.x, yl(1), p.Results.label, ...
                 'FontSize', ax.tickFontSize, 'Color', p.Results.labelColor, ...
                 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', ...
-                'Parent', ax.axh);
+                'Parent', ax.axhDraw);
             
             ai = AutoAxis.AnchorInfo(hm, PositionType.Top, ...
                 ax.axh, PositionType.Bottom, 'axisPaddingBottom', ...
@@ -1031,7 +1144,7 @@ classdef AutoAxis < handle
             ax.addHandlesToCollection('belowX', [hm; ht; hr]);
         end
         
-        function [hr, ht] = addScaleBar(ax, varargin)
+        function hlist = addScaleBar(ax, varargin)
             % add rectangular scale bar with text label to either the x or
             % y axis, at the lower right corner
             import AutoAxis.AnchorInfo;
@@ -1042,6 +1155,8 @@ classdef AutoAxis < handle
             p.addParamValue('length', [], @isvector);
             p.addParamValue('thickness', ax.tickLength, @isscalar);
             p.addParamValue('units', '', @(x) isempty(x) || ischar(x));
+            p.addParamValue('useAutoScaleBarCollections', false, @islogical);
+            p.addParamValue('addAnchors', true, @islogical);
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -1050,12 +1165,18 @@ classdef AutoAxis < handle
             if ~isempty(p.Results.length)
                 len = p.Results.length;
             else
-                if useX
-                    ticks = get(ax.axh, 'XTick');
+                if ax.keepAutoScaleBarsEqual && p.Results.useAutoScaleBarCollections
+                    xticks = get(ax.axh, 'XTick');
+                    yticks = get(ax.axh, 'YTick');
+                    len = min([xticks(end) - xticks(end-1), yticks(end) - yticks(end-1)]);
                 else
-                    ticks = get(ax.axh, 'YTick');
+                    if useX
+                        ticks = get(ax.axh, 'XTick');
+                    else
+                        ticks = get(ax.axh, 'YTick');
+                    end
+                    len = ticks(end) - ticks(end-1);
                 end
-                len = ticks(end) - ticks(end-1);
             end
             
             if isempty(p.Results.units)
@@ -1072,63 +1193,82 @@ classdef AutoAxis < handle
             yl = get(axh, 'YLim');
             if useX
                 hr = rectangle('Position', [xl(2) - len, yl(1), len, thickness], ...
-                    'Parent', ax.axh);
+                    'Parent', ax.axhDraw);
                 AutoAxis.hideInLegend(hr);
                 ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'right', ...
-                    'VerticalAlignment', 'top', 'Parent', ax.axh);
+                    'VerticalAlignment', 'top', 'Parent', ax.axhDraw);
             else
                 hr = rectangle('Position', [xl(2) - thickness, yl(1), thickness, len], ...
-                    'Parent', ax.axh);
+                    'Parent', ax.axhDraw);
                 AutoAxis.hideInLegend(hr);
-                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'left', ...
-                    'VerticalAlignment', 'top', 'Parent', ax.axh, ...
+                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'right', ...
+                    'VerticalAlignment', 'bottom', 'Parent', ax.axhDraw, ...
                     'Rotation', -90);
             end
             
             set(hr, 'FaceColor', color, 'EdgeColor', 'none', 'Clipping', 'off', ...
                 'XLimInclude', 'off', 'YLimInclude', 'off');
-            set(ht, 'FontSize', fontSize, 'Margin', 0.1, 'Color', color, 'Clipping', 'off');
+            set(ht, 'FontSize', fontSize, 'Margin', 0.01, 'Color', color, 'Clipping', 'off');
                 
             if ax.debug
                 set(ht, 'EdgeColor', 'r');
             end
             
+            if p.Results.useAutoScaleBarCollections
+                if useX
+                    ax.addHandlesToCollection('autoScaleBarXRect', hr);
+                    ax.addHandlesToCollection('autoScaleBarXText', ht);
+                    hrRef = 'autoScaleBarXRect';
+                    htRef = 'autoScaleBarXText';
+                else
+                    ax.addHandlesToCollection('autoScaleBarYRect', hr);
+                    ax.addHandlesToCollection('autoScaleBarYText', ht);
+                    hrRef = 'autoScaleBarYRect';
+                    htRef = 'autoScaleBarYText';
+                end
+            else 
+                hrRef = hr;
+                htRef = ht;
+            end
+            
             % build anchor for rectangle and label
-            if useX
-                ai = AnchorInfo(hr, PositionType.Height, [], thickness, 0, 'xScaleBar thickness');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(hr, PositionType.Top, ax.axh, ...
-                    PositionType.Bottom, 'axisPaddingBottom', ...
-                    'xScaleBar below axis');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(hr, PositionType.Left, ax.axh, ...
-                    PositionType.Right, 'axisPaddingRight', ...
-                    'xScaleBar right edge of axis');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(ht, PositionType.Top, hr, PositionType.Bottom, 0, ...
-                    'xScaleBarLabel below xScaleBar');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(ht, PositionType.Right, hr, PositionType.Right, 0, ...
-                    'xScaleBarLabel right edge of xScaleBar');
-                ax.addAnchor(ai);
-            else
-                ai = AnchorInfo(hr, PositionType.Width, [], thickness, 0, ...
-                    'yScaleBar thickness');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(hr, PositionType.Left, ax.axh, ...
-                    PositionType.Right, 'axisPaddingRight', ...
-                    'yScaleBar right of axis');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(hr, PositionType.Top, ax.axh, ...
-                    PositionType.Bottom, 'axisPaddingBottom', ...
-                    'yScaleBar bottom edge of axis');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(ht, PositionType.Left, hr, PositionType.Right, 0, ...
-                    'yScaleBarLabel right of yScaleBar');
-                ax.addAnchor(ai);
-                ai = AnchorInfo(ht, PositionType.Top, hr, PositionType.Top, 0, ...
-                    'yScaleBarLabel top edge of xScaleBar');
-                ax.addAnchor(ai);
+            if p.Results.addAnchors
+                if useX
+                    ai = AnchorInfo(hrRef, PositionType.Height, [], thickness, 0, 'xScaleBar thickness');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(hrRef, PositionType.Bottom, ax.axh, ...
+                        PositionType.Bottom, 'axisPaddingBottom', ...
+                        'xScaleBar flush with bottom of axis');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(hrRef, PositionType.Right, ax.axh, ...
+                        PositionType.Right, 'axisPaddingRight', ...
+                        'xScaleBar flush with right edge of axis');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(htRef, PositionType.Top, hrRef, PositionType.Bottom, 0, ...
+                        'xScaleBarLabel below xScaleBar');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(htRef, PositionType.Right, hrRef, PositionType.Right, 0, ...
+                        'xScaleBarLabel flush with left edge of xScaleBar');
+                    ax.addAnchor(ai);
+                else
+                    ai = AnchorInfo(hrRef, PositionType.Width, [], thickness, 0, ...
+                        'yScaleBar thickness');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(hrRef, PositionType.Right, ax.axh, ...
+                        PositionType.Right, 'axisPaddingRight', ...
+                        'yScaleBar flush with right of axis');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(hrRef, PositionType.Bottom, ax.axh, ...
+                        PositionType.Bottom, 'axisPaddingBottom', ...
+                        'yScaleBar flush with bottom of axis');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(htRef, PositionType.Left, hrRef, PositionType.Right, 0, ...
+                        'yScaleBarLabel right of yScaleBar');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(htRef, PositionType.Bottom, hrRef, PositionType.Bottom, 0, ...
+                        'yScaleBarLabel bottom edge of xScaleBar');
+                    ax.addAnchor(ai);
+                end
             end
            
             % add handles to handle collections
@@ -1137,6 +1277,8 @@ classdef AutoAxis < handle
             else
                 ax.addHandlesToCollection('hRightY', [hr; ht]);
             end
+            
+            hlist = [hr; ht];
         end
         
         function [hr, ht] = addIntervalX(ax, varargin)
@@ -1178,7 +1320,7 @@ classdef AutoAxis < handle
                 if errorInterval(2) > errorInterval(1)
                     hre = rectangle('Position', [errorInterval(1), yl(1), ...
                         errorInterval(2)-errorInterval(1), thickness/3], ...
-                        'Parent', ax.axh);
+                        'Parent', ax.axhDraw);
                     AutoAxis.hideInLegend(hre);
                     set(hre, 'FaceColor', errorIntervalColor, 'EdgeColor', 'none', ...
                         'Clipping', 'off', 'XLimInclude', 'off', 'YLimInclude', 'off');
@@ -1188,12 +1330,12 @@ classdef AutoAxis < handle
             end
            
             hri = rectangle('Position', [interval(1), yl(1), interval(2)-interval(1), thickness], ...
-                'Parent', ax.axh);
+                'Parent', ax.axhDraw);
             AutoAxis.hideInLegend(hri);
             
             hr = [hri; hre];
             ht = text(mean(interval), yl(1), label, 'HorizontalAlignment', 'center', ...
-                'VerticalAlignment', 'top', 'Parent', ax.axh);
+                'VerticalAlignment', 'top', 'Parent', ax.axhDraw);
 
             set(hri, 'FaceColor', color, 'EdgeColor', 'none', 'Clipping', 'off', ...
                 'XLimInclude', 'off', 'YLimInclude', 'off');
@@ -1242,18 +1384,15 @@ classdef AutoAxis < handle
             p.addParamValue('span', [], @ismatrix); % 2 X N matrix of [ start; stop ] limits
             p.addParamValue('label', {}, @(x) isempty(x) || ischar(x) || iscell(x));
             p.addParamValue('color', {}, @(x) ischar(x) || iscell(x) || ismatrix(x));
-            p.addParamValue('adjustInset', false, @islogical);
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
-            axh = ax.axh; %#ok<*PROP>
             useX = strcmp(p.Results.orientation, 'x');
             span = p.Results.span;
             label = p.Results.label;
             fontSize = ax.tickFontSize;
             lineWidth = ax.tickLineWidth;
             color = p.Results.color;
-            adjustInset = p.Results.adjustInset;
             
             % check sizes
             nSpan = size(span, 2);
@@ -1292,7 +1431,7 @@ classdef AutoAxis < handle
                 offset = 'axisPaddingLeft';
             end
             
-            hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Parent', ax.axh);
+            hl = line(xvals, yvals, 'LineWidth', lineWidth, 'Parent', ax.axhDraw);
             for i = 1:nSpan
                 if iscell(color)
                     set(hl(i), 'Color', color{i});
@@ -1306,7 +1445,7 @@ classdef AutoAxis < handle
             for i = 1:nSpan
                 ht(i) = text(xtext(i), ytext(i), label{i}, ...
                     'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
-                    'Parent', ax.axh);
+                    'Parent', ax.axhDraw);
                 if iscell(color)
                     set(ht(i), 'Color', color{i});
                 else
@@ -1357,22 +1496,47 @@ classdef AutoAxis < handle
     methods
         function addAnchor(ax, info)
             ind = numel(ax.anchorInfo) + 1;
+            % sort here so that we can use ismembc later
+            if ~ischar(info.h)
+                info.h = sort(info.h);
+            end
+            if ~ischar(info.ha)
+                info.ha = sort(info.ha);
+            end
             ax.anchorInfo(ind) = info;
+            
+            % force an update of the dependency graph and reordering of the
+            % anchors
+            ax.refreshNeeded = true;
         end
         
         function update(ax)
             if ~ishandle(ax.axh)
-                ax.uninstall();
+                %ax.uninstall();
                 return;
             end
-            
+                    
+            %disp('autoaxis.update!');
             axis(ax.axh, 'off');
+            if ax.usingOverlay
+                axis(ax.axhDraw, 'off');
+                set(ax.axhDraw, 'Color', 'none');
+            end
             
-            ax.locMap = []; % allow handle vectors
-            ax.locHandles = {};
-
             ax.updateAxisScaling();
-                        
+            
+            if ax.usingOverlay
+                ax.updateOverlayAxisPositioning();
+            end
+            
+            if ax.refreshNeeded
+                % re-order .anchorInfo so that dependencies are correctly
+                % resolved
+                %disp('autoaxis.refresh!');
+                ax.prioritizeAnchorOrder();
+                ax.refreshNeeded = false;
+            end
+            
             % recreate the old auto axes
             if ~isempty(ax.autoAxisX)
                 ax.addAutoAxisX();
@@ -1394,14 +1558,19 @@ classdef AutoAxis < handle
             end
 
             % reset the processed flag
-            if ~isempty(ax.anchorInfo)
+            if ~isempty(ax.anchorInfo)                
                 % dereference all anchors into .anchorInfoDeref
                 ax.derefAnchors();
+                
+                % query the locations of each handle and put them into
+                ax.updateLocationCurrentMap();
             
-                [ax.anchorInfoDeref.processed] = deal(false);
-            
-                ax.processAnchors(ax.anchorInfoDeref);
-            
+                % process all anchors
+                for i = 1:numel(ax.anchorInfoDeref)
+                    ax.processAnchor(ax.anchorInfoDeref(i));
+                end
+                
+                % filter out invalid anchors
                 valid = [ax.anchorInfoDeref.valid];
                 ax.anchorInfo = ax.anchorInfo(valid);
             end
@@ -1410,28 +1579,45 @@ classdef AutoAxis < handle
             % callbacks
             ax.lastXLim = get(ax.axh, 'XLim');
             ax.lastYLim = get(ax.axh, 'YLim');
+           
+        end
+        
+        function updateOverlayAxisPositioning(ax)
+            % we want overlay axis to fill the figure,
+            % but want the portion overlaying the axis to have the same
+            % "limits" as the real axis
+            if ax.usingOverlay
+                set(ax.axhDraw, 'Position', [0 0 1 1], 'HitTest', 'off', 'Color', 'none'); 
+                axUnits = get(ax.axh, 'Units');
+                set(ax.axh, 'Units', 'normalized');
+                pos = get(ax.axh, 'Position');
+
+                % convert normalized coordinates of [ 0 0 1 1 ]
+                % into what they would be in expanding the
+                % limits in data coordinates of axh to fill the figure
+                lims = axis(ax.axh);
+                normToDataX = @(n) (n - pos(1))/pos(3) * (lims(2) - lims(1)) + lims(1);
+                normToDataY = @(n) (n - pos(2))/pos(4) * (lims(4) - lims(3)) + lims(3);
+                limsDraw = [ normToDataX(0) normToDataX(1) normToDataY(0) normToDataY(1) ];
+                axis(ax.axhDraw, limsDraw);
+                
+                uistack(ax.axhDraw, 'top');
+
+                set(ax.axh, 'Units', axUnits);
+            end
         end
 
         function updateAxisScaling(ax)
             % set x/yDataToUnits scaling from data to paper units
             axh = ax.axh;
+            axUnits = get(axh, 'Units');
+
+            set(axh,'Units','centimeters');
+            set(axh, 'LooseInset', ax.axisMargin);
+            
             axlim = axis(axh);
             axwidth = diff(axlim(1:2));
             axheight = diff(axlim(3:4));
-            axUnits = get(axh,'Units');
-            
-            % get data to paper conversion
-            set(axh,'Units','centimeters');
-            
-            % determine if we're inside a panel object
-            figh = AutoAxis.getParentFigure(axh);
-            %p = AutoAxis.getPanelForFigure(figh);
-            %if isempty(p) || isa(p, 'OuterPanel')
-                % only do this outside of a panel, otherwise defer to the
-                % panel's margins
-                set(axh, 'LooseInset', ax.axisMargin);
-            %end
-            
             axpos = get(axh,'Position');
             ax.xDataToUnits = axpos(3)/axwidth;
             ax.yDataToUnits = axpos(4)/axheight;
@@ -1448,17 +1634,10 @@ classdef AutoAxis < handle
             ax.xDataToPixels = axpos(3)/axwidth;
             ax.yDataToPixels = axpos(4)/axheight;
             
-            set(axh, 'Units', axUnits);
-        end
-
-        function processAnchors(ax, anchorInfoDeref)
+            ax.xReverse = strcmp(get(axh, 'XDir'), 'reverse');
+            ax.yReverse = strcmp(get(axh, 'YDir'), 'reverse');
             
-            for i = 1:numel(anchorInfoDeref)
-                info = anchorInfoDeref(i);
-                if ~info.processed
-                    ax.processAnchor(info);
-                end
-            end
+            set(axh, 'Units', axUnits);
         end
         
         function derefAnchors(ax)
@@ -1477,41 +1656,50 @@ classdef AutoAxis < handle
                 
                 % lookup h as handle collection
                 if ischar(info.h)
-                    info.h = ax.getHandlesInCollection(info.h);
+                    info.h = sort(ax.getHandlesInCollection(info.h));
                 end
                 
                 % lookup ha as handle collection
                 if ischar(info.ha)
-                    info.ha = ax.getHandlesInCollection(info.ha);
+                    info.ha = sort(ax.getHandlesInCollection(info.ha));
                 end
             end
         end
-        
-        function loc = getOrCreateLocationInfo(ax, hvec)
-            % return the LocationInfo for h, or create one if missing
-            match = find(cellfun(@(hs) isequal(hs, hvec), ax.locHandles), 1, 'last');
 
-            if ~isempty(match)
-                loc = ax.locMap(match);
-            else
-                % create a new location info and store it
-                loc = AutoAxis.LocationInfo();
-                idx = numel(ax.locMap) + 1;
-                if idx == 1
-                    ax.locMap = loc;
-                else
-                    ax.locMap(idx) = loc;
+        function updateLocationCurrentMap(ax)
+            % update .mapLocationCurrent (handle --> LocationCurrent)
+            % to remove unused handles and add new ones
+            
+            hvec = unique(cat(1, ax.anchorInfoDeref.ha, ax.anchorInfoDeref.h));
+            
+            % remove handles no longer needed
+            keys = cell2mat(ax.mapLocationCurrent.keys);
+            remove = setdiff(keys, hvec);
+            for iH = 1:numel(remove)
+                ax.mapLocationCurrent.remove(remove(iH));
+            end
+            
+            % update handles which are considered "dynamic" whose position
+            % changes unknowingly between calls to update()
+            locCell = ax.mapLocationCurrent.values;
+            for iH = 1:numel(locCell)
+                if locCell{iH}.isDynamic
+                    locCell{iH}.queryPosition(ax.xDataToPoints, ax.yDataToPoints, ...
+                        ax.xReverse, ax.yReverse);
                 end
-                ax.locHandles{idx} = hvec;
+            end
+            
+            % and build a LocationCurrent for missing handles
+            missing = setdiff(hvec, keys);
+            for iH = 1:numel(missing)
+                ax.mapLocationCurrent(missing(iH)) = ...
+                    AutoAxis.LocationCurrent.buildForHandle(missing(iH), ...
+                    ax.xDataToPoints, ax.yDataToPoints, ax.xReverse, ax.yReverse);
             end
         end
                  
         function valid = processAnchor(ax, info)
             import AutoAxis.PositionType;
-            
-            if info.processed
-                return;
-            end
             
             if isempty(info.h) || ~all(ishandle(info.h)) || ...
                 (~isempty(info.ha) && ~all(ishandle(info.ha)))
@@ -1522,8 +1710,8 @@ classdef AutoAxis < handle
             end
             
             if isempty(info.ha)
-                % convert the scalar position value from paper to data
-                % units
+                % this anchor specifies a height or width in raw paper units
+                % convert the scalar value from paper to data units
                 pAnchor = info.posa;
                 if info.pos.isX
                     pAnchor = pAnchor / ax.xDataToUnits;
@@ -1532,12 +1720,8 @@ classdef AutoAxis < handle
                 end
             else
                 % get the position of the anchoring element
-                pAnchor = ax.getAnchorPosition(info.ha, info.posa);
+                pAnchor = ax.getCurrentPositionData(info.ha, info.posa);
             end
-
-            field = info.pos.getDirectField();
-            
-            loc = ax.getOrCreateLocationInfo(info.h);
 
             % add margin to anchor in the correct direction if possible
             if ~isempty(info.ha) && ~isempty(info.margin) && ~isnan(info.margin)
@@ -1553,34 +1737,104 @@ classdef AutoAxis < handle
                     offset = info.margin / ax.xDataToUnits;
                 end
                 
+                if (info.pos.isY() && ax.yReverse) || (info.pos.isX() && ax.xReverse)
+                    offset = -offset;
+                end
+                
                 pAnchor = pAnchor + offset;
             end
             
-            % set the anchored position of this element to match
-            loc.(field) = pAnchor;
-
             % and actually set the position of the data
-            ax.updatePositionData(info.h, info.pos);
+            % this will also create / update the position information
+            % in the LocationCurrent for that object
+            ax.updatePositionData(info.h, info.pos, pAnchor);
             
             valid = true;
         end
         
-        function info = findAnchorsSpecifying(ax, hVec, posType)
+        function prioritizeAnchorOrder(ax)
+            % re-order .anchorInfo so that they can be processed in order, 
+            % such that later anchors are dependent only on the positions
+            % of objects positioned by earlier (and thus already processed)
+            % anchors
+            
+            import AutoAxis.PositionType;
+            
+            % first loop through and build a list of dependencies,
+            % building the adjacency matrix of a directed acyclic graph
+            nAnchors = numel(ax.anchorInfo);
+            dependencyMat = false(nAnchors, nAnchors); % does anchor i depend on anchor j
+            for i = 1:nAnchors
+                anchor = ax.anchorInfo(i);
+                % add dependencies on any anchor that determines the
+                % corresponding position (posa) of this anchor's anchor
+                % object (ha)
+                dependencyMat(i, :) = ax.findAnchorsSpecifying(anchor.ha, anchor.posa);
+                
+                % if this anchor sets the position of h, add dependencies
+                % on any anchors which affect the size of this object so
+                % that sizing happens before positioning
+                if ~anchor.pos.specifiesSize()
+                    if anchor.pos.isX()
+                        dependencyMat(i, :) = dependencyMat(i, :) | ax.findAnchorsSpecifying(anchor.h, PositionType.Width);
+                    else
+                        dependencyMat(i, :) = dependencyMat(i, :) | ax.findAnchorsSpecifying(anchor.h, PositionType.Height);
+                    end
+                end
+            end
+            
+            % then sort the DAG in topographic order
+            issuedWarning = false;
+            sortedIdx = nan(nAnchors, 1);
+            active = true(nAnchors, 1);
+            iter = 1;
+            while any(active)
+                % find an anchor which has no dependencies
+                depCount = sum(dependencyMat, 2);
+                idxNoDep = find(depCount == 0 & active, 1, 'first');
+                if isempty(idxNoDep)
+                    if ~issuedWarning
+                        warning('AutoAxis:AcyclicDependencies', 'AutoAxis anchor dependency graph is cyclic, anchors may be successfully implemented');
+                        issuedWarning = true;
+                    end
+                    
+                    depCount(~active) = Inf;
+                    [~, idxNoDep] = min(depCount);
+                end
+                
+                sortedIdx(iter) = idxNoDep;
+                
+                iter = iter + 1;
+                
+                % remove dependencies on this anchor
+                dependencyMat(:, idxNoDep) = false;
+                active(idxNoDep) = false;
+            end
+            
+            % reorder the anchors to resolve dependencies
+            ax.anchorInfo = ax.anchorInfo(sortedIdx);
+        end
+        
+        function mask = findAnchorsSpecifying(ax, hVec, posType)
             % returns a list of AnchorInfo which could specify position posa of object h
             % this includes 
             import AutoAxis.PositionType;
             
             % first find any anchors that specify any subset of the handles in
-            % hVec 
-            maskSuperset = cellfun(@(v) any(ismember(hVec, v)), {ax.anchorInfoDeref.h});
-            maskExact = cellfun(@(v) isequal(hVec, v), {ax.anchorInfoDeref.h});
+            % hVec
+            if ischar(hVec)
+                maskH = cellfun(@(v) isequal(hVec, v), {ax.anchorInfo.h});
+            else
+                maskH = cellfun(@(v) ~ischar(v) && any(ismember(hVec, v)), {ax.anchorInfo.h});
+            end
             
-            % then search for any directly or indirectly specifying anchors
-            info = ax.anchorInfoDeref(maskSuperset | maskExact);
-            if isempty(info)
-                info = [];
+            if ~any(maskH)
+                mask = maskH;
                 return;
             end
+            
+            % then search for any directly or indirectly specifying anchors
+            info = ax.anchorInfo(maskH); % | maskExact);
 
             maskTop = [info.pos] == PositionType.Top;
             maskBottom = [info.pos] == PositionType.Bottom;
@@ -1595,37 +1849,37 @@ classdef AutoAxis < handle
             maskDirect = [info.pos] == posType;
 
             % placeholder for implicit "combination" specifying anchors,
-            % e.g. height and bottom specifying the top position
+            % e.g. height and/or bottom specifying the top position
             maskImplicit = false(size(info));
 
             switch posType
                 case PositionType.Top
-                    if sum([any(maskBottom) any(maskHeight) any(maskVCenter)]) >= 2
+                    if sum([any(maskBottom) any(maskHeight) any(maskVCenter)]) >= 1 % specifying any of these will affect the top
                         maskImplicit = maskBottom | maskHeight | maskVCenter; 
                     end
 
                 case PositionType.Bottom
-                    if sum([any(maskTop) any(maskHeight) any(maskVCenter)]) >= 2
+                    if sum([any(maskTop) any(maskHeight) any(maskVCenter)]) >= 1
                         maskImplicit = maskTop | maskHeight | maskVCenter; 
                     end
 
                 case PositionType.Height
-                    if sum([any(maskTop) any(maskBottom) any(maskVCenter)]) >= 2
+                    if sum([any(maskTop) any(maskBottom) any(maskVCenter)]) >= 2 % specifying any 2 of these will dictate the height, specifying only one will keep the height as is
                         maskImplicit = maskTop | maskBottom | maskVCenter;
                     end
 
                 case PositionType.VCenter
-                    if sum([any(maskTop) any(maskBottom) any(maskHeight)]) >= 2
+                    if sum([any(maskTop) any(maskBottom) any(maskHeight)]) >= 1
                         maskImplicit = maskTop | maskBottom | maskHeight;
                     end
 
                 case PositionType.Left
-                    if sum([any(maskRight) any(maskWidth) any(maskHCenter)]) >= 2
+                    if sum([any(maskRight) any(maskWidth) any(maskHCenter)]) >= 1
                         maskImplicit = maskRight | maskWidth | maskHCenter;
                     end
 
                 case PositionType.Right
-                    if sum([any(maskLeft) any(maskWidth) any(maskHCenter)]) >= 2
+                    if sum([any(maskLeft) any(maskWidth) any(maskHCenter)]) >= 1
                         maskImplicit = maskLeft | maskWidth | maskHCenter; 
                     end
 
@@ -1635,202 +1889,67 @@ classdef AutoAxis < handle
                     end
 
                 case PositionType.HCenter
-                    if sum([any(maskLeft) && any(maskRight) any(maskWidth)]) >= 2
+                    if sum([any(maskLeft) && any(maskRight) any(maskWidth)]) >= 1
                         maskImplicit = maskLeft | maskRight | maskWidth;
                     end
             end
             
-            info = info(maskDirect | maskImplicit);
+            %info = info(maskDirect | maskImplicit);
+            idx = find(maskH);
+            idx = idx(maskDirect | maskImplicit);
+            mask = false(size(maskH));
+            mask(idx) = true;
         end
-
-        function pos = getAnchorPosition(ax, ha, posa)
-            % for a given object ha and position type posa, return the
-            % paper units figure 
-
-            if isempty(ha)
-                pos = posa;
-                return;
-            end
-            
-            loc = ax.getOrCreateLocationInfo(ha);
-
-            field = posa.getDirectField();
-            if isnan(loc.(field))
-                % not specified yet
-
-                % process any dependent anchors needed to determine this position
-                dependentAnchors = ax.findAnchorsSpecifying(ha, posa);
-                if ~isempty(dependentAnchors)
-                    ax.processAnchors(dependentAnchors);
-                end
-            end
-
-            if isnan(loc.(field))
-                % still not specified, must not be anchored, use the current value
-                loc.(field) = ax.getCurrentPositionData(ha, posa);
-            end
-                
-            pos = loc.(field);
-        end
-
+        
         function pos = getCurrentPositionData(ax, hvec, posType)
             % grab the specified position / size value for object h, in figure units
             % when hvec is a vector of handles, uses the outer bounding
             % box for the objects instead
             
             import AutoAxis.PositionType;
+            import AutoAxis.LocationCurrent;
             
-            % compute derivative positions recursively
-            pos = [];
-            switch posType
-                case PositionType.VCenter
-                    top = ax.getCurrentPositionData(hvec, PositionType.Top);
-                    bottom = ax.getCurrentPositionData(hvec, PositionType.Bottom);
-                    pos = (top+bottom)/2;
-                case PositionType.Height
-                    top = ax.getCurrentPositionData(hvec, PositionType.Top);
-                    bottom = ax.getCurrentPositionData(hvec, PositionType.Bottom);
-                    pos = top - bottom;
-                case PositionType.HCenter
-                    left = ax.getCurrentPositionData(hvec, PositionType.Left);
-                    right = ax.getCurrentPositionData(hvec, PositionType.Right);
-                    pos = (left+right)/2;
-                case PositionType.Width
-                    left = ax.getCurrentPositionData(hvec, PositionType.Left);
-                    right = ax.getCurrentPositionData(hvec, PositionType.Right);
-                    pos = right - left;
-            end
-            if ~isempty(pos), return; end
-
-            posVec = nan(numel(hvec), 1);
-            for i = 1:numel(hvec)
-                h = hvec(i);
-                type = get(h, 'Type');
-
-                switch type
-                    case 'line'
-                        marker = get(h, 'Marker');
-                        markerSize =get(h, 'MarkerSize');
-                        if(strcmp(marker, '.'))
-                            markerSize = markerSize / 2;
-                        end
-                        if strcmp(marker, 'none')
-                            markerSize = 0;
-                        end
-                        
-                        markerSizeX = markerSize / ax.xDataToPoints;
-                        markerSizeY = markerSize / ax.yDataToPoints;
-                        xdata = get(h, 'XData');
-                        ydata = get(h, 'YData');
-                        %npts = numel(xdata);
-
-                        switch posType
-                            case PositionType.Top
-                                pos = nanmax(ydata) + markerSizeY/2;
-                            case PositionType.Bottom
-                                pos = nanmin(ydata) - markerSizeY/2;
-                            case PositionType.Left
-                                pos = nanmin(xdata) - markerSizeX/2;
-                            case PositionType.Right
-                                pos = nanmax(xdata) + markerSizeX/2;
-                        end
-
-                    case 'text'
-                        set(h, 'Units', 'data');
-                        ext = get(h, 'Extent'); % [left,bottom,width,height]
-                        switch posType
-                            case PositionType.Top
-                                pos = ext(2) + ext(4);
-                            case PositionType.Bottom
-                                pos = ext(2);
-                            case PositionType.Left
-                                pos = ext(1);
-                            case PositionType.Right
-                                pos = ext(1) + ext(3);
-                        end
-
-                    case 'axes'
-                        % return the limits of the axis...i.e. the coordinates
-                        % of the inner position of the axis in data units
-                        lim = axis(ax.axh);
-                        switch posType
-                            case PositionType.Top
-                                pos = lim(4);
-                            case PositionType.Bottom
-                                pos = lim(3);
-                            case PositionType.Left
-                                pos = lim(1);
-                            case PositionType.Right
-                                pos = lim(2);
-                        end
-                        
-                    case 'rectangle'
-                        posv = get(h, 'Position');
-                        switch posType
-                            case PositionType.Top
-                                pos = posv(2) + posv(4);
-                            case PositionType.Bottom
-                                pos = posv(2);
-                            case PositionType.Left
-                                pos = posv(1);
-                            case PositionType.Right
-                                pos = posv(1) + posv(3);
-                        end
-                end
-                
-                posVec(i) = pos;
+            if isempty(hvec)
+                % pass thru for specifying length or width directly
+                pos = posa;
+                return;
             end
             
-            % now compute min/max as appropriate
-            if numel(posVec) > 1
-                switch posType
-                    case PositionType.Top
-                        pos = nanmax(posVec);
-                    case PositionType.Bottom
-                        pos = nanmin(posVec);
-                    case PositionType.Left
-                        pos = nanmin(posVec);
-                    case PositionType.Right
-                        pos = nanmax(posVec);
-                end
-            end
+            % grab all current values from LocationCurrent for each handle
+            clocVec = arrayfun(@(h) ax.mapLocationCurrent(h), hvec, 'UniformOutput', false);
+            clocVec = cat(1, clocVec{:});
+
+            % and compute aggregate value across all handles
+            pos = LocationCurrent.getAggregateValue(clocVec, posType, ax.xReverse, ax.yReverse);
         end
         
         function updatePositionData(ax, hVec, posType, value)
-            % update the position of handles in vector hVec using the LocationInfo in 
+            % update the position of handles in vector hVec using the LocationCurrent in 
             % ax.locMap. When hVec is a vector of handles, linearly shifts
             % each object to maintain the relative positions and to
             % shift the bounding box of the objects
             
-            import AutoAxis.PositionType;
+            import AutoAxis.*;
             
-            loc = ax.getOrCreateLocationInfo(hVec);
-            
-            if nargin < 4
-                value = loc.(posType.getDirectField());
-            end
-                
             if ~isscalar(hVec)
                 % here we linearly scale / translate the bounding box
                 % in order to maintain internal anchoring, scaling should
                 % be done before any "internal" anchorings are computed,
                 % which should be taken care of by findAnchorsSpecifying
+                %
+                % note that this will recursively call updatePositionData, so that
+                % the corresponding LocationCurrent objects will be updated
                 
                 if posType == PositionType.Height
                     % scale everything vertically, but keep existing
-                    % top/bottom/vcenter (of bounding box) in place if anchored
+                    % vcenter (of bounding box) in place
+                    
+                    % first find the existing extrema of the objects
                     oldTop = ax.getCurrentPositionData(hVec, PositionType.Top);
                     oldBottom = ax.getCurrentPositionData(hVec, PositionType.Bottom);
+                    newBottom = (oldTop+oldBottom) / 2 - value/2;
                     
-                    if ~isempty(loc.top)
-                        newBottom = loc.top - value;
-                    elseif ~isempty(loc.bottom)
-                        newBottom = loc.bottom;
-                    else
-                        % keep vcenter in place
-                        newBottom = (oldTop+oldBottom) / 2 - value/2;
-                    end
-                    
+                    % build affine scaling fns for inner objects
                     newPosFn = @(p) (p-oldBottom) * (value / (oldTop-oldBottom)) + newBottom;
                     newHeightFn = @(h) h * (value / (oldTop-oldBottom));
                     
@@ -1845,19 +1964,15 @@ classdef AutoAxis < handle
                 
                 elseif posType == PositionType.Width
                     % scale everything horizontally, but keep existing
-                    % left/right/center (of bounding box) in place if anchored
+                    % hcenter (of bounding box) in place if anchored
+                    
+                    % first find the existing extrema of the objects
                     oldRight = ax.getCurrentPositionData(hVec, PositionType.Right);
                     oldLeft = ax.getCurrentPositionData(hVec, PositionType.Left);
+ 
+                    newLeft = (oldRight+oldLeft) / 2 - value/2;
                     
-                    if ~isempty(loc.right)
-                        newLeft = loc.right - value;
-                    elseif ~isempty(loc.left)
-                        newLeft = loc.left;
-                    else
-                        % keep vcenter in place
-                        newLeft = (oldRight+oldLeft) / 2 - value/2;
-                    end
-                    
+                    % build affine scaling fns
                     newPosFn = @(p) (p-oldLeft) * (value / (oldRight-oldLeft)) + newLeft;
                     newWidthFn = @(w) w * value / (oldRight-oldLeft);
                     
@@ -1871,7 +1986,7 @@ classdef AutoAxis < handle
                     end
                     
                 else
-                    % shift each object to shift the bounding box 
+                    % simply shift each object by the same offset, thereby shifting the bounding box 
                     offset = value - ax.getCurrentPositionData(hVec,  posType);
                     for i = 1:numel(hVec)
                        h = hVec(i);
@@ -1879,120 +1994,18 @@ classdef AutoAxis < handle
                        ax.updatePositionData(h, posType, p + offset);
                     end
                 end
+
             else
-                % scalar handle, just move it
-                
+                % scalar handle, move it directly via the LocationCurrent
+                % handle 
                 h = hVec(1);
-                type = get(h, 'Type');
                 
-                switch type
-                    case 'line'
-                        marker = get(h, 'Marker');
-                        markerSize =get(h, 'MarkerSize');
-                        if(strcmp(marker, '.'))
-                            markerSize = markerSize / 2;
-                        end
-                        if strcmp(marker, 'none')
-                            markerSize = 0;
-                        end
-                        markerSizeX = markerSize / ax.xDataToPoints;
-                        markerSizeY = markerSize / ax.yDataToPoints;
-
-                        xdata = get(h, 'XData');
-                        ydata = get(h, 'YData');
-
-                        % rescale the appropriate data points from their
-                        % current values to scale linearly onto the new values
-                        % but only along the dimension to be resized
-                        switch posType
-                            case PositionType.Top
-                                ydata = ydata - nanmax(ydata) + value - markerSizeY/2;
-
-                            case PositionType.Bottom
-                                ydata = ydata - nanmin(ydata) + value + markerSizeY/2;
-
-                            case PositionType.VCenter
-                                lo = nanmin(ydata); hi = nanmax(ydata);
-                                ydata = (ydata - (hi+lo)/2) + value;
-
-                            case PositionType.Height
-                                lo = nanmin(ydata); hi = nanmax(ydata);
-                                if hi - lo < eps, return, end
-                                ydata = (ydata - lo) / (hi - lo + markerSizeY) * value + lo;
-
-                            case PositionType.Left
-                                xdata = xdata - nanmin(xdata) + value - markerSizeX/2;
-
-                            case PositionType.Right
-                                xdata = xdata - nanmax(xdata) + value + markerSizeX/2;
-
-                            case PositionType.HCenter
-                                lo = nanmin(xdata); hi = nanmax(xdata);
-                                xdata = (xdata - (hi+lo)/2) + value;
-
-                            case PositionType.Width
-                                lo = nanmin(xdata); hi = nanmax(xdata);
-                                if hi - lo < eps, return, end
-                                xdata = (xdata - lo) / (hi - lo + markerSizeX) * value + lo;
-                        end
-
-                        set(h, 'XData', xdata, 'YData', ydata);
-
-                    case 'text'
-                        set(h, 'Units', 'data');
-                        p = get(h, 'Position'); % [x y z] - ancor depends on alignment
-                        ext = get(h, 'Extent'); % [left,bottom,width,height]
-                        yoff = ext(2) - p(2);
-                        xoff = ext(1) - p(1);
-                        %m = get(h, 'Margin'); % margin in pixels
-                        %mx = m / ax.xDataToPixels;
-                        %my = m / ax.yDataToPixels;
-                        
-                        switch posType
-                            case PositionType.Top
-                                p(2) = value - ext(4) - yoff;
-                            case PositionType.Bottom
-                                p(2) = value - yoff;
-                            case PositionType.VCenter
-                                p(2) = value - ext(4)/2 - yoff;
-
-                            case PositionType.Right
-                                p(1) = value - ext(3) - xoff;
-                            case PositionType.Left
-                                p(1) = value - xoff;
-                            case PositionType.HCenter
-                                p(1) = value - ext(3)/2 - xoff;
-                        end
-
-                        set(h, 'Position', p);
-                        
-                    case 'rectangle'
-                        p = get(h, 'Position'); % [left, bottom, width, height]
-                        
-                        switch posType
-                            case PositionType.Top
-                                p(2) = value - p(4);
-                            case PositionType.Bottom
-                                p(2) = value;
-                            case PositionType.VCenter
-                                p(2) = value - p(4)/2;
-                            case PositionType.Height
-                                p(4) = value;
-                            case PositionType.Right
-                                p(1) = value - p(3);
-                            case PositionType.Left
-                                p(1) = value;
-                            case PositionType.HCenter
-                                p(1) = value - p(3)/2;
-                            case PositionType.Width
-                                p(3) = value;
-                        end
-
-                        set(h, 'Position', p);
-                end
+                % use the corresponding LocationCurrent for this single
+                % object to move the graphics object
+                cloc = ax.mapLocationCurrent(h);
+                cloc.setPosition(posType, value, ...
+                    ax.xDataToPoints, ax.yDataToPoints, ax.xReverse, ax.yReverse);
             end
         end
     end
-    
-    
 end
