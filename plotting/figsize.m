@@ -1,4 +1,4 @@
-function figsize(varargin)
+function figSize(varargin)
 % figsize(figh, height, width)
 % figsize(height, width) - uses gcf by default
 % 

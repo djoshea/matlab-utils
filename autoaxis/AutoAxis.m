@@ -195,6 +195,12 @@ classdef AutoAxis < handle
         
         collections = struct(); % struct which contains named collections of handles
         
+        nextTagId = 0; % integer indicating the next free index to use when generating tags for handles
+        
+        handleTagMap % maps handles --> tag strings
+        
+        tagOverlayAxis = ''; % tag used for the overlay axis
+        
         % these hold on to specific special objects that have been added
         % to the plot
         autoAxisX
@@ -378,6 +384,11 @@ classdef AutoAxis < handle
         function initializeNewInstance(ax, axh)
             ax.axh = axh;
             
+            % initialize handle tagging (for load/copy
+            % auto-reconfiguration)
+            ax.handleTagMap = containers.Map('KeyType', 'double', 'ValueType', 'any');
+            ax.nextTagId = 1;
+            
             % determine whether we're drawing into an overlay axis
             % or directly into this axis
             figh = AutoAxis.getParentFigure(ax.axh);
@@ -391,6 +402,14 @@ classdef AutoAxis < handle
                 ax.axhDraw = axes('Position', [0 0 1 1], 'Parent', figh);
                 axis(ax.axhDraw, axis(ax.axh));
                 axes(oldCA); % restore old gca
+                
+                % tag overlay axis with a random figure-unique string so
+                % that we can recover it later (don't use tagHandle here, 
+                % which is for the contents of axhDraw which don't need to
+                % be figure unique)
+                randomTag = sprintf('autoAxisOverlay_%d', randi(intmax));
+                ax.tagOverlayAxis = randomTag;
+                set(ax.axhDraw, 'Tag', randomTag);
                 
                 ax.updateOverlayAxisPositioning();
             else
@@ -432,9 +451,9 @@ classdef AutoAxis < handle
 %             lh(1) = addlistener(ax.axh, {'XLim', 'YLim'}, ...
 %                 'PostSet', @ax.updateLimsCallback);
             figh = AutoAxis.getParentFigure(ax.axh);
-            set(zoom(ax.axh),'ActionPostCallback',@ax.figureCallback);
-            set(pan(figh),'ActionPostCallback',@AutoAxis.figureCallback);
-            set(figh, 'ResizeFcn', @ax.figureCallback)
+            set(zoom(ax.axh),'ActionPostCallback',@ax.axisCallback);
+            set(pan(figh),'ActionPostCallback',@ax.axisCallback);
+            set(figh, 'ResizeFcn', @AutoAxis.figureCallback)
             addlistener(ax.axh, 'YDir', 'PostSet', @(varargin) ax.axisCallback());
             addlistener(ax.axh, 'XDir', 'PostSet', @(varargin) ax.axisCallback());
             %set(figh, 'ResizeFcn', @(varargin) disp('resize'));
@@ -467,7 +486,96 @@ classdef AutoAxis < handle
         
         function axisCallback(ax, varargin)
             if ax.isMultipleCall(), return, end;
-            ax.update();
+%             % callback called on specific axis
+%             if ThreeVector.isMultipleCall(), return, end;
+             if isstruct(varargin{2}) && isfield(varargin{2}, 'Axes')
+                 axh = varargin{2}.Axes;
+                 if ax.axh ~= axh
+                     % axis handle mismatch, happens each time we save/load
+                     % a figure. need to remap handle pointers
+                     ax.axh = axh;
+                     ax.reconfigurePostLoad();
+                 end
+                 ax.update();
+             end
+        end
+        
+        function reconfigurePostLoad(ax)
+            % when loading from .fig files, all of the handles for the
+            % graphics objects will have changed. go through each
+            % referenced handle, look up its tag, and then replace the
+            % reference with the new handle number.
+            
+            % loop through all of the tags we've stored, and build a map
+            % from old handle to new handle
+            
+            % first find the overlay axis
+            figh = AutoAxis.getParentFigure(ax.axh);
+            ax.axhDraw = findobj(figh, 'Tag', ax.tagOverlayAxis);
+            if isempty(ax.axhDraw)
+                error('Could not locate overlay axis. Uninstalling');
+                %ax.uninstall();
+            end
+            
+            % build map old handle -> new handle
+            oldToNew = containers.Map('KeyType', 'double', 'ValueType', double);
+            oldH = ax.handleTagMap.keys;
+            tags = ax.handleTagMap.values;
+            for iH = 1:numel(oldH)
+                hNew = findobj(ax.axhDraw, 'Tag', tags{iH});
+                if isempty(hNew)
+                    warning('Could not recover tagged handle');
+                    hNew = NaN;
+                end
+                
+                oldToNew(oldH(iH)) = hNew(1);
+            end
+            
+            % go through anchors and replace old handles with new handles
+            for iA = 1:numel(ax.anchorInfo)
+                ax.anchorInfo(iA).ha = updateHVec(ax.anchorInfo(iA).ha);
+                ax.anchorInfo(iA).h  = updateHVec(ax.anchorInfo(iA).h);
+            end
+            
+            % go through collections and relace old handles with new
+            % handles
+            cNames = fieldnames(ax.collections);
+            for iC = 1:numel(cNames)
+                ax.collections.(cNames{iC}) = updateHVec(ax.collections.(cNames{iC}));
+            end
+            
+            function new = updateHVec(old)
+                new = old;
+                for iOld = 1:numel(old)
+                    if oldToNew.isKey(old(iOld))
+                        new(iOld) = oldToNew(old(iOld));
+                    else
+                        new(iOld) = NaN;
+                    end
+                end
+            end     
+        end
+        
+        function tags = tagHandle(ax, hvec)
+            % for each handle in vector hvec, set 'Tag'
+            % on that handle to be something unique, and add this handle and
+            % its tag to the .handleTagMap lookup table. 
+            % This is used by recoverTaggedHandles
+            % to repopulate stored handles upon figure loading or copying
+            
+            tags = cell(numel(hvec), 1);
+            for iH = 1:numel(hvec)
+                if ~ax.handleTagMap.isKey(hvec(iH))
+                    % doesn't already exist in map
+                    tags{iH} = sprintf('autoAxis_%d', ax.nextTagId);
+                    ax.nextTagId = ax.nextTagId + 1;
+                    ax.handleTagMap(hvec(iH)) = tags{iH};
+                else
+                    tags{iH} = ax.handleTagMap(hvec(iH));
+                end
+                
+                set(hvec(iH), 'Tag', tags{iH});
+            end
         end
         
         function addHandlesToCollection(ax, name, hvec)
@@ -484,6 +592,9 @@ classdef AutoAxis < handle
             
             % install the new collection
             ax.collections.(name) = newHvec;
+            
+            % make sure the handles are tagged
+            ax.tagHandle(hvec);
         end
         
         function names = listHandleCollections(ax)
@@ -1499,15 +1610,18 @@ classdef AutoAxis < handle
             % sort here so that we can use ismembc later
             if ~ischar(info.h)
                 info.h = sort(info.h);
+                ax.tagHandle(info.h);
             end
             if ~ischar(info.ha)
                 info.ha = sort(info.ha);
+                ax.tagHandle(info.ha);
             end
             ax.anchorInfo(ind) = info;
             
             % force an update of the dependency graph and reordering of the
             % anchors
             ax.refreshNeeded = true;
+           
         end
         
         function update(ax)
@@ -1588,6 +1702,7 @@ classdef AutoAxis < handle
             % "limits" as the real axis
             if ax.usingOverlay
                 set(ax.axhDraw, 'Position', [0 0 1 1], 'HitTest', 'off', 'Color', 'none'); 
+                set(ax.axhDraw, 'YDir', get(ax.axh, 'YDir'), 'XDir', get(ax.axh, 'XDir'));
                 axUnits = get(ax.axh, 'Units');
                 set(ax.axh, 'Units', 'normalized');
                 pos = get(ax.axh, 'Position');
