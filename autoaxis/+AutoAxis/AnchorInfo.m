@@ -26,11 +26,12 @@ classdef AnchorInfo < handle & matlab.mixin.Copyable
     methods
         function ai = AnchorInfo(varargin)
             p = inputParser;
+            validatePos = @(x) isempty(x) || isa(x, 'AutoAxis.PositionType') || isscalar(x) || ischar(x) || isa(x, 'function_handle');
             p.addOptional('h', [], @(x) isvector(x) || isempty(x)); % this may be a vector
-            p.addOptional('pos', [], @(x) isempty(x) || isa(x, 'AutoAxis.PositionType'));
+            p.addOptional('pos', [], validatePos);
             p.addOptional('ha', [], @(x) isvector(x) || isempty(x));
-            p.addOptional('posa', [], @(x) isempty(x) || isa(x, 'AutoAxis.PositionType') || isscalar(x));
-            p.addOptional('margin', 0, @(x) ischar(x) || isscalar(x));
+            p.addOptional('posa', [], validatePos);
+            p.addOptional('margin', 0, @(x) ischar(x) || isscalar(x) || isa(x, 'function_handle'));
             p.addOptional('desc', '', @ischar);
             
             p.parse(varargin{:});

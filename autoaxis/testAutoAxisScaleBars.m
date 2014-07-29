@@ -26,28 +26,4 @@ end
 %hm = plot(5.5,4, 'o', 'MarkerSize', 20, 'MarkerFaceColor', 'b', 'MarkerEdgeColor', 'none');
 %ht = text(1,1, 'Anchored Label', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'top');
 
-au = AutoAxis();
-
-%au.addAnchor(AnchorInfo(ht, PositionType.Top, hm, PositionType.Bottom));
-%au.addAnchor(AnchorInfo(ht, PositionType.HCenter, hm, PositionType.HCenter));
-
-ylabel('Y Label');
-title('Plot Title');
-au.addTitle();
-au.xUnits = 'mm';
-au.yUnits = 'mm';
-au.keepAutoScaleBarsEqual = true;
-au.addAutoScaleBarX();
-au.addAutoScaleBarY();
-% 
-% au.axisMarginLeft = 2.5;
-% au.axisMarginBottom = 2.5;
-% au.axisLabelOffsetLeft = 1.3;
-% au.axisLabelOffsetBottom = 1.3;
-
-axis equal;
-au.update();
-au.installCallbacks();
-
-auVec(i) = au;
-
+ax = AutoAxis.replaceScaleBars(gca, 'mm', 'mm');

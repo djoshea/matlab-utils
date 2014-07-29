@@ -38,6 +38,8 @@ if nFields > 0
     end
 
     S = struct(argsForStruct{:});
+elseif prod(sz) == 0
+    S = struct(zeros(0, 1));
 else
     S = struct();
     S(sz(1)) = S;
