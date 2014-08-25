@@ -41,9 +41,11 @@ set(figh, 'PaperPositionMode', 'auto');
 newPos = [figPos(1), figPos(2), width, height];
 set(figh, 'Position', newPos);
 
-au = AutoAxis.recoverForAxis(gca);
-if ~isempty(au)
-    au.update();
+if ~isempty(get(gcf, 'CurrentAxes'))
+    au = AutoAxis.recoverForAxis(gca);
+    if ~isempty(au)
+        au.update();
+    end
 end
 
 sz = [width, height];

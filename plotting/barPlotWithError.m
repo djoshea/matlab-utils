@@ -57,12 +57,16 @@ for i = 1:length(x)
     else
         y0 = y(i) + e(i);
     end
-    hError(i) = rectangle('Position', [x(i)-lineWidth/2, y0, lineWidth, 2*e(i)]);
-    set(hError(i), 'FaceColor', 'k', 'EdgeColor', 'none');
+    if e(i) > 0
+        hError(i) = rectangle('Position', [x(i)-lineWidth/2, y0, lineWidth, 2*e(i)]);
+        set(hError(i), 'FaceColor', 'k', 'EdgeColor', 'none');
+    end
     hold on
 end
 for i = 1:length(hError)
-    hasbehavior(hError(i), 'legend', false);
+    if ~isnan(hError(i))
+        hasbehavior(hError(i), 'legend', false);
+    end
 end
 hold off;
 

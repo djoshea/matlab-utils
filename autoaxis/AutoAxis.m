@@ -342,10 +342,10 @@ classdef AutoAxis < handle
         function p = getPanelForFigure(figh)
             % return a handle to the panel object associated with figure
             % figh or [] if not associated with a panel
-            p = OuterPanel.recover(figh);
-            if isempty(p)
-                p = panel.recover(figh);
-            end
+            p = panel.recover(figh);
+%             if isempty(p)
+%                 p = panel.recover(figh);
+%             end
         end
         
         function axCell = recoverForFigure(figh)
@@ -466,9 +466,14 @@ classdef AutoAxis < handle
             figh = AutoAxis.getParentFigure(ax.axh);
             set(zoom(ax.axh),'ActionPostCallback',@ax.axisCallback);
             set(pan(figh),'ActionPostCallback',@ax.axisCallback);
-            set(figh, 'ResizeFcn', @AutoAxis.figureCallback)
+            set(figh, 'ResizeFcn', @(varargin) AutoAxis.figureCallback(figh))
             addlistener(ax.axh, 'YDir', 'PostSet', @(varargin) ax.axisCallback());
             addlistener(ax.axh, 'XDir', 'PostSet', @(varargin) ax.axisCallback());
+            
+            p = AutoAxis.getPanelForFigure(figh);
+            if ~isempty(p)
+                p.setCallback(@(varargin) AutoAxis.figureCallback(figh));
+            end
             %set(figh, 'ResizeFcn', @(varargin) disp('resize'));
             %addlistener(ax.axh, 'Position', 'PostSet', @(varargin) disp('axis size'));
             %addlistener(figh, 'Position', 'PostSet', @ax.figureCallback);
@@ -1287,6 +1292,35 @@ classdef AutoAxis < handle
             % add to belowX handle collection to update the dependent
             % anchors
             ax.addHandlesToCollection('belowX', [hm; ht; hr]);
+        end
+        
+        function ht = addLabelX(ax, varargin)
+            import AutoAxis.PositionType;
+            
+            p = inputParser();
+            p.addRequired('x', @isscalar);
+            p.addRequired('label', @ischar);
+            p.addParamValue('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
+            p.CaseSensitive = false;
+            p.parse(varargin{:});
+            
+            label = p.Results.label;
+            
+            yl = get(ax.axh, 'YLim');
+            
+            ht = text(p.Results.x, yl(1), p.Results.label, ...
+                'FontSize', ax.tickFontSize, 'Color', p.Results.labelColor, ...
+                'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', ...
+                'Parent', ax.axhDraw);
+            
+            ai = AutoAxis.AnchorInfo(ht, PositionType.Top, ...
+                ax.axh, PositionType.Bottom, 'axisPaddingBottom', ...
+                sprintf('labelX ''%s'' to bottom of axis', label));
+            ax.addAnchor(ai);
+            
+            % add to belowX handle collection to update the dependent
+            % anchors
+            ax.addHandlesToCollection('belowX', ht);
         end
         
         function hlist = addScaleBar(ax, varargin)

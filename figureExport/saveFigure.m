@@ -370,21 +370,21 @@ function fh = copyfig(fh)
     hAxes = findobj(fh, 'Type', 'axes');
     nAxes = numel(hAxes);
     
-    [xvis, yvis, zvis, tvis, zpos, ypos, zpos, tpos] = deal(cell(nAxes,1));
+    props = {'Visible', 'Position', 'Rotation', ...
+        'HorizontalAlign', 'VerticalAlign', 'Interpreter'};
+    items = {'XLabel', 'YLabel', 'ZLabel', 'Title'};
+    savedProps = cell(nAxes, numel(items), numel(props));
     
     for iAx = 1:nAxes
         axh = hAxes(iAx);
-        
-        % store xlabel, ylabel, title visibility --> sometimes gets turned off
-        xvis{iAx} = get(get(axh, 'XLabel'), 'Visible');
-        yvis{iAx} = get(get(axh, 'YLabel'), 'Visible');
-        zvis{iAx} = get(get(axh, 'ZLabel'), 'Visible');
-        tvis{iAx} = get(get(axh, 'Title'), 'Visible');
 
-        xpos{iAx} = get(get(axh, 'XLabel'), 'Position');
-        ypos{iAx} = get(get(axh, 'YLabel'), 'Position');
-        zpos{iAx} = get(get(axh, 'ZLabel'), 'Position');
-        tpos{iAx} = get(get(axh, 'Title'), 'Position');
+        for iItem = 1:numel(items)
+            item = get(axh, items{iItem});
+            
+            for iProp = 1:numel(props)
+                savedProps{iAx, iItem, iProp} = get(item, props{iProp});
+            end
+        end
     end
 
     % Is there a legend?
@@ -403,16 +403,13 @@ function fh = copyfig(fh)
     for iAx = 1:nAxes
         axh = hAxes(iAx);
         
-        % restore visibility
-        set(get(axh, 'XLabel'), 'Visible', xvis{iAx});
-        set(get(axh, 'YLabel'), 'Visible', yvis{iAx});
-        set(get(axh, 'ZLabel'), 'Visible', zvis{iAx});
-        set(get(axh, 'Title'), 'Visible',  tvis{iAx});
-
-        set(get(axh, 'XLabel'), 'Position', xpos{iAx});
-        set(get(axh, 'YLabel'), 'Position', ypos{iAx});
-        set(get(axh, 'ZLabel'), 'Position', zpos{iAx});
-        set(get(axh, 'Title'), 'Position', tpos{iAx});
+        for iItem = 1:numel(items)
+            item = get(axh, items{iItem});
+            
+            for iProp = 1:numel(props)
+                set(item, props{iProp}, savedProps{iAx, iItem, iProp});
+            end
+        end
     end
 end
 

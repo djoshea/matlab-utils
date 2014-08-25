@@ -41,6 +41,9 @@ classdef LocationCurrent < handle & matlab.mixin.Copyable
         function loc = buildForHandle(h, varargin)
             loc = AutoAxis.LocationCurrent();
             loc.h = h;
+            if ~ishandle(h)
+                return;
+            end
             loc.type = get(h, 'Type');
             
             loc.isDynamic = strcmp(loc.type, 'axes');
