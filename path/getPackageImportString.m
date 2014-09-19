@@ -1,6 +1,6 @@
 function importStr = getPackageImportString()
 
-package = getPackage(1);
+package = getPackage('stackOffset', 1);
 if isempty(package)
     importStr = '';
 else
