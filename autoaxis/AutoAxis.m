@@ -506,7 +506,7 @@ classdef AutoAxis < handle
             if ax.isMultipleCall(), return, end;
 %             % callback called on specific axis
 %             if ThreeVector.isMultipleCall(), return, end;
-             if isstruct(varargin{2}) && isfield(varargin{2}, 'Axes')
+             if numel(varargin) >= 2 && isstruct(varargin{2}) && isfield(varargin{2}, 'Axes')
                  axh = varargin{2}.Axes;
                  if ax.axh ~= axh
                      % axis handle mismatch, happens each time we save/load
@@ -514,6 +514,8 @@ classdef AutoAxis < handle
                      ax.axh = axh;
                      ax.reconfigurePostLoad();
                  end
+             end
+             if ~isempty(ax.axh)
                  ax.update();
              end
         end
