@@ -1,3 +1,3 @@
-function vec = nanvec(N)
-    vec = nan(N, 1);
+function varargout = nanvec(N)
+    [varargout{1:nargout}] = deal(nan(N, 1));
 end

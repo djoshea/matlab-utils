@@ -1,3 +1,3 @@
-function vec = truevec(N)
-    vec = true(N, 1);
+function varargout = truevec(N)
+    [varargout{1:nargout}] = deal(true(N, 1));
 end
