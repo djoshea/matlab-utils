@@ -188,10 +188,10 @@ classdef AutoAxis < handle
     end
         
     properties(Hidden, SetAccess=protected)
-        axh % axis handle to which I am attached
+        axh % axis handle to which I am attached (client axis)
         
         usingOverlay = false;
-        axhDraw % axis handle into which I am drawing
+        axhDraw % axis handle into which I am drawing (private axis, though may be the same as axh when usingOverlay is false)
         
         anchorInfo % array of AutoAxisAnchorInfo objects that I enforce on update()
         
@@ -420,6 +420,7 @@ classdef AutoAxis < handle
                 randomTag = sprintf('autoAxisOverlay_%d', randi(intmax));
                 ax.tagOverlayAxis = randomTag;
                 set(ax.axhDraw, 'Tag', randomTag);
+                hold(ax.axhDraw, 'on');
                 
                 ax.updateOverlayAxisPositioning();
             else
@@ -1261,10 +1262,11 @@ classdef AutoAxis < handle
                 end
             end
             
-            hm = plot(p.Results.x, yl(1), 'Marker', p.Results.marker, ...
+            hold(ax.axhDraw, 'on');
+            hm = plot(ax.axhDraw, p.Results.x, yl(1), 'Marker', p.Results.marker, ...
                 'MarkerSize', markerSizePoints, 'MarkerFaceColor', p.Results.markerColor, ...
                 'MarkerEdgeColor', 'none', 'YLimInclude', 'off', 'XLimInclude', 'off', ...
-                'Clipping', 'off', 'Parent', ax.axhDraw);
+                'Clipping', 'off');
             AutoAxis.hideInLegend(hm);
             
             ht = text(p.Results.x, yl(1), p.Results.label, ...
