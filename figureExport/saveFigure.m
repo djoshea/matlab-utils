@@ -68,7 +68,7 @@ function fileList = saveFigure(varargin)
     p = inputParser;
     p.addRequired('name', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
     p.addOptional('figh', gcf, @ishandle);
-    p.addParamValue('fontName', 'Lato', @ischar);
+    p.addParamValue('fontName', 'Source Sans Pro', @ischar);
     p.addParamValue('ext', [], @(x) ischar(x) || iscellstr(x));
     p.addParamValue('copy', true, @islogical);
     p.addParamValue('quiet', true, @islogical);
