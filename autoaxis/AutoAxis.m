@@ -14,7 +14,7 @@ classdef AutoAxis < handle
 %   http://undocumentedmatlab.com/blog/controlling-callback-re-entrancy/
 %
 
-    properties(Dependent, Hidden) % Utility properties that read/write through 
+    properties(Dependent) % Utility properties that read/write through 
         axisPaddingLeft
         axisPaddingBottom
         axisPaddingTop
