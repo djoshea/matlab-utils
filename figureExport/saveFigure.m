@@ -58,19 +58,19 @@ function fileList = saveFigure(varargin)
 % (c) 2014 
 % 
 % This code internally relies heavily on:
-%   plot2svg : Juerg Schwizer [ http://www.zhinst.com/blogs/schwizer/ ]
+%   plot2svg : Juerg SchwTrializer [ http://www.zhinst.com/blogs/schwizer/ ]
 %   copyfig : Oliver Woodford
 %   GetFullFile: Jan Simon
 %
     extListFull = {'fig', 'png', 'hires.png', 'svg', 'eps', 'pdf'};
-    extListDefault = {'pdf', 'png', 'svg'};
+    extListDefault = {'pdf', 'svg'};
 
     p = inputParser;
-    p.addRequired('name', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
+    p.addOptional('name', '', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
     p.addOptional('figh', gcf, @ishandle);
-    p.addParamValue('fontName', 'Lato', @ischar);
+    p.addParamValue('fontName', 'Source Sans Pro', @ischar);
     p.addParamValue('ext', [], @(x) ischar(x) || iscellstr(x));
-    p.addParamValue('copy', true, @islogical);
+    p.addParamValue('copy', verLessThan('matlab', '8.4'), @islogical); % copy only for older versions
     p.addParamValue('quiet', true, @islogical);
     p.KeepUnmatched = true;
     p.parse(varargin{:});
@@ -79,7 +79,11 @@ function fileList = saveFigure(varargin)
     name = p.Results.name;
     ext = p.Results.ext;
     quiet = p.Results.quiet;
-
+    
+    if isempty(name)
+        name = get(hfig, 'Name');
+    end
+    
     % build a map with .ext = file with ext
     fileInfo = containers.Map('KeyType', 'char', 'ValueType', 'char');
     
@@ -237,6 +241,8 @@ function fileList = saveFigure(varargin)
         delete(tempFile{1});
     end
     
+    fileList = makecol(fileList);
+    
 end
     
 
@@ -286,7 +292,7 @@ function convertPdf(pdfFile, file, hires)
     [status, result] = system(cmd);
 
     if status
-        fprintf('Error converting pdf file. Is ImageMagick installed?\n');
+        fprintf('Error converting pdf file. Are ImageMagick and Ghostscript installed?\n');
         fprintf(result);
         fprintf('\n');
     end
@@ -1758,7 +1764,12 @@ function group=axes2svg(fid,id,ax,group,paperpos)
         end
     end
     fprintf(fid,'    <g>\n');
-    axchild=get(ax,'Children');
+    % modified by @djoshea to grab title in r2014b
+    if verLessThan('matlab', '8.4')
+        axchild=get(ax,'Children');
+    else
+        axchild=[ax.Children; ax.Title];
+    end
     group = axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,groupax,projection,boundingBoxAxes);
     fprintf(fid,'    </g>\n');
     if strcmp(get(ax,'Visible'),'on')
@@ -3128,7 +3139,7 @@ function exponent2svg(fid,group,axpos,paperpos,ax,axxtick,axytick,axztick)
     if strcmp(get(ax,'XTickLabelMode'),'auto') && strcmp(get(ax,'XScale'),'linear')
         fontsize=convertunit(get(ax,'FontSize'),get(ax,'FontUnits'),'points', axpos(4));   % convert fontsize to inches
         font_color=searchcolor(ax,get(ax,'XColor'));
-        if PLOT2SVG_globals.octave
+        if PLOT2SVG_globals.octave || iscell(get(ax, 'XTickLabel'))  % r2014b fix @djoshea
             % Octave stores XTickLabel in a cell array, which does not work nicely with str2num. --Jakob Malm
             axlabelx = get(ax, 'XTickLabel');
             numlabels = zeros(length(axlabelx), 1);
@@ -3153,7 +3164,7 @@ function exponent2svg(fid,group,axpos,paperpos,ax,axxtick,axytick,axztick)
     if strcmp(get(ax,'YTickLabelMode'),'auto') && strcmp(get(ax,'YScale'),'linear')
         fontsize=convertunit(get(ax,'FontSize'),get(ax,'FontUnits'),'points', axpos(4));
         font_color=searchcolor(ax,get(ax,'YColor'));
-        if PLOT2SVG_globals.octave
+        if PLOT2SVG_globals.octave || iscell(get(ax, 'XTickLabel')) % r2014b fix @djoshea
             % Octave stores YTickLabel in a cell array, which does not work nicely with str2num. --Jakob Malm
             axlabely = get(ax, 'YTickLabel');
             numlabels = zeros(length(axlabely), 1);

@@ -127,6 +127,9 @@ classdef ThreeVector < handle
             set(axhOverlay,  'Units', 'centimeters');
             posPaper = get(axhOverlay, 'Position');
             set(axhOverlay, 'Units', 'normalized');
+            
+            axis(axhOverlay, 'off');
+            set(axhOverlay, 'Color', 'none', 'HitTest', 'off');
 
             xUnitsToNorm = pos(3) / posPaper(3);
             yUnitsToNorm = pos(3) / posPaper(4);
@@ -253,6 +256,7 @@ classdef ThreeVector < handle
                 set(tv.ht(3), 'Visible', 'off')
             end
   
+            axes(axh);
         end
     end
     
@@ -556,7 +560,8 @@ classdef ThreeVector < handle
             % generate a random string tag to use for the transparent
             % overlay axis
             
-            s = RandStream('mt19937ar', 'Seed', tv.axh);
+            %s = RandStream('mt19937ar', 'Seed', tv.axh);
+            s = RandStream('mt19937ar');
             letters = 'a':'z';
             tag = ['axis_' letters(randi(s, 26, 10, 1))];
         end
@@ -604,6 +609,11 @@ classdef ThreeVector < handle
             set(pan(figh),'ActionPostCallback',@ThreeVector.axisCallback);
             set(figh, 'ResizeFcn', @ThreeVector.figureCallback);
             
+            rot = rotate3d(tv.axh);
+            set(rot, 'ActionPreCallback', @ThreeVector.preUpdateCallback);
+            set(rot, 'ActionPostCallback', @ThreeVector.axisCallback);
+            rot.Enable = 'on';
+            
             %set(rotate3d(tv.axh),'ActionPreCallback',@ThreeVector.preUpdateCallback);
             %set(rotate3d(tv.axh), 'ActionPostCallback', @ThreeVector.axisCallback);
             
@@ -612,11 +622,11 @@ classdef ThreeVector < handle
             addlistener(get(tv.axh, 'YLabel'), 'String', 'PostSet', @tv.localCallback);
             addlistener(get(tv.axh, 'ZLabel'), 'String', 'PostSet', @tv.localCallback);
             
-            addlistener(tv.axh, 'CameraPosition', 'PostSet', @tv.localViewChangeCallback);
-            addlistener(tv.axh, 'CameraTarget', 'PostSet', @tv.localViewChangeCallback);
-            addlistener(tv.axh, 'CameraUpVector', 'PostSet', @tv.localViewChangeCallback);
+%             addlistener(tv.axh, 'CameraPosition', 'PostSet', @tv.localViewChangeCallback);
+%             addlistener(tv.axh, 'CameraTarget', 'PostSet', @tv.localViewChangeCallback);
+%             addlistener(tv.axh, 'CameraUpVector', 'PostSet', @tv.localViewChangeCallback);
             %addlistener(tv.axh, 'Position', 'PostSet', @tv.localCallback);
-            %addlistener(tv.axh, 'View', 'PostSet', @ThreeVector.axisCallback);
+             addlistener(tv.axh, 'View', 'PostSet', @tv.localCallback);
         end
         
         function localCallback(tv, varargin)

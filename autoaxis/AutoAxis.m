@@ -201,13 +201,17 @@ classdef AutoAxis < handle
         
         refreshNeeded = true;
         
-        mapLocationCurrent % list of LocationCurrent objects,
+        % map graphics to LocationCurrent objects
+        mapLocationHandles
+        mapLocationCurrent
         
         collections = struct(); % struct which contains named collections of handles
         
         nextTagId = 0; % integer indicating the next free index to use when generating tags for handles
         
-        handleTagMap % maps handles --> tag strings
+        % maps handles --> tag strings
+        handleTagObjects
+        handleTagStrings
         
         tagOverlayAxis = ''; % tag used for the overlay axis
         
@@ -306,6 +310,18 @@ classdef AutoAxis < handle
             end
         end
         
+        function hvec = allocateHandleVector(num)
+            if verLessThan('matlab','8.4.0')
+                hvec = nan(num, 1);
+            else
+                hvec = gobjects(num, 1);
+            end
+        end
+        
+        function hn = getNullHandle()
+            hn = matlab.graphics.GraphicsPlaceholder();
+        end
+        
         function updateFigure(figh)
             % call auto axis update for every managed axis in a figure
             if nargin < 1
@@ -396,7 +412,8 @@ classdef AutoAxis < handle
             
             % initialize handle tagging (for load/copy
             % auto-reconfiguration)
-            ax.handleTagMap = containers.Map('KeyType', 'double', 'ValueType', 'any');
+            ax.handleTagObjects = AutoAxis.allocateHandleVector(0);
+            ax.handleTagStrings = {};
             ax.nextTagId = 1;
             
             % determine whether we're drawing into an overlay axis
@@ -448,7 +465,8 @@ classdef AutoAxis < handle
             ax.scaleBarFontSize = sz;
             ax.scaleBarFontColor = tc;
 
-            ax.mapLocationCurrent = containers.Map('KeyType', 'double', 'ValueType', 'any');
+            ax.mapLocationHandles = AutoAxis.allocateHandleVector(0);
+            ax.mapLocationCurrent = {};
         end
              
         function installInstanceForAxis(ax, axh)
@@ -539,23 +557,23 @@ classdef AutoAxis < handle
             end
             
             % build map old handle -> new handle
-            oldToNew = containers.Map('KeyType', 'double', 'ValueType', double);
-            oldH = ax.handleTagMap.keys;
-            tags = ax.handleTagMap.values;
+            oldH = ax.handleTagObjects;
+            newH = oldH;
+            tags = ax.handleTagStrings;
             for iH = 1:numel(oldH)
                 hNew = findobj(ax.axhDraw, 'Tag', tags{iH});
                 if isempty(hNew)
                     warning('Could not recover tagged handle');
-                    hNew = NaN;
+                    hNew = AutoAxis.getNullHandle();
                 end
                 
-                oldToNew(oldH(iH)) = hNew(1);
+                newH(iH) = hNew(1);
             end
             
             % go through anchors and replace old handles with new handles
             for iA = 1:numel(ax.anchorInfo)
-                ax.anchorInfo(iA).ha = updateHVec(ax.anchorInfo(iA).ha);
-                ax.anchorInfo(iA).h  = updateHVec(ax.anchorInfo(iA).h);
+                ax.anchorInfo(iA).ha = updateHVec(ax.anchorInfo(iA).ha, oldH, newH);
+                ax.anchorInfo(iA).h  = updateHVec(ax.anchorInfo(iA).h, oldH, newH);
             end
             
             % go through collections and relace old handles with new
@@ -565,13 +583,14 @@ classdef AutoAxis < handle
                 ax.collections.(cNames{iC}) = updateHVec(ax.collections.(cNames{iC}));
             end
             
-            function new = updateHVec(old)
+            function new = updateHVec(old, oldH, newH)
                 new = old;
                 for iOld = 1:numel(old)
-                    if oldToNew.isKey(old(iOld))
-                        new(iOld) = oldToNew(old(iOld));
+                    [tf, idx] = ismember(old, oldH);
+                    if tf
+                        new(iOld) = newH{idx};
                     else
-                        new(iOld) = NaN;
+                        new(iOld) = AutoAxis.getNullHandle();
                     end
                 end
             end     
@@ -580,22 +599,31 @@ classdef AutoAxis < handle
         function tags = tagHandle(ax, hvec)
             % for each handle in vector hvec, set 'Tag'
             % on that handle to be something unique, and add this handle and
-            % its tag to the .handleTagMap lookup table. 
+            % its tag to the .handleTag lookup table. 
             % This is used by recoverTaggedHandles
             % to repopulate stored handles upon figure loading or copying
             
             tags = cell(numel(hvec), 1);
             for iH = 1:numel(hvec)
-                if ~ax.handleTagMap.isKey(hvec(iH))
+                tags{iH} = ax.lookupHandleTag(hvec(iH));
+                if isempty(tags{iH})
                     % doesn't already exist in map
                     tags{iH} = sprintf('autoAxis_%d', ax.nextTagId);
                     ax.nextTagId = ax.nextTagId + 1;
-                    ax.handleTagMap(hvec(iH)) = tags{iH};
-                else
-                    tags{iH} = ax.handleTagMap(hvec(iH));
+                    ax.handleTagObjects(end+1) = hvec(iH);
+                    ax.handleTagStrings{end+1} = tags{iH};
                 end
                 
                 set(hvec(iH), 'Tag', tags{iH});
+            end
+        end
+        
+        function tag = lookupHandleTag(ax, h)
+            [tf, idx] = ismember(h, ax.handleTagObjects);
+            if tf
+                tag = ax.handleTagStrings{idx(1)};
+            else
+                tag = '';
             end
         end
         
@@ -714,7 +742,7 @@ classdef AutoAxis < handle
             
             p = inputParser();
             p.addOptional('xlabel', '', @ischar);
-            p.addParamValue('anchorToAxis', false, @islogical);
+            p.addParameter('anchorToAxis', false, @islogical);
             p.parse(varargin{:});
             
             if ~isempty(p.Results.xlabel)
@@ -764,7 +792,7 @@ classdef AutoAxis < handle
             
             p = inputParser();
             p.addOptional('ylabel', '', @ischar);
-            p.addParamValue('anchorToAxis', false, @islogical);
+            p.addParameter('anchorToAxis', false, @islogical);
             p.parse(varargin{:});
             
             if ~isempty(p.Results.ylabel)
@@ -955,9 +983,9 @@ classdef AutoAxis < handle
             
             p = inputParser();
             p.addRequired('orientation', @ischar);
-            p.addParamValue('tick', [], @isvector);
-            p.addParamValue('tickLabel', {}, @(x) isempty(x) || iscellstr(x));
-            p.addParamValue('tickAlignment', [], @(x) isempty(x) || iscellstr(x));
+            p.addParameter('tick', [], @isvector);
+            p.addParameter('tickLabel', {}, @(x) isempty(x) || iscellstr(x));
+            p.addParameter('tickAlignment', [], @(x) isempty(x) || iscellstr(x));
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -1006,7 +1034,7 @@ classdef AutoAxis < handle
                 offset = 'axisPaddingLeft';
             end
             
-            ht = nan(numel(ticks), 1);
+            ht = AutoAxis.allocateHandleVector(numel(ticks));
             for i = 1:numel(ticks)
                 ht(i) = text(xtext(i), ytext(i), labels{i}, ...
                     'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
@@ -1047,12 +1075,12 @@ classdef AutoAxis < handle
             
             p = inputParser();
             p.addRequired('orientation', @ischar);
-            p.addParamValue('tick', [], @isvector);
-            p.addParamValue('tickLabel', {}, @(x) isempty(x) || iscellstr(x));
-            p.addParamValue('tickAlignment', [], @(x) isempty(x) || iscellstr(x));
-            p.addParamValue('tickRotation', 0, @isscalar);
-            p.addParamValue('useAutoAxisCollections', false, @islogical);
-            p.addParamValue('addAnchors', true, @islogical);
+            p.addParameter('tick', [], @isvector);
+            p.addParameter('tickLabel', {}, @(x) isempty(x) || iscellstr(x));
+            p.addParameter('tickAlignment', [], @(x) isempty(x) || iscellstr(x));
+            p.addParameter('tickRotation', 0, @isscalar);
+            p.addParameter('useAutoAxisCollections', false, @islogical);
+            p.addParameter('addAnchors', true, @islogical);
             
             p.CaseSensitive = false;
             p.parse(varargin{:});
@@ -1136,7 +1164,7 @@ classdef AutoAxis < handle
             set([hl; hb], 'Clipping', 'off', 'YLimInclude', 'off', 'XLimInclude', 'off');
             
             % draw tick labels
-            ht = nan(numel(ticks), 1);
+            ht = AutoAxis.allocateHandleVector(numel(ticks));
             for i = 1:numel(ticks)
                 ht(i) = text(xtext(i), ytext(i), labels{i}, ...
                     'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
@@ -1225,12 +1253,12 @@ classdef AutoAxis < handle
             p = inputParser();
             p.addRequired('x', @isscalar);
             p.addOptional('label', '', @ischar);
-            p.addParamValue('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
-            p.addParamValue('marker', 'o', @(x) isempty(x) || ischar(x));
-            p.addParamValue('markerSize', 0.4, @isscalar);
-            p.addParamValue('markerColor', [0.1 0.1 0.1], @(x) isvector(x) || ischar(x) || isempty(x));
-            p.addParamValue('interval', [], @(x) isempty(x) || isvector(x)); % add a rectangle interval behind the marker to indicate a range of locations
-            p.addParamValue('intervalColor', [0.5 0.5 0.5], @(x) isvector(x) || ischar(x) || isempty(x));
+            p.addParameter('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
+            p.addParameter('marker', 'o', @(x) isempty(x) || ischar(x));
+            p.addParameter('markerSize', 0.4, @isscalar);
+            p.addParameter('markerColor', [0.1 0.1 0.1], @(x) isvector(x) || ischar(x) || isempty(x));
+            p.addParameter('interval', [], @(x) isempty(x) || isvector(x)); % add a rectangle interval behind the marker to indicate a range of locations
+            p.addParameter('intervalColor', [0.5 0.5 0.5], @(x) isvector(x) || ischar(x) || isempty(x));
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -1304,7 +1332,7 @@ classdef AutoAxis < handle
             p = inputParser();
             p.addRequired('x', @isscalar);
             p.addRequired('label', @ischar);
-            p.addParamValue('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
+            p.addParameter('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -1335,14 +1363,14 @@ classdef AutoAxis < handle
             
             p = inputParser();
             p.addRequired('orientation', @ischar);
-            p.addParamValue('length', [], @isvector);
-            p.addParamValue('thickness', ax.tickLength, @isscalar);
-            p.addParamValue('units', '', @(x) isempty(x) || ischar(x));
-            p.addParamValue('useAutoScaleBarCollections', false, @islogical);
-            p.addParamValue('addAnchors', true, @islogical);
-            p.addParamValue('color', ax.scaleBarColor, @(x) ischar(x) || isvector(x));
-            p.addParamValue('fontColor', ax.scaleBarFontColor, @(x) ischar(x) || isvector(x));
-            p.addParamValue('fontSize', ax.scaleBarFontSize, @(x) isscalar(x));
+            p.addParameter('length', [], @isvector);
+            p.addParameter('thickness', ax.tickLength, @isscalar);
+            p.addParameter('units', '', @(x) isempty(x) || ischar(x));
+            p.addParameter('useAutoScaleBarCollections', false, @islogical);
+            p.addParameter('addAnchors', true, @islogical);
+            p.addParameter('color', ax.scaleBarColor, @(x) ischar(x) || isvector(x));
+            p.addParameter('fontColor', ax.scaleBarFontColor, @(x) ischar(x) || isvector(x));
+            p.addParameter('fontSize', ax.scaleBarFontSize, @(x) isscalar(x));
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -1487,19 +1515,19 @@ classdef AutoAxis < handle
             p = inputParser();
             p.addRequired('interval', @(x) isvector(x) && numel(x) == 2);
             p.addOptional('label', '', @ischar);
-            p.addParamValue('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
-            p.addParamValue('thickness', ax.scaleBarThickness, @isscalar);
-            p.addParamValue('color', [0.1 0.1 0.1], @(x) isvector(x) || ischar(x) || isempty(x));    
-            p.addParamValue('errorInterval', [], @(x) isempty(x) || (isvector(x) && numel(x) == 2)); % a background rectangle drawn to indicate error in the placement of the main interval
-            p.addParamValue('errorIntervalColor', [0.5 0.5 0.5], @(x) isvector(x) || isempty(x) || ischar(x));
-            p.addParamValue('leaveInPlace', false, @islogical); % if true, don't anchor overall position, only internal relationships
-            p.addParamValue('manualPos', 0, @isscalar); % when leaveInPlace is true, where to place overall top along y
+            p.addParameter('labelColor', ax.tickFontColor, @(x) isvector(x) || isempty(x) || ischar(x));
+            p.addParameter('thickness', ax.scaleBarThickness, @isscalar);
+            p.addParameter('color', [0.1 0.1 0.1], @(x) isvector(x) || ischar(x) || isempty(x));    
+            p.addParameter('errorInterval', [], @(x) isempty(x) || (isvector(x) && numel(x) == 2)); % a background rectangle drawn to indicate error in the placement of the main interval
+            p.addParameter('errorIntervalColor', [0.5 0.5 0.5], @(x) isvector(x) || isempty(x) || ischar(x));
+            p.addParameter('leaveInPlace', false, @islogical); % if true, don't anchor overall position, only internal relationships
+            p.addParameter('manualPos', 0, @isscalar); % when leaveInPlace is true, where to place overall top along y
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
             axh = ax.axh; %#ok<*PROP>
-            leaveInPlace = p.Results.leaveInPlace;
-            manualPos = p.Results.manualPos;
+            %leaveInPlace = p.Results.leaveInPlace;
+            %manualPos = p.Results.manualPos;
             
             interval = p.Results.interval;
             color = p.Results.color;
@@ -1582,11 +1610,11 @@ classdef AutoAxis < handle
             
             p = inputParser();
             p.addRequired('orientation', @ischar);
-            p.addParamValue('span', [], @ismatrix); % 2 X N matrix of [ start; stop ] limits
-            p.addParamValue('label', {}, @(x) isempty(x) || ischar(x) || iscell(x));
-            p.addParamValue('color', {}, @(x) ischar(x) || iscell(x) || ismatrix(x));
-            p.addParamValue('leaveInPlace', false, @islogical);
-            p.addParamValue('manualPos', 0, @isscalar); % position to place along non-orientation axis, when leaveInPlace is true
+            p.addParameter('span', [], @ismatrix); % 2 X N matrix of [ start; stop ] limits
+            p.addParameter('label', {}, @(x) isempty(x) || ischar(x) || iscell(x));
+            p.addParameter('color', {}, @(x) ischar(x) || iscell(x) || ismatrix(x));
+            p.addParameter('leaveInPlace', false, @islogical);
+            p.addParameter('manualPos', 0, @isscalar); % position to place along non-orientation axis, when leaveInPlace is true
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -1646,7 +1674,7 @@ classdef AutoAxis < handle
             end
             AutoAxis.hideInLegend(hl);
             set(hl, 'Clipping', 'off', 'YLimInclude', 'off', 'XLimInclude', 'off');
-            ht = nan(nSpan, 1);
+            ht = AutoAxis.allocateHandleVector(nSpan);
             for i = 1:nSpan
                 ht(i) = text(xtext(i), ytext(i), label{i}, ...
                     'HorizontalAlignment', ha{i}, 'VerticalAlignment', va{i}, ...
@@ -1660,6 +1688,7 @@ classdef AutoAxis < handle
             set(ht, 'Clipping', 'off', 'Margin', 0.1, 'FontSize', fontSize);
                 
             if ax.debug
+                
                 set(ht, 'EdgeColor', 'r');
             end
             
@@ -1902,15 +1931,12 @@ classdef AutoAxis < handle
             hvec = unique(cat(1, ax.anchorInfoDeref.ha, ax.anchorInfoDeref.h));
             
             % remove handles no longer needed
-            keys = cell2mat(ax.mapLocationCurrent.keys);
-            remove = setdiff(keys, hvec);
-            for iH = 1:numel(remove)
-                ax.mapLocationCurrent.remove(remove(iH));
-            end
+            [ax.mapLocationHandles, idxKeep] = intersect(ax.mapLocationHandles, hvec);
+            ax.mapLocationCurrent = ax.mapLocationCurrent(idxKeep);
             
             % update handles which are considered "dynamic" whose position
             % changes unknowingly between calls to update()
-            locCell = ax.mapLocationCurrent.values;
+            locCell = ax.mapLocationCurrent;
             for iH = 1:numel(locCell)
                 if locCell{iH}.isDynamic
                     locCell{iH}.queryPosition(ax.xDataToPoints, ax.yDataToPoints, ...
@@ -1919,11 +1945,31 @@ classdef AutoAxis < handle
             end
             
             % and build a LocationCurrent for missing handles
-            missing = setdiff(hvec, keys);
+            missing = setdiff(hvec, ax.mapLocationHandles);
             for iH = 1:numel(missing)
-                ax.mapLocationCurrent(missing(iH)) = ...
+                ax.setLocationCurrent(missing(iH), ...
                     AutoAxis.LocationCurrent.buildForHandle(missing(iH), ...
-                    ax.xDataToPoints, ax.yDataToPoints, ax.xReverse, ax.yReverse);
+                    ax.xDataToPoints, ax.yDataToPoints, ax.xReverse, ax.yReverse));
+            end
+        end
+        
+        function setLocationCurrent(ax, h, loc)
+            [tf, idx] = ismember(h, ax.mapLocationHandles);
+            if tf
+                ax.mapLocationCurrent{idx} = loc;
+            else
+                idx = numel(ax.mapLocationHandles) + 1;
+                ax.mapLocationHandles(idx) = h;
+                ax.mapLocationCurrent{idx} = loc;
+            end
+        end
+        
+        function loc = getLocationCurrent(ax, h)
+            [tf, idx] = ismember(h, ax.mapLocationHandles);
+            if ~tf
+                loc = AutoAxis.LocationCurrent.empty();
+            else
+                loc = ax.mapLocationCurrent{idx};
             end
         end
                  
@@ -2145,7 +2191,7 @@ classdef AutoAxis < handle
             end
             
             % grab all current values from LocationCurrent for each handle
-            clocVec = arrayfun(@(h) ax.mapLocationCurrent(h), hvec, 'UniformOutput', false);
+            clocVec = arrayfun(@(h) ax.getLocationCurrent(h), hvec, 'UniformOutput', false);
             clocVec = cat(1, clocVec{:});
 
             % and compute aggregate value across all handles
@@ -2231,7 +2277,7 @@ classdef AutoAxis < handle
                 
                 % use the corresponding LocationCurrent for this single
                 % object to move the graphics object
-                cloc = ax.mapLocationCurrent(h);
+                cloc = ax.getLocationCurrent(h);
                 cloc.setPosition(posType, value, ...
                     ax.xDataToPoints, ax.yDataToPoints, ax.xReverse, ax.yReverse);
             end

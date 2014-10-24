@@ -2,7 +2,7 @@ function figh = figUnique(varargin)
 
 p = inputParser();
 p.addOptional('name', '', @ischar);
-p.addOptional('size', '', @isvector);
+p.addOptional('size', [15 15], @isvector);
 p.parse(varargin{:});
 
 stack = dbstack();
@@ -26,5 +26,10 @@ if isscalar(size)
     size = [size size];
 end
 figSize(size(1), size(2));
+
+hold on;
+t = title(name);
+set(t, 'FontWeight', 'bold');
+box off;
 
 end

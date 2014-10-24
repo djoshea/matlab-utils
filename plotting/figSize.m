@@ -39,7 +39,10 @@ figPos = get(figh,'Position');
 
 set(figh, 'PaperPositionMode', 'auto');
 newPos = [figPos(1), figPos(2), width, height];
-set(figh, 'Position', newPos);
+
+if ~strcmp(get(figh, 'WindowStyle'), 'docked')
+    set(figh, 'Position', newPos);
+end
 
 if ~isempty(get(gcf, 'CurrentAxes'))
     au = AutoAxis.recoverForAxis(gca);

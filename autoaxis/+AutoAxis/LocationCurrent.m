@@ -391,7 +391,7 @@ classdef LocationCurrent < handle & matlab.mixin.Copyable
                                 p(2) = value;
                             end
                         case PositionType.VCenter
-                            p(2) = value + p(4)/2;
+                            p(2) = value - p(4)/2;
                             
                         case PositionType.Height
                             p(4) = value;
@@ -409,7 +409,7 @@ classdef LocationCurrent < handle & matlab.mixin.Copyable
                                 p(1) = value;
                             end
                         case PositionType.HCenter
-                            p(1) = value + p(3)/2;
+                            p(1) = value - p(3)/2;
                             
                         case PositionType.Width
                             p(3) = value;
