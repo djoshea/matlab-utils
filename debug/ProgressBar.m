@@ -37,6 +37,8 @@ classdef ProgressBar < handle
         cols
         firstUpdate  
         timeStart
+        
+        usingTerminal
 
         % enable for parallel for loops? see .enableParallel / disableParallel
         parallel = false;
@@ -45,6 +47,9 @@ classdef ProgressBar < handle
         objWorker
         
         nCompleteByWorker
+        
+        lastNBoxes = 0;
+        lastNSpaces = 0;
     end
 
     methods
@@ -60,9 +65,14 @@ classdef ProgressBar < handle
             else
                 pbar.N = 1;
             end
-            [~, pbar.cols] = getTerminalSize();
+            
+            pbar.usingTerminal = ~usejava('desktop');
+            
+            [~, pbar.cols] = ProgressBar.getTerminalSize();
             pbar.firstUpdate = true;
             pbar.timeStart = now;
+            pbar.lastNBoxes = 0;
+            pbar.lastNSpaces = 0;
             pbar.update(0);
         end
         
@@ -81,7 +91,7 @@ classdef ProgressBar < handle
             id = pbar.objWorker.Value;
             if ~isscalar(id)
                 % not running in parallel mode
-                n = n;
+                % n = n;
                 return;
             end
             fname = sprintf('%s_%d', pbar.fnamePrefix, id);
@@ -107,12 +117,20 @@ classdef ProgressBar < handle
         
         function update(pbar, n, message, varargin)
             if nargin > 2
+                newMessage = true;
                 pbar.message = sprintf(message, varargin{:});
+            else
+                newMessage = false;
             end
             
             if pbar.firstUpdate
+                newMessage = true;
+                firstUpdate = true;
                 pbar.firstUpdate = false;
+            else
+                firstUpdate = false;
             end
+            
             if pbar.N > 0
                 numWidth = ceil(log10(pbar.N));
             else
@@ -163,9 +181,14 @@ classdef ProgressBar < handle
                 message = pbar.message;
             end 
             
+            
             gap = pbar.cols - 1 - (length(message)+1) - progLen;
             spaces = repmat(' ', 1, gap);
-            str = [message spaces progStr]; 
+            if pbar.usingTerminal
+                str = [message spaces progStr]; 
+            else
+                str = [message spaces blanks(numel(progStr))];
+            end
 
             % separate into colored portion of bar and non-colored portion of bar
             ind = min(length(str), ceil(ratio*pbar.cols));
@@ -173,10 +196,52 @@ classdef ProgressBar < handle
             postStr = str(ind+1:end);
 
 %            disp(n)
-            if pbar.parallel
-                fprintf('\033[1A\033[1;44;37m %s\033[49;37m%s\033[0m \n', preStr, postStr);
+            if pbar.usingTerminal
+                if pbar.parallel
+                    fprintf('\033[1A\033[1;44;37m %s\033[49;37m%s\033[0m \n', preStr, postStr);
+                else
+                    fprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
+                end
             else
-                fprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
+                % figure out number of boxes
+                boxChar = char(9608);
+                nTotal = pbar.cols - 4;
+                idealBoxCount = ratio*(nTotal-numel(progStr)-2);
+                nBoxes = floor(idealBoxCount);
+                
+                nBoxesLast = pbar.lastNBoxes;
+                newBoxes = nBoxes - nBoxesLast;
+                nSpaces = nTotal-nBoxes;
+                boxes = repmat(boxChar, 1, newBoxes);
+                
+                fracLast = idealBoxCount - nBoxes;
+                fractionalBox = ProgressBar.getFractionalBlockChar(fracLast);
+                
+                empty = blanks(nSpaces);
+                empty((end-numel(progStr)+1):end) = progStr;
+                
+                % clear old lines
+                if ~firstUpdate
+                    if newMessage
+                        backspaces = repmat('\b', 1, pbar.lastNSpaces + pbar.lastNBoxes + 1 + pbar.cols - 1);
+                    else
+                        % no need to update message, clear only the number
+                        % of boxes required
+                        backspaces = repmat('\b', 1, pbar.lastNSpaces + 1);
+                    end
+                    fprintf(backspaces);
+                end
+                
+                pbar.lastNBoxes = nBoxes;
+                pbar.lastNSpaces = nSpaces;
+                
+                
+                if newMessage
+                    fprintf('%s%s\n', preStr, postStr);
+                end
+                
+                fprintf('%s%c%s', boxes, fractionalBox, empty);
+                
             end
             %str = sprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
             %disp(str);
@@ -192,11 +257,16 @@ classdef ProgressBar < handle
             %spaces = repmat(' ' , 1, gap);
             %fprintf('\b\r%s%s\033[0m\n', pbar.message, spaces);
 
-            spaces = repmat(' ', 1, pbar.cols-1);
-            if pbar.parallel
-                fprintf('\033[1A%s\033[0m\r', spaces);
+            if pbar.usingTerminal
+                spaces = repmat(' ', 1, pbar.cols-1);
+                if pbar.parallel
+                    fprintf('\033[1A%s\033[0m\r', spaces);
+                else
+                    fprintf('\b\r%s\033[0m\r', spaces);
+                end
             else
-                fprintf('\b\r%s\033[0m\r', spaces);
+                backspaces = repmat('\b', 1, pbar.lastNSpaces + pbar.lastNBoxes + 1 + pbar.cols - 1);
+                fprintf(backspaces);
             end
             if nargin > 1
                 pbar.message = sprintf(message, varargin{:});
@@ -248,8 +318,57 @@ classdef ProgressBar < handle
             end
             pbar.finish();
         end
+        
+        function [rows, cols] = getTerminalSize()
+            usingTerminal = ~usejava('desktop');
+
+            % use sensible defaults
+            rows = 24;
+            cols = 80;
+
+            if (ismac || isunix) && usingTerminal
+                % actual terminal: get terminal width using tput
+                cmd = 'tput lines';
+                [~, ~] = unix(cmd);
+                num = sscanf(r, '%d');
+                if ~isempty(num)
+                    rows = num;
+                end
+
+                cmd = 'tput cols';
+                [~, ~] = unix(cmd);
+                num = sscanf(r, '%d');
+                if ~isempty(num)
+                    cols = num;
+                end
+
+            elseif ~usingTerminal %#ok<*PROP
+                % matlab command window size
+                try
+                    jDesktop = com.mathworks.mde.desk.MLDesktop.getInstance;
+                    cmdWin = jDesktop.getClient('Command Window');
+
+                    jTextArea = cmdWin.getComponent(0).getViewport.getComponent(0);
+                    height = jTextArea.getHeight();
+                    width = jTextArea.getParent.getWidth();
+                    font = jTextArea.getParent().getFont();
+                    metrics = cmdWin.getFontMetrics(font);
+                    charWidth = metrics.charWidth('A');
+                    charHeight = metrics.getHeight();
+
+                    rows = floor(height/charHeight);
+                    cols = floor(width/charWidth);
+                catch
+                end
+            end
+        end
+        
+        function ch = getFractionalBlockChar(frac)
+            if frac < 1/8
+                ch = char(' ');
+            elseif frac < 1
+                ch = char(9614 - floor(frac / 0.125));
+            end
+        end
     end
-
-
-
 end
