@@ -9,6 +9,8 @@ classdef PositionType < uint32
         Right (6) 
         HCenter (7)
         Width (8)
+        
+        Literal (9)
     end
 
     methods
@@ -58,6 +60,84 @@ classdef PositionType < uint32
                     fields = {'top', 'bottom', 'height'};
                 case {PositionType.Left, PositionType.Right, PositionType.HCenter, PositionType.Width}
                     fields = {'left', 'right', 'width'};
+            end
+        end
+        
+        function posInv = flip(pos)
+            import AutoAxis.PositionType;
+            switch pos
+                case PositionType.HCenter
+                    posInv = PositionType.HCenter;
+                case PositionType.Left
+                    posInv = PositionType.Right;
+                case PositionType.Right
+                    posInv = PositionType.Left;
+                case PositionType.VCenter
+                    posInv = PositionType.VCenter;
+                case PositionType.Top
+                    posInv = PositionType.Bottom;
+                case PositionType.Bottom
+                    posInv = PositionType.Top;
+                otherwise
+                    error('Not valid for flip');
+            end
+        end
+        
+        function align = toHorizontalAlignment(pos)
+            import AutoAxis.PositionType;
+            switch pos
+                case PositionType.HCenter
+                    align = 'center';
+                case PositionType.Left
+                    align = 'left';
+                case PositionType.Right
+                    align = 'right';
+                otherwise
+                    error('Not valid for horizontal alignment');
+            end
+        end
+        
+        function align = toVerticalAlignment(pos)
+            import AutoAxis.PositionType;
+            switch pos
+                case PositionType.VCenter
+                    align = 'middle';
+                case PositionType.Top
+                    align = 'top';
+                case PositionType.Bottom
+                    align = 'bottom';
+                otherwise
+                    error('Not valid for vertical alignment');
+            end
+        end
+    end
+    
+    methods(Static)
+        function pos = horizontalAlignmentToPositionType(align)
+            import AutoAxis.PositionType;
+            switch align
+                case 'center'
+                    pos = PositionType.HCenter;
+                case 'left'
+                    pos = PositionType.Left;
+                case 'right'
+                    pos = PositionType.Right;
+                otherwise
+                    error('Unknown horizontal alignment string');
+            end
+        end
+            
+        function pos = verticalAlignmentToPositionType(align)
+            import AutoAxis.PositionType;
+            switch align
+                case 'middle'
+                    pos = PositionType.VCenter;
+                case 'top'
+                    pos = PositionType.Top;
+                case 'bottom'
+                    pos = PositionType.Bottom;
+                otherwise
+                    error('Unknown vertical alignment string');
             end
         end
     end

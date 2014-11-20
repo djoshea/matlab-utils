@@ -47,6 +47,8 @@ classdef AutoAxis < handle
         % and between tick labels and axis label offset
         tickLabelOffset = 0.1; % cm
         
+        markerLabelOffset = 0.2; % cm
+        
         % axis x/y labels
         labelFontSize
         labelFontColor
@@ -319,7 +321,11 @@ classdef AutoAxis < handle
         end
         
         function hn = getNullHandle()
-            hn = matlab.graphics.GraphicsPlaceholder();
+            if verLessThan('matlab','8.4.0')
+                hn = NaN;
+            else
+                hn = matlab.graphics.GraphicsPlaceholder();
+            end
         end
         
         function updateFigure(figh)
@@ -406,7 +412,7 @@ classdef AutoAxis < handle
         end
     end
     
-    methods    
+    methods
         function initializeNewInstance(ax, axh)
             ax.axh = axh;
             
@@ -644,6 +650,8 @@ classdef AutoAxis < handle
             
             % make sure the handles are tagged
             ax.tagHandle(hvec);
+            
+            ax.refreshNeeded = true;
         end
         
         function names = listHandleCollections(ax)
@@ -678,11 +686,11 @@ classdef AutoAxis < handle
             remove = false(numel(ax.anchorInfo), 1);
             for i = 1:numel(ax.anchorInfo)
                 ai = ax.anchorInfo(i);
-                if ~isempty(ai.h) && ~ischar(ai.h) % char would be collection reference, ignore
+                if ai.isHandleH % char would be collection reference, ignore
                     ai.h = setdiff(ai.h, hvec);
                     if isempty(ai.h), remove(i) = true; end
                 end
-                if ~isempty(ai.ha) && ~ischar(ai.ha) % char would be collection reference, ignore
+                if ai.isHandleHa % char would be collection reference, ignore
                     ai.ha = setdiff(ai.ha, hvec);
                     if isempty(ai.ha), remove(i) = true; end
                 end
@@ -905,7 +913,7 @@ classdef AutoAxis < handle
             end
             
             ax.autoScaleBarX.h = ax.addScaleBar('x', ...
-                'thickness', ax.scaleBarThickness', 'units', ax.xUnits, ...
+                'units', ax.xUnits, ...
                 'useAutoScaleBarCollection', true, 'addAnchors', firstTime);
             
             % remove after the new ones are added by addTickBridge
@@ -932,8 +940,7 @@ classdef AutoAxis < handle
                 remove = [];
             end
             
-            ax.autoScaleBarY.h = ax.addScaleBar('y', ...
-                'thickness', ax.scaleBarThickness, 'units', ax.yUnits, ...
+            ax.autoScaleBarY.h = ax.addScaleBar('y', 'units', ax.yUnits, ...
                 'useAutoScaleBarCollections', true, 'addAnchors', firstTime);
             
             % remove after the new ones are added by addTickBridge
@@ -1206,21 +1213,22 @@ classdef AutoAxis < handle
                     ai = AnchorInfo(hbRef, PositionType.Top, ax.axh, ...
                         PositionType.Bottom, offset, 'xTickBridge below axis');
                     ax.addAnchor(ai);
-                    ai = AnchorInfo(hlRef, PositionType.Top, hbRef, ...
-                        PositionType.Bottom, 0, 'xTick below xTickBridge');
-                    ax.addAnchor(ai);
                     ai = AnchorInfo(hlRef, PositionType.Height, ...
                         [], tickLen, 0, 'xTick length');
                     ax.addAnchor(ai);
+                    ai = AnchorInfo(hlRef, PositionType.Top, hbRef, ...
+                        PositionType.Bottom, 0, 'xTick below xTickBridge');
+                    ax.addAnchor(ai);
+                    
                 else
                     ai = AnchorInfo(hbRef, PositionType.Right, ...
                         ax.axh, PositionType.Left, offset, 'yTickBridge left of axis');
                     ax.addAnchor(ai);
-                    ai = AnchorInfo(hlRef, PositionType.Right, ...
-                        hbRef, PositionType.Left, 0, 'yTick left of yTickBridge');
-                    ax.addAnchor(ai);
                     ai = AnchorInfo(hlRef, PositionType.Width, ...
                         [], tickLen, 0, 'yTick length');
+                    ax.addAnchor(ai);
+                    ai = AnchorInfo(hlRef, PositionType.Right, ...
+                        hbRef, PositionType.Left, 0, 'yTick left of yTickBridge');
                     ax.addAnchor(ai);
                 end
 
@@ -1259,6 +1267,10 @@ classdef AutoAxis < handle
             p.addParameter('markerColor', [0.1 0.1 0.1], @(x) isvector(x) || ischar(x) || isempty(x));
             p.addParameter('interval', [], @(x) isempty(x) || isvector(x)); % add a rectangle interval behind the marker to indicate a range of locations
             p.addParameter('intervalColor', [0.5 0.5 0.5], @(x) isvector(x) || ischar(x) || isempty(x));
+            p.addParameter('textOffsetY', 0, @isscalar);
+            p.addParameter('textOffsetX', 0, @isscalar);
+            p.addParameter('horizontalAlignment', 'center', @ischar);
+            p.addParameter('verticalAlignment', 'top', @ischar);
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -1299,7 +1311,7 @@ classdef AutoAxis < handle
             
             ht = text(p.Results.x, yl(1), p.Results.label, ...
                 'FontSize', ax.tickFontSize, 'Color', p.Results.labelColor, ...
-                'HorizontalAlignment', 'center', 'VerticalAlignment', 'top', ...
+                'HorizontalAlignment', p.Results.horizontalAlignment, 'VerticalAlignment', p.Results.verticalAlignment, ...
                 'Parent', ax.axhDraw);
             
             ai = AutoAxis.AnchorInfo(hm, PositionType.Top, ...
@@ -1307,10 +1319,21 @@ classdef AutoAxis < handle
                 sprintf('markerX ''%s'' to bottom of axis', label));
             ax.addAnchor(ai);
             
-            ai = AutoAxis.AnchorInfo(ht, PositionType.Top, ...
-                hm, PositionType.Bottom, ax.tickLabelOffset, ...
+            offY = p.Results.textOffsetY;
+            pos = PositionType.verticalAlignmentToPositionType(p.Results.verticalAlignment);  
+            ai = AutoAxis.AnchorInfo(ht, pos, ...
+                hm, PositionType.Bottom, @(ax, varargin) ax.markerLabelOffset + offY, ...
                 sprintf('markerX label ''%s'' to marker', label));
             ax.addAnchor(ai);
+            
+            if p.Results.textOffsetX ~= 0
+                pos = PositionType.horizontalAlignmentToPositionType(p.Results.horizontalAlignment);
+                ai = AutoAxis.AnchorInfo(ht, pos, ...
+                    p.Results.x, PositionType.Literal, p.Results.textOffsetX, ...
+                    sprintf('markerX label ''%s'' offset %g from X=%g', ...
+                    label, p.Results.textOffsetX, p.Results.x));
+                ax.addAnchor(ai);
+            end
                    
             if hasInterval
                 ai = AutoAxis.AnchorInfo(hr, PositionType.Height, ...
@@ -1364,7 +1387,6 @@ classdef AutoAxis < handle
             p = inputParser();
             p.addRequired('orientation', @ischar);
             p.addParameter('length', [], @isvector);
-            p.addParameter('thickness', ax.tickLength, @isscalar);
             p.addParameter('units', '', @(x) isempty(x) || ischar(x));
             p.addParameter('useAutoScaleBarCollections', false, @islogical);
             p.addParameter('addAnchors', true, @islogical);
@@ -1522,6 +1544,10 @@ classdef AutoAxis < handle
             p.addParameter('errorIntervalColor', [0.5 0.5 0.5], @(x) isvector(x) || isempty(x) || ischar(x));
             p.addParameter('leaveInPlace', false, @islogical); % if true, don't anchor overall position, only internal relationships
             p.addParameter('manualPos', 0, @isscalar); % when leaveInPlace is true, where to place overall top along y
+            p.addParameter('textOffsetY', 0, @isscalar);
+            p.addParameter('textOffsetX', 0, @isscalar);
+            p.addParameter('horizontalAlignment', 'center', @ischar);
+            p.addParameter('verticalAlignment', 'top', @ischar);
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -1563,8 +1589,8 @@ classdef AutoAxis < handle
             AutoAxis.hideInLegend(hri);
             
             hr = [hri; hre];
-            ht = text(mean(interval), yl(1), label, 'HorizontalAlignment', 'center', ...
-                'VerticalAlignment', 'top', 'Parent', ax.axhDraw);
+            ht = text(mean(interval), yl(1), label, 'HorizontalAlignment', p.Results.horizontalAlignment, ...
+                'VerticalAlignment', p.Results.verticalAlignment, 'Parent', ax.axhDraw);
 
             set(hri, 'FaceColor', color, 'EdgeColor', 'none', 'Clipping', 'off', ...
                 'XLimInclude', 'off', 'YLimInclude', 'off');
@@ -1584,10 +1610,23 @@ classdef AutoAxis < handle
                 sprintf('interval ''%s'' below axis', label));
             ax.addAnchor(ai);
 
-            ai = AnchorInfo(ht, PositionType.Top, ...
-                hr, PositionType.Bottom, 'tickLabelOffset', ...
+            % add custom or default y offset from bottom of rectangle
+            textOffsetY = p.Results.textOffsetY;
+            pos = PositionType.verticalAlignmentToPositionType(p.Results.verticalAlignment);
+            ai = AnchorInfo(ht, pos, ...
+                hr, PositionType.Bottom, @(a, varargin) a.markerLabelOffset + textOffsetY, ...
                 sprintf('interval label ''%s'' below interval', label));
             ax.addAnchor(ai);
+  
+            % add x offset in paper units to label 
+            if p.Results.textOffsetX ~= 0
+                pos = PositionType.horizontalAlignmentToPositionType(p.Results.horizontalAlignment);
+                ai = AutoAxis.AnchorInfo(ht, pos, ...
+                    p.Results.x, PositionType.Literal, p.Results.textOffsetX, ...
+                    sprintf('interval label ''%s'' offset %g from X=%g', ...
+                    label, p.Results.textOffsetX, p.Results.x));
+                ax.addAnchor(ai);
+            end
 
             if ~isempty(hre)
                 ai = AnchorInfo(hre, PositionType.Height, [], thickness/3, 0, ...
@@ -1728,18 +1767,82 @@ classdef AutoAxis < handle
                     ax.addHandlesToCollection('leftY', [hl; ht]);
                 end
             end
-        end   
+        end 
+        
+        function addColoredLabels(ax, labels, colors, varargin)
+            import AutoAxis.PositionType;
+            import AutoAxis.AnchorInfo;
+            
+            p = inputParser();
+            p.addParameter('posX', PositionType.Right, @(x) isa(x, 'AutoAxis.PositionType'));
+            p.addParameter('posY', PositionType.Top, @(x) isa(x, 'AutoAxis.PositionType'));
+            p.addParameter('fontSize', ax.labelFontSize, @isscalar);
+            p.addParameter('spacing', 'tickLabelOffset', @(x) true);
+            p.parse(varargin{:});
+            posX = p.Results.posX;
+            posY = p.Results.posY;
+            
+            N = numel(labels);
+            
+            hvec = nanvec(N);
+            
+            if strcmp(get(gca, 'YDir'), 'reverse')
+                rev = true;
+            else
+                rev = false;
+            end
+            
+            top = posY == PositionType.Top;
+            if top
+                root = 1;
+                anchorToOffset = -1;
+            else
+                root = N;
+                anchorToOffset = 1;
+            end  
+            
+            for i = 1:N
+                label = labels{i};
+                if iscell(colors)
+                    c = colors{i};
+                else
+                    c = colors(i, :);
+                end
+ 
+                hvec(i) = text(0, (~rev * -i), label, 'FontSize', p.Results.fontSize, ...
+                    'Color', c, 'HorizontalAlignment', posX.toHorizontalAlignment(), ...
+                    'VerticalAlignment', posY.flip().toVerticalAlignment());
+            end
+            
+            for i = 1:N
+                if i == root
+                    % anchor to axis
+                    ai = AnchorInfo(hvec(i), posY, ax.axh, posY, 0, ...
+                        sprintf('colorLabel %s %s to axis %s', labels{i}, char(posY), char(posY)));
+                else
+                    % anchor to text above/below
+                    ai = AnchorInfo(hvec(i), posY, hvec(i+anchorToOffset), posY.flip(), p.Results.spacing, ...
+                        sprintf('colorLabel %s %s to %s %s', labels{i}, char(posY), labels{i+anchorToOffset}, char(posY.flip())));
+                end
+                ax.addAnchor(ai);
+            end
+            
+            ai = AnchorInfo(hvec, posX, ax.axh, posX, 0, ...
+                sprintf('colorLabels to axis %s', char(posX), char(posX)));
+            ax.addAnchor(ai);
+                   
+        end
     end
     
     methods
         function addAnchor(ax, info)
             ind = numel(ax.anchorInfo) + 1;
             % sort here so that we can use ismembc later
-            if ~ischar(info.h)
+            if info.isHandleH
                 info.h = sort(info.h);
                 ax.tagHandle(info.h);
             end
-            if ~ischar(info.ha)
+            if info.isHandleHa
                 info.ha = sort(info.ha);
                 ax.tagHandle(info.ha);
             end
@@ -1928,7 +2031,9 @@ classdef AutoAxis < handle
             % update .mapLocationCurrent (handle --> LocationCurrent)
             % to remove unused handles and add new ones
             
-            hvec = unique(cat(1, ax.anchorInfoDeref.ha, ax.anchorInfoDeref.h));
+            maskH = [ax.anchorInfoDeref.isHandleH];
+            maskHa = [ax.anchorInfoDeref.isHandleHa];
+            hvec = unique(cat(1, ax.anchorInfoDeref(maskHa).ha, ax.anchorInfoDeref(maskH).h));
             
             % remove handles no longer needed
             [ax.mapLocationHandles, idxKeep] = intersect(ax.mapLocationHandles, hvec);
@@ -1977,10 +2082,13 @@ classdef AutoAxis < handle
             import AutoAxis.PositionType;
             
             if isempty(info.h) || ~all(ishandle(info.h)) || ...
-                (~isempty(info.ha) && ~all(ishandle(info.ha)))
+                (info.isHandleHa && ~all(ishandle(info.ha)))
                 info.valid = false;
                 valid = false;
-                %warning('Invalid anchor %s encountered', info.desc);
+                
+                if ax.debug
+                    warning('Invalid anchor %s encountered', info.desc);
+                end
                 return;
             end
             
@@ -1993,6 +2101,9 @@ classdef AutoAxis < handle
                 else
                     pAnchor = pAnchor / ax.yDataToUnits;
                 end
+            elseif info.posa == PositionType.Literal
+                % ha is a literal value in data coordinates
+                pAnchor = info.ha;
             else
                 % get the position of the anchoring element
                 pAnchor = ax.getCurrentPositionData(info.ha, info.posa);
@@ -2010,6 +2121,10 @@ classdef AutoAxis < handle
                     offset = -info.margin / ax.xDataToUnits;
                 elseif info.posa == PositionType.Right
                     offset = info.margin / ax.xDataToUnits;
+                elseif info.posa == PositionType.Literal && info.pos.isX()
+                    offset = info.margin / ax.xDataToUnits;
+                elseif info.posa == PositionType.Literal && info.pos.isY()
+                    offset = info.margin / ax.yDataToUnits;
                 end
                 
                 if (info.pos.isY() && ax.yReverse) || (info.pos.isX() && ax.xReverse)
@@ -2035,16 +2150,25 @@ classdef AutoAxis < handle
             
             import AutoAxis.PositionType;
             
+            ax.derefAnchors();
+            
             % first loop through and build a list of dependencies,
             % building the adjacency matrix of a directed acyclic graph
             nAnchors = numel(ax.anchorInfo);
             dependencyMat = false(nAnchors, nAnchors); % does anchor i depend on anchor j
             for i = 1:nAnchors
-                anchor = ax.anchorInfo(i);
-                % add dependencies on any anchor that determines the
-                % corresponding position (posa) of this anchor's anchor
-                % object (ha)
-                dependencyMat(i, :) = ax.findAnchorsSpecifying(anchor.ha, anchor.posa);
+                anchor = ax.anchorInfoDeref(i);
+                
+                if ~anchor.isHandleH
+                    continue; % must specify a literal since it's already dereferenced
+                end
+                
+                if anchor.isHandleHa
+                    % add dependencies on any anchor that determines the
+                    % corresponding position (posa) of this anchor's anchor
+                    % object (ha)
+                    dependencyMat(i, :) = ax.findAnchorsSpecifying(anchor.ha, anchor.posa);
+                end
                 
                 % if this anchor sets the position of h, add dependencies
                 % on any anchors which affect the size of this object so
@@ -2097,11 +2221,15 @@ classdef AutoAxis < handle
             
             % first find any anchors that specify any subset of the handles in
             % hVec
-            if ischar(hVec)
-                maskH = cellfun(@(v) isequal(hVec, v), {ax.anchorInfo.h});
-            else
-                maskH = cellfun(@(v) ~ischar(v) && any(ismember(hVec, v)), {ax.anchorInfo.h});
-            end
+            
+            % not using strings anymore since we do this all on
+            % dereferenced anchors
+            
+%             if ischar(hVec)
+%                 maskH = cellfun(@(v) isequal(hVec, v), {ax.anchorInfoDeref.h});
+%             else
+                maskH = arrayfun(@(info) info.isHandleH && any(ismember(hVec, info.h)), ax.anchorInfoDeref);
+%             end
             
             if ~any(maskH)
                 mask = maskH;
@@ -2109,7 +2237,7 @@ classdef AutoAxis < handle
             end
             
             % then search for any directly or indirectly specifying anchors
-            info = ax.anchorInfo(maskH); % | maskExact);
+            info = ax.anchorInfoDeref(maskH); % | maskExact);
 
             maskTop = [info.pos] == PositionType.Top;
             maskBottom = [info.pos] == PositionType.Bottom;

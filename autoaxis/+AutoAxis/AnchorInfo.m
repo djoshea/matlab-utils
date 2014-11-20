@@ -23,6 +23,11 @@ classdef AnchorInfo < handle & matlab.mixin.Copyable
         posScaleFixed
     end
     
+    properties(Dependent)
+        isHandleH % boolean: true if h should be treated as a handle or handle vector directly (as opposed to a handle tag string or literal value)
+        isHandleHa % boolean: true if ha should be treated as a handle directly (as opposed to a handle tag string or literal value)
+    end
+    
     methods
         function ai = AnchorInfo(varargin)
             p = inputParser;
@@ -43,6 +48,17 @@ classdef AnchorInfo < handle & matlab.mixin.Copyable
             ai.desc = p.Results.desc;
         end
     end
+    
+    methods
+        function tf = get.isHandleH(info)
+            tf = ~isempty(info.h) && all(~ischar(info.h)) && info.pos ~= AutoAxis.PositionType.Literal;
+        end
+        
+        function tf = get.isHandleHa(info)
+             tf = ~isempty(info.ha) && all(~ischar(info.ha)) && info.posa ~= AutoAxis.PositionType.Literal;
+        end
+    end
+        
 end
 
     
