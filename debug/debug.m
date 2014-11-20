@@ -10,13 +10,18 @@ function debug(varargin)
     %
     persistent pLastCaller;
 
-    [st, i] = dbstack();
+    [st, i] = dbstack('-completenames');
     if length(st) == 1
         caller.origin = 'Base';
         caller.line = 0;
         caller.method = 'interactive';
     else
-        caller.origin = strtok(st(2).file, '.');
+        % determine package name 
+        caller.package = getPackage('stackOffset', 1);
+        
+        [~, fileName] = fileparts(st(2).file);
+        caller.origin = fileName;
+        
         caller.line = st(2).line;
         [~, method] = strtok(st(2).name, '.');
         method = method(2:end);
@@ -24,7 +29,13 @@ function debug(varargin)
     end
 
     if isempty(pLastCaller) || ~strcmp(pLastCaller.origin, caller.origin) || ...
-        ~strcmp(pLastCaller.method, caller.method)
+        ~strcmp(pLastCaller.method, caller.method) || ...
+        ~strcmp(pLastCaller.package, caller.package)
+    
+        if ~isempty(caller.package)
+            tcprintf('purple', '%s.', caller.package);
+        end
+        
         % new caller file or method, print header line
         tcprintf('yellow', '%s', caller.origin); 
         if ~isempty(caller.method)
@@ -37,7 +48,7 @@ function debug(varargin)
     if caller.line == 0
         fprintf('     ');
     else
-        tcprintf('blue', '%4d ', caller.line);
+        tcprintf('cyan', '%4d ', caller.line);
     end
     if ~isempty(varargin)
         tcprintf('gray', varargin{:});
