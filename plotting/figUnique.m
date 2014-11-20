@@ -29,7 +29,7 @@ figSize(size(1), size(2));
 
 hold on;
 t = title(name);
-set(t, 'FontWeight', 'bold');
+set(t, 'FontWeight', 'bold', 'Interpreter', 'none');
 box off;
 
 end

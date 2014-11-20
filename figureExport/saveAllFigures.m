@@ -9,6 +9,6 @@ for i = 1:numel(figs)
         warning('Skipping figure %d without name', figs(i).Number);
         continue;
     end
-    saveFigure
+    saveFigure;
     close(figs(i));
 end

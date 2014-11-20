@@ -17,7 +17,7 @@ function fileList = saveFigure(varargin)
 %   [I would download inkscape on Mac directly, building it takes a while!]
 %
 % Currently not supported for Windows, though adding this shouldn't be too
-% difficult. Mostly just  need to get the system() calls to work properly.
+% difficult. Mostly just need to get the system() calls to work properly.
 %
 % Required
 %
@@ -63,7 +63,7 @@ function fileList = saveFigure(varargin)
 %   GetFullFile: Jan Simon
 %
     extListFull = {'fig', 'png', 'hires.png', 'svg', 'eps', 'pdf'};
-    extListDefault = {'pdf', 'svg'};
+    extListDefault = {'pdf', 'svg', 'png'};
 
     p = inputParser;
     p.addOptional('name', '', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
@@ -905,7 +905,7 @@ function varargout = plot2svg(param1,id,pixelfiletype)
     fprintf(fid,' version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"');
     %fprintf(fid,' onload="Init(evt)"');
     fprintf(fid,'>\n');
-    fprintf(fid,'  <desc>Matlab Figure Converted by PLOT2SVG written by Juerg Schwizer</desc>\n');
+    fprintf(fid,'  <desc>Matlab Figure Converted by PLOT2SVG written by Juerg Schwizer, exported by SAVEFIGURE by Dan O''Shea</desc>\n');
     %fprintf(fid,'  <script type="text/ecmascript" xlink:href="puzzle_script.js" />\n');
     fprintf(fid,'  <g id="topgroup">\n');
     group=1;
@@ -1409,7 +1409,6 @@ function printAttributeColor(fid, name, svgstruct, svgfield, default)
     end
 end
 
-
 function frontTicks(fid, grouplabel, axpos, x, y, scolorname, linewidth, tick, index, edge_neighbours, c, valid_ticks, ticklength, tick_ratio, lim, drawBorder)
     for k = 1:length(index)
         x_tick_end1 = interp1([0 1],[x(index(k)) x(edge_neighbours(index(k),c(1)))],ticklength*tick_ratio(c(3)),'linear','extrap');
@@ -1768,7 +1767,7 @@ function group=axes2svg(fid,id,ax,group,paperpos)
     if verLessThan('matlab', '8.4')
         axchild=get(ax,'Children');
     else
-        axchild=[ax.Children; ax.Title];
+        axchild=[ax.Children; ax.Title; ax.XLabel; ax.YLabel];
     end
     group = axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,groupax,projection,boundingBoxAxes);
     fprintf(fid,'    </g>\n');
@@ -2115,26 +2114,39 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
             line2svg(fid,groupax,axpos,x,y,scolorname,linestyle,linewidth)
             % put the markers into a subgroup of the lines
             fprintf(fid,'<g>\n');
+            
+            % added by @djoshea to support marker opacity
+            ud = get(axchild(i), 'UserData');
+            markerfacealpha = 1;
+            markeredgealpha = 1;
+            if isstruct(ud) && isfield(ud, 'svg')
+                if isfield(ud.svg, 'MarkerFaceAlpha')
+                    markerfacealpha = ud.svg.MarkerFaceAlpha;
+                end
+                if isfield(ud.svg, 'MarkerEdgeAlpha')
+                    markeredgealpha = ud.svg.MarkerEdgeAlpha;
+                end
+            end
             switch marker
                 case 'none';
-                case '.',group=group+1;circle2svg(fid,group,axpos,x,y,markersize*0.25,'none',markeredgecolorname,linewidth);
-                case 'o',group=group+1;circle2svg(fid,group,axpos,x,y,markersize*0.75,markeredgecolorname,markerfacecolorname,linewidth);
-                case '+',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-1 1 NaN 0 0]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0 0 NaN -1 1]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, 1, 1, false);   
-                case '*',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,11)+ones(length(linex),1)*[-1 1 NaN 0 0 NaN -0.7 0.7 NaN -0.7 0.7]*markersize,y'*ones(1,11)+ones(length(liney),1)*[0 0 NaN -1 1 NaN 0.7 -0.7 NaN -0.7 0.7]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, 1, 1, false);
-                case 'x',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-0.7 0.7 NaN -0.7 0.7]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0.7 -0.7 NaN -0.7 0.7]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, 1, 1, false);
+                case '.',group=group+1;circle2svg(fid,group,axpos,x,y,markersize*0.25,'none',markeredgecolorname,linewidth, markerfacealpha, markeredgealpha);
+                case 'o',group=group+1;circle2svg(fid,group,axpos,x,y,markersize*0.75,markeredgecolorname,markerfacecolorname,linewidth, markerfacealpha, markeredgealpha);
+                case '+',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-1 1 NaN 0 0]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0 0 NaN -1 1]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, false);   
+                case '*',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,11)+ones(length(linex),1)*[-1 1 NaN 0 0 NaN -0.7 0.7 NaN -0.7 0.7]*markersize,y'*ones(1,11)+ones(length(liney),1)*[0 0 NaN -1 1 NaN 0.7 -0.7 NaN -0.7 0.7]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, false);
+                case 'x',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-0.7 0.7 NaN -0.7 0.7]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0.7 -0.7 NaN -0.7 0.7]*markersize,markeredgecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, false);
                 %% Octave keeps s, d, p and h in the HandleGraphics object, for the square, diamond, pentagram, and hexagram markers, respectively -- Jakob Malm
-                case {'square', 's'},group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-1 -1 1 1 -1]*markersize,y'*ones(1,5)+ones(length(liney),1)*[-1 1 1 -1 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-                case {'diamond', 'd'},group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-0.7071 0 0.7071 0 -0.7071]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0 1 0 -1 0]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+                case {'square', 's'},group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-1 -1 1 1 -1]*markersize,y'*ones(1,5)+ones(length(liney),1)*[-1 1 1 -1 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, true);
+                case {'diamond', 'd'},group=group+1;patch2svg(fid,group,axpos,x'*ones(1,5)+ones(length(linex),1)*[-0.7071 0 0.7071 0 -0.7071]*markersize,y'*ones(1,5)+ones(length(liney),1)*[0 1 0 -1 0]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, true);
                 case {'pentagram', 'p'},group=group+1;patch2svg(fid,group,axpos,...
                         x'*ones(1,11)+ones(length(linex),1)*[0 0.1180 0.5 0.1910 0.3090 0 -0.3090 -0.1910 -0.5 -0.1180 0]*1.3*markersize,...
-                        y'*ones(1,11)+ones(length(liney),1)*[-0.5257 -0.1625 -0.1625 0.0621 0.4253 0.2008 0.4253 0.0621 -0.1625 -0.1625 -0.5257]*1.3*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+                        y'*ones(1,11)+ones(length(liney),1)*[-0.5257 -0.1625 -0.1625 0.0621 0.4253 0.2008 0.4253 0.0621 -0.1625 -0.1625 -0.5257]*1.3*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, true);
                 case {'hexagram', 'h'},group=group+1;patch2svg(fid,group,axpos,...
                         x'*ones(1,13)+ones(length(linex),1)*[0 0.2309 0.6928 0.4619 0.6928 0.2309 0 -0.2309 -0.6928 -0.4619 -0.6928 -0.2309 0]*1*markersize,...
-                        y'*ones(1,13)+ones(length(liney),1)*[0.8 0.4 0.4 0 -0.4 -0.4 -0.8 -0.4 -0.4 0 0.4 0.4 0.8]*1*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);    
-                case '^',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-1 1 0 -1]*markersize,y'*ones(1,4)+ones(length(liney),1)*[0.577 0.577 -1.155 0.577]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-                case 'v',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-1 1 0 -1]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-0.577 -0.577 1.155 -0.577]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-                case '<',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[0.577 0.577 -1.155 0.577]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-1 1 0 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
-                case '>',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-0.577 -0.577 1.155 -0.577]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-1 1 0 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, 1, 1, true);
+                        y'*ones(1,13)+ones(length(liney),1)*[0.8 0.4 0.4 0 -0.4 -0.4 -0.8 -0.4 -0.4 0 0.4 0.4 0.8]*1*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, true);    
+                case '^',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-1 1 0 -1]*markersize,y'*ones(1,4)+ones(length(liney),1)*[0.577 0.577 -1.155 0.577]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, true);
+                case 'v',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-1 1 0 -1]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-0.577 -0.577 1.155 -0.577]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, true);
+                case '<',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[0.577 0.577 -1.155 0.577]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-1 1 0 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, true);
+                case '>',group=group+1;patch2svg(fid,group,axpos,x'*ones(1,4)+ones(length(linex),1)*[-0.577 -0.577 1.155 -0.577]*markersize,y'*ones(1,4)+ones(length(liney),1)*[-1 1 0 -1]*markersize,markerfacecolorname,'-',linewidth,markeredgecolorname, markerfacealpha, markeredgealpha, true);
             end
             % close the marker group
             fprintf(fid,'</g>\n');
@@ -3015,11 +3027,12 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % create a circle
-function circle2svg(fid,group,axpos,x,y,radius,markeredgecolorname,markerfacecolorname,width)
+function circle2svg(fid,group,axpos,x,y,radius,markeredgecolorname,markerfacecolorname,width, markerfacealpha, markeredgealpha)
     for j = 1:length(x)
         if ~(isnan(x(j)) || isnan(y(j)))
             if ~strcmp(markeredgecolorname,'none') || ~strcmp(markerfacecolorname,'none')
-                fprintf(fid,'<circle cx="%0.3f" cy="%0.3f" r="%0.3f" fill="%s" stroke="%s" stroke-width="%0.1fpt" />\n',x(j),y(j),radius,markerfacecolorname,markeredgecolorname,width);
+                fprintf(fid,'<circle cx="%0.3f" cy="%0.3f" r="%0.3f" fill="%s" stroke="%s" stroke-width="%0.1fpt" fill-opacity="%0.3f" stroke-opacity="%0.3f" />\n',...
+                    x(j),y(j),radius,markerfacecolorname,markeredgecolorname,width,markerfacealpha, markeredgealpha);
             end
         end
     end
@@ -3189,7 +3202,7 @@ function exponent2svg(fid,group,axpos,paperpos,ax,axxtick,axytick,axztick)
     if strcmp(get(ax,'ZTickLabelMode'),'auto') && strcmp(get(ax,'ZScale'),'linear')
         fontsize=convertunit(get(ax,'FontSize'),get(ax,'FontUnits'),'points', axpos(4));
         font_color=searchcolor(ax,get(ax,'ZColor'));
-        if PLOT2SVG_globals.octave
+        if PLOT2SVG_globals.octave || iscell(get(ax, 'XTickLabel')) % r2014b fix @djoshea
             % Octave stores ZTickLabel in a cell array, which does not work nicely with str2num. --Jakob Malm
             axlabelz = get (ax, 'ZTickLabel');
             numlabels = zeros(length(axlabelz), 1);
