@@ -47,7 +47,7 @@ colormap(flipud(cbrewer('div', 'RdYlBu', 256)));
 
 hcbar = colorbar;
 box(hcbar, 'off');
-set(hcbar, 'TickLength', [0, 0]);
+set(hcbar, 'TickLength', [0]);
 
 box off
 axis ij

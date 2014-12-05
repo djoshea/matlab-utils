@@ -9,14 +9,14 @@ function [rows, cols] = getTerminalSize()
     if (ismac || isunix) && usingTerminal
         % actual terminal: get terminal width using tput
         cmd = 'tput lines';
-        [~, ~] = unix(cmd);
+        [~, r] = unix(cmd);
         num = sscanf(r, '%d');
         if ~isempty(num)
             rows = num;
         end
 
         cmd = 'tput cols';
-        [~, ~] = unix(cmd);
+        [~, r] = unix(cmd);
         num = sscanf(r, '%d');
         if ~isempty(num)
             cols = num;

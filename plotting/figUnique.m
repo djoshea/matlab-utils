@@ -7,12 +7,17 @@ p.parse(varargin{:});
 
 stack = dbstack();
 stack = rmfield(stack, 'file');
+if numel(stack) == 1
+    % likely in cell mode or at command-line
+    figh = figure();
+else
+    % hash the stack method names and call history to a unique figure value
+    hashVec = DataHash(stack, struct('Method', 'MD5', 'Format', 'uint8'));
+    hash = dot(double(hashVec), 2.^(0:numel(hashVec)-1));
 
-% hash the stack method names and call history to a unique figure value
-hashVec = DataHash(stack, struct('Method', 'MD5', 'Format', 'uint8'));
-hash = dot(double(hashVec), 2.^(0:numel(hashVec)-1));
+    figh = figure(hash);
+end
 
-figh = figure(hash);
 clf(figh);
 
 name = p.Results.name;
