@@ -2067,6 +2067,24 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
                 markerfacecolorname=searchcolor(id,markerfacecolor);
             end
             markersize=get(axchild(i),'MarkerSize')/1.5;
+            
+            % added by @djoshea to support marker opacity
+            ud = get(axchild(i), 'UserData');
+            markerfacealpha = 1;
+            markeredgealpha = 1;
+            linealpha = 1;
+            if isstruct(ud) && isfield(ud, 'svg')
+                if isfield(ud.svg, 'MarkerFaceAlpha')
+                    markerfacealpha = ud.svg.MarkerFaceAlpha;
+                end
+                if isfield(ud.svg, 'MarkerEdgeAlpha')
+                    markeredgealpha = ud.svg.MarkerEdgeAlpha;
+                end
+                if isfield(ud.svg, 'LineAlpha')
+                    linealpha = ud.svg.LineAlpha;
+                end
+            end
+            
             linex = get(axchild(i),'XData');
             linex = linex(:)'; % Octave stores the data in a column vector
             if strcmp(get(ax,'XScale'),'log')
@@ -2111,22 +2129,11 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
                 % Workaround for Inkscape filter bug
                 fprintf(fid,'<rect x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" fill="none" stroke="none" />\n', boundingBox(1), boundingBox(2), boundingBox(3), boundingBox(4));
             end
-            line2svg(fid,groupax,axpos,x,y,scolorname,linestyle,linewidth)
+            line2svg(fid,groupax,axpos,x,y,scolorname,linestyle,linewidth,linealpha);
             % put the markers into a subgroup of the lines
             fprintf(fid,'<g>\n');
             
-            % added by @djoshea to support marker opacity
-            ud = get(axchild(i), 'UserData');
-            markerfacealpha = 1;
-            markeredgealpha = 1;
-            if isstruct(ud) && isfield(ud, 'svg')
-                if isfield(ud.svg, 'MarkerFaceAlpha')
-                    markerfacealpha = ud.svg.MarkerFaceAlpha;
-                end
-                if isfield(ud.svg, 'MarkerEdgeAlpha')
-                    markeredgealpha = ud.svg.MarkerEdgeAlpha;
-                end
-            end
+            
             switch marker
                 case 'none';
                 case '.',group=group+1;circle2svg(fid,group,axpos,x,y,markersize*0.25,'none',markeredgecolorname,linewidth, markerfacealpha, markeredgealpha);
@@ -2993,14 +3000,17 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % create a line segment
 % this algorthm was optimized for large segement counts
-function line2svg(fid, group, axpos, x, y, scolorname, style, width)
+function line2svg(fid, group, axpos, x, y, scolorname, style, width, alpha)
+    if ~exist('alpha', 'var')
+        alpha = 1;
+    end
     if ~strcmp(style,'none')
         pattern = lineStyle2svg(style, width);
         if (isnan(x) == zeros(size(x)) & isnan(y) == zeros(size(y)))
             for j = 1:20000:length(x)
                 xx = x(j:min(length(x), j + 19999));
                 yy = y(j:min(length(y), j + 19999));
-                fprintf(fid,'      <polyline fill="none" stroke="%s" stroke-width="%0.1fpt" %s points="', scolorname, width, pattern);
+                fprintf(fid,'      <polyline fill="none" stroke="%s" stroke-width="%0.1fpt" stroke-opacity="%0.1f" %s points="', scolorname, width, alpha, pattern);
                 fprintf(fid,'%0.3f,%0.3f ',[xx;yy]);
                 fprintf(fid,'"/>\n');
             end
@@ -3016,7 +3026,7 @@ function line2svg(fid, group, axpos, x, y, scolorname, style, width)
                 xx = x((parts(j) + 1):(parts(j + 1) - 1));
                 yy = y((parts(j) + 1):(parts(j + 1) - 1));
                 if ~isempty(xx)
-                    fprintf(fid,'      <polyline fill="none" stroke="%s" stroke-width="%0.1fpt" %s points="', scolorname, width, pattern);
+                    fprintf(fid,'      <polyline fill="none" stroke="%s" stroke-width="%0.1fpt" stroke-opacity="%0.1f" %s points="', scolorname, width, alpha, pattern);
                     fprintf(fid,'%0.3f,%0.3f ', [xx;yy]);
                     fprintf(fid,'"/>\n');
                 end
