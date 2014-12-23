@@ -95,6 +95,7 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
         requiresReconfigure = true;
         installedCallbacks = false;
         hListeners = [];
+        currentlyRepositioningAxes = false;
     end
       
     methods % Implementations for dependent properties above
@@ -276,27 +277,27 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             AutoAxis.updateFigure(figh);
         end
         
-        function figureDeferredCallback(figh, varargin)
-            figData = get(figh, 'UserData');
-            hTimer = [];
-            if isstruct(figData) && isfield(figData, 'hTimer') 
-                hTimer = figData.hTimer;
-            end
-            if ~isempty(hTimer) && isa(hTimer, 'timer')
-                % stop the timer to delay it's triggering
-                stop(hTimer);
-            else
-                % create the timer
-                hTimer = timer('StartDelay', 0.1, 'TimerFcn', @(varargin) AutoAxis.figureCallback(figh));
-                if ~isstruct(figData), figData = struct(); end
-                figData.hTimer = hTimer;
-                set(figh, 'UserData', figData);
-            end
-            
-            % start it soon
-            tStart = now + 0.1 / (60^2*24);
-            startat(hTimer, tStart);
-        end
+%         function figureDeferredCallback(figh, varargin)
+%             figData = get(figh, 'UserData');
+%             hTimer = [];
+%             if isstruct(figData) && isfield(figData, 'hTimer') 
+%                 hTimer = figData.hTimer;
+%             end
+%             if ~isempty(hTimer) && isa(hTimer, 'timer')
+%                 % stop the timer to delay it's triggering
+%                 stop(hTimer);
+%             else
+%                 % create the timer
+%                 hTimer = timer('StartDelay', 0.1, 'TimerFcn', @(varargin) AutoAxis.figureCallback(figh));
+%                 if ~isstruct(figData), figData = struct(); end
+%                 figData.hTimer = hTimer;
+%                 set(figh, 'UserData', figData);
+%             end
+%             
+%             % start it soon
+%             tStart = now + 0.1 / (60^2*24);
+%             startat(hTimer, tStart);
+%         end
         
         function flag = isMultipleCall()
             % determine whether callback is being called within itself
@@ -393,12 +394,13 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             % recover the AutoAxis instance associated with the axis handle
             % axh
             if nargin < 1, axh = gca; end
-            ud = get(axh, 'UserData');
-            if isempty(ud) || ~isstruct(ud) || ~isfield(ud, 'autoAxis')
-                ax = [];
-            else
-                ax = ud.autoAxis;
-            end
+            %ud = get(axh, 'UserData');
+%             if isempty(ud) || ~isstruct(ud) || ~isfield(ud, 'autoAxis')
+%                 ax = [];
+%             else
+%                 ax = ud.autoAxis;
+%             end
+            ax = getappdata(axh, 'AutoAxisInstance');
         end
         
         function ax = createOrRecoverInstance(ax, axh)
@@ -497,28 +499,34 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
         end
              
         function installInstanceForAxis(ax, axh)
-            ud = get(axh, 'UserData');
-             if ~isstruct(ud)
-                ud = struct('autoAxis', ax);
-            else
-                ud.autoAxis = ax;
-            end
-            set(axh, 'UserData', ud);
+% %             ud = get(axh, 'UserData');
+%              if ~isstruct(ud)
+%                 ud = struct('autoAxis', ax);
+%             else
+%                 ud.autoAxis = ax;
+%             end
+%             set(axh, 'UserData', ud);
+            setappdata(axh, 'AutoAxisInstance', ax); 
         end
         
         function installCallbacks(ax)
-%             lh(1) = addlistener(ax.axh, {'XLim', 'YLim'}, ...
-%                 'PostSet', @ax.updateLimsCallback);
             figh = AutoAxis.getParentFigure(ax.axh);
-            set(zoom(ax.axh),'ActionPostCallback',@ax.axisCallback);
-            set(pan(figh),'ActionPostCallback',@ax.axisCallback);
+           
+            % these work faster than listening on xlim and ylim, but can
+            % not update depending on how the axis limits are set
+            set(zoom(ax.axh),'ActionPreCallback',@ax.prePanZoomCallback);
+            set(pan(figh),'ActionPreCallback',@ax.prePanZoomCallback);
+            set(zoom(ax.axh),'ActionPostCallback',@ax.postPanZoomCallback);
+            set(pan(figh),'ActionPostCallback',@ax.postPanZoomCallback);
+
+            % updates entire figure at once
             set(figh, 'ResizeFcn', @(varargin) AutoAxis.figureCallback(figh));
             
             % listeners need to be cached so that we can delete them before
             % saving
-            hl1 = addlistener(ax.axh, 'YDir', 'PostSet', @ax.axisCallback);
-            hl2 = addlistener(ax.axh, 'XDir', 'PostSet', @ax.axisCallback);
-            ax.hListeners = [hl1; hl2];
+            hl(1) = addlistener(ax.axh, {'XDir', 'YDir'}, 'PostSet', @ax.axisCallback);
+            hl(2) = addlistener(ax.axh, {'XLim', 'YLim'}, 'PostSet', @ax.axisIfLimsChangedCallback);
+            ax.hListeners = hl;
             
             p = AutoAxis.getPanelForFigure(figh);
             if ~isempty(p)
@@ -554,18 +562,96 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
         function tf = checkLimsChanged(ax)
             tf = ~isequal(get(ax.axh, 'XLim'), ax.lastXLim) || ...
                 ~isequal(get(ax.axh, 'YLim'), ax.lastYLim);
+%             
+%             if tf
+%                 xl = get(ax.axh, 'XLim');
+%                 yl = get(ax.axh, 'YLim');
+%                 fprintf('Change [%.1f %.1f / %.1f %.1f] to [%.1f %.1f / %.1f %.1f]\n', ...
+%                     ax.lastXLim(1), ax.lastXLim(2), ax.lastYLim(1), ax.lastYLim(1), ...
+%                     xl(1), xl(2), yl(1), yl(2));
+%             else
+%                 fprintf('No Change [%.1f %.1f / %.1f %.1f]\n', ax.lastXLim(1), ax.lastXLim(2), ax.lastYLim(1), ax.lastYLim(1));
+%             end
         end
         
-        function updateLimsCallback(ax, varargin)
+        function prePanZoomCallback(ax, varargin)
+            % first, due to weird issues with panning, make sure we have
+            % the right auto axis for this update
+            if numel(varargin) >= 2 && isstruct(varargin{2}) && isfield(varargin{2}, 'Axes')
+                 axh = varargin{2}.Axes;
+                 if ax.axh ~= axh
+                     % try finding an AutoAxis for the axh that was passed in
+                     ax = AutoAxis.recoverForAxis(axh);
+                     if isempty(ax)
+                         return;
+                     end
+                 end
+            end
+            ax.currentlyRepositioningAxes = true;
+%             disp('Deleting listeners');
+            delete(ax.hListeners);
+            ax.hListeners = [];
+        end
+        
+        function postPanZoomCallback(ax, varargin)
+            % first, due to weird issues with panning, make sure we have
+            % the right auto axis for this update
+            if numel(varargin) >= 2 && isstruct(varargin{2}) && isfield(varargin{2}, 'Axes')
+                 axh = varargin{2}.Axes;
+                 if ax.axh ~= axh
+                     % try finding an AutoAxis for the axh that was passed in
+                     ax = AutoAxis.recoverForAxis(axh);
+                     if isempty(ax)
+                         return;
+                     end
+                 end
+            end
+            ax.currentlyRepositioningAxes = false;
+            ax.axisCallback(varargin{:});
+%             disp('Readding listeners');
+            ax.installCallbacks();
+        end 
+        
+        function axisIfLimsChangedCallback(ax, varargin)
+            % similar to axis callback, but skips update if the limits
+            % haven't changed since the last update
             if ax.isMultipleCall(), return, end;
+            
+            if ax.currentlyRepositioningAxes
+                % suppress updates when panning / zooming
+                return;
+            end
+            
+            % here we get clever. when panning or zooming, LocSetLimits is
+            % used to set XLim, then YLim, which leads to two updates. We
+            % check whether we're being called via LocSetLimits and then
+            % don't update if we're setting the XLim, only letting the YLim
+            % update pass through. This cuts our update time in half
+            if numel(varargin) >= 1 && isa(varargin{1}, 'matlab.graphics.internal.GraphicsMetaProperty') 
+                if strcmp(varargin{1}.Name, 'XLim')
+                    %disp('X Update');
+                    
+                    % setting XLim, skip if in LocSetLimits
+                    st = dbstack();
+                    if ismember('LocSetLimits', {st.name})
+                        %disp('Skipping X Update');
+                        return;
+                    end
+                elseif strcmp(varargin{1}.Name, 'YLim')
+                    %disp('Y Update');
+                end
                 
+                
+            end
+
             if ax.checkLimsChanged()
-                ax.update();
+                ax.axisCallback();
             end
         end
         
         function axisCallback(ax, varargin)
             if ax.isMultipleCall(), return, end;
+%             disp('Axis Callback!');
 %             % callback called on specific axis
 %             if ThreeVector.isMultipleCall(), return, end;
              if numel(varargin) >= 2 && isstruct(varargin{2}) && isfield(varargin{2}, 'Axes')
