@@ -1,4 +1,4 @@
-classdef AutoAxis < handle
+classdef AutoAxis < handle & matlab.mixin.Copyable
 % Class for redrawing axis annotations and aligning them according to 
 % relative to each other using paper units. Automatically updates this
 % placement whenever the axis is panned, zoomed, etc.
@@ -89,6 +89,12 @@ classdef AutoAxis < handle
         % this sets that spacing between the outer edge of those items and
         % the label's inner edge
         axisLabelOffset = [1.0 1.0 1.0 1.0]; % cm
+    end
+    
+    properties(SetAccess=protected)
+        requiresReconfigure = true;
+        installedCallbacks = false;
+        hListeners = [];
     end
       
     methods % Implementations for dependent properties above
@@ -348,7 +354,7 @@ classdef AutoAxis < handle
             au = AutoAxis.recoverForAxis(axh);
             if ~isempty(au)
                 au.update();
-                au.installCallbacks();
+%                 au.installCallbacks();
             end
         end
         
@@ -374,7 +380,7 @@ classdef AutoAxis < handle
             % recover the AutoAxis instances associated with all axes in
             % figure handle figh
             if nargin < 1, figh = gcf; end;
-            hAxes = findobj(figh, 'Type', 'axes');
+            hAxes = findall(figh, 'Type', 'axes');
             axCell = cell(numel(hAxes), 1);
             for i = 1:numel(hAxes)
                 axCell{i} = AutoAxis.recoverForAxis(hAxes(i));
@@ -413,8 +419,23 @@ classdef AutoAxis < handle
     end
     
     methods
+        function ax = saveobj(ax)
+             % delete the listener callbacks
+             delete(ax.hListeners);
+             ax.hListeners = [];
+             ax.pruneStoredHandles();
+             ax.requiresReconfigure = true;
+             
+             % on a timer, reinstall my callbacks since the listeners have
+             % been detached for the save
+             timer('StartDelay', 0.2, 'TimerFcn', @(varargin) ax.installCallbacks());
+          end
+        
         function initializeNewInstance(ax, axh)
             ax.axh = axh;
+            
+            % this flag is used for save/load reconfiguration
+            ax.requiresReconfigure = false;
             
             % initialize handle tagging (for load/copy
             % auto-reconfiguration)
@@ -491,17 +512,33 @@ classdef AutoAxis < handle
             figh = AutoAxis.getParentFigure(ax.axh);
             set(zoom(ax.axh),'ActionPostCallback',@ax.axisCallback);
             set(pan(figh),'ActionPostCallback',@ax.axisCallback);
-            set(figh, 'ResizeFcn', @(varargin) AutoAxis.figureCallback(figh))
-            addlistener(ax.axh, 'YDir', 'PostSet', @(varargin) ax.axisCallback());
-            addlistener(ax.axh, 'XDir', 'PostSet', @(varargin) ax.axisCallback());
+            set(figh, 'ResizeFcn', @(varargin) AutoAxis.figureCallback(figh));
+            
+            % listeners need to be cached so that we can delete them before
+            % saving
+            hl1 = addlistener(ax.axh, 'YDir', 'PostSet', @ax.axisCallback);
+            hl2 = addlistener(ax.axh, 'XDir', 'PostSet', @ax.axisCallback);
+            ax.hListeners = [hl1; hl2];
             
             p = AutoAxis.getPanelForFigure(figh);
             if ~isempty(p)
                 p.setCallback(@(varargin) AutoAxis.figureCallback(figh));
             end
+            
+            ax.installedCallbacks = true;
+            
             %set(figh, 'ResizeFcn', @(varargin) disp('resize'));
             %addlistener(ax.axh, 'Position', 'PostSet', @(varargin) disp('axis size'));
             %addlistener(figh, 'Position', 'PostSet', @ax.figureCallback);
+        end
+        
+        function isActive = checkCallbacksActive(ax)
+            % look in the callbacks to see if the callbacks are still
+            % installed
+            hax = get(zoom(ax.axh),'ActionPostCallback');
+            figh = AutoAxis.getParentFigure(ax.axh);
+            hfig = get(figh, 'ResizeFcn');
+            isActive = ~isempty(hax) && ~isempty(hfig);
         end
         
 %          function uninstall(~)
@@ -534,10 +571,16 @@ classdef AutoAxis < handle
              if numel(varargin) >= 2 && isstruct(varargin{2}) && isfield(varargin{2}, 'Axes')
                  axh = varargin{2}.Axes;
                  if ax.axh ~= axh
-                     % axis handle mismatch, happens each time we save/load
-                     % a figure. need to remap handle pointers
-                     ax.axh = axh;
-                     ax.reconfigurePostLoad();
+                     % try finding an AutoAxis for the axh that was passed in
+                     axOther = AutoAxis.recoverForAxis(axh);
+                     if ~isempty(axOther)
+                         axOther.update();
+                     else
+                         % axis handle mismatch, happens each time we save/load
+                         % a figure. need to remap handle pointers
+                         ax.axh = axh;
+                         ax.reconfigurePostLoad();
+                     end
                  end
              end
              if ~isempty(ax.axh)
@@ -556,10 +599,12 @@ classdef AutoAxis < handle
             
             % first find the overlay axis
             figh = AutoAxis.getParentFigure(ax.axh);
-            ax.axhDraw = findobj(figh, 'Tag', ax.tagOverlayAxis);
-            if isempty(ax.axhDraw)
-                error('Could not locate overlay axis. Uninstalling');
-                %ax.uninstall();
+            if ~isempty(ax.tagOverlayAxis)
+                ax.axhDraw = findall(figh, 'Tag', ax.tagOverlayAxis, 'Type', 'axis');
+                if isempty(ax.axhDraw)
+                    error('Could not locate overlay axis. Uninstalling');
+                    %ax.uninstall();
+                end
             end
             
             % build map old handle -> new handle
@@ -567,7 +612,11 @@ classdef AutoAxis < handle
             newH = oldH;
             tags = ax.handleTagStrings;
             for iH = 1:numel(oldH)
-                hNew = findobj(ax.axhDraw, 'Tag', tags{iH});
+                % special case when searching for the axis itself
+                if strcmp(ax.axhDraw.Tag, tags{iH})
+                    continue;
+                end
+                hNew = findall(ax.axhDraw, 'Tag', tags{iH});
                 if isempty(hNew)
                     warning('Could not recover tagged handle');
                     hNew = AutoAxis.getNullHandle();
@@ -578,23 +627,34 @@ classdef AutoAxis < handle
             
             % go through anchors and replace old handles with new handles
             for iA = 1:numel(ax.anchorInfo)
-                ax.anchorInfo(iA).ha = updateHVec(ax.anchorInfo(iA).ha, oldH, newH);
-                ax.anchorInfo(iA).h  = updateHVec(ax.anchorInfo(iA).h, oldH, newH);
+                if ~ischar(ax.anchorInfo(iA).ha)
+                    ax.anchorInfo(iA).ha = updateHVec(ax.anchorInfo(iA).ha, oldH, newH);
+                end
+                if ~ischar(ax.anchorInfo(iA).h)
+                    ax.anchorInfo(iA).h  = updateHVec(ax.anchorInfo(iA).h, oldH, newH);
+                end
             end
             
             % go through collections and relace old handles with new
             % handles
             cNames = fieldnames(ax.collections);
             for iC = 1:numel(cNames)
-                ax.collections.(cNames{iC}) = updateHVec(ax.collections.(cNames{iC}));
+                ax.collections.(cNames{iC}) = updateHVec(ax.collections.(cNames{iC}), oldH, newH);
             end
+            
+            % last, reinstall callbacks if they were installed originally
+            if ax.installedCallbacks
+                ax.installCallbacks();
+            end
+            
+            ax.requiresReconfigure = false;
             
             function new = updateHVec(old, oldH, newH)
                 new = old;
                 for iOld = 1:numel(old)
-                    [tf, idx] = ismember(old, oldH);
+                    [tf, idx] = ismember(old(iOld), oldH);
                     if tf
-                        new(iOld) = newH{idx};
+                        new(iOld) = newH(idx);
                     else
                         new(iOld) = AutoAxis.getNullHandle();
                     end
@@ -633,6 +693,22 @@ classdef AutoAxis < handle
             end
         end
         
+        function pruneStoredHandles(ax)
+            % remove any invalid handles from my collections and tag lists
+            
+            % remove from tag cache
+            mask = isvalid(ax.handleTagObjects);
+            ax.handleTagObjects = ax.handleTagObjects(mask);
+            ax.handleTagStrings = ax.handleTagStrings(mask);
+            names = ax.listHandleCollections();
+            
+            % remove invalid handles from all handle collections
+            for i = 1:numel(names)
+                hvec = ax.collections.(names{i});
+                ax.collections.(names{i}) = hvec(isvalid(hvec));
+            end
+        end
+        
         function addHandlesToCollection(ax, name, hvec)
             % add handles in hvec to the list ax.(name), updating all
             % anchors that involve that handle
@@ -666,7 +742,7 @@ classdef AutoAxis < handle
                 h = ax.(name);
             end
         end
-        
+
         function removeHandles(ax, hvec)
             % remove handles from all handle collections and from each
             % anchor that refers to it. Prunes anchors that become empty
@@ -674,6 +750,14 @@ classdef AutoAxis < handle
             if isempty(hvec)
                 return;
             end
+            
+            % remove from tag list
+            mask = truevec(numel(ax.handleTagObjects));
+            for iH = 1:numel(hvec)
+                mask(hvec(iH) == ax.handleTagObjects) = false;
+            end
+            ax.handleTagObjects = ax.handleTagObjects(mask);
+            ax.handleTagStrings = ax.handleTagStrings(mask);
             
             names = ax.listHandleCollections();
             
@@ -1858,6 +1942,11 @@ classdef AutoAxis < handle
             if ~ishandle(ax.axh)
                 %ax.uninstall();
                 return;
+            end
+            
+            % complete the reconfiguration process after loading
+            if ax.requiresReconfigure
+                ax.reconfigurePostLoad();
             end
                     
             %disp('autoaxis.update!');
