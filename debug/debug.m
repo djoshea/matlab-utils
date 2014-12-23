@@ -15,6 +15,7 @@ function debug(varargin)
         caller.origin = 'Base';
         caller.line = 0;
         caller.method = 'interactive';
+        caller.package = '';
     else
         % determine package name 
         caller.package = getPackage('stackOffset', 1);
