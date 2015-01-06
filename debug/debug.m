@@ -38,9 +38,13 @@ function debug(varargin)
         end
         
         % new caller file or method, print header line
-        tcprintf('yellow', '%s', caller.origin); 
         if ~isempty(caller.method)
-            tcprintf('green', '.%s ', caller.method);
+            % is a class method
+            tcprintf('bright red', '%s', caller.origin);
+            tcprintf('bright green', '.%s', caller.method);
+        else
+            % not class method
+            tcprintf('bright green', '%s', caller.origin); 
         end
         tcprintf('darkGray', ' ::\n');
         pLastCaller = caller;

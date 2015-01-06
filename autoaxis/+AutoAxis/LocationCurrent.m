@@ -10,6 +10,8 @@ classdef LocationCurrent < handle & matlab.mixin.Copyable
         bottom
         left
         right
+        
+        markerDiameter
     end
     
     properties(Dependent)
@@ -116,6 +118,8 @@ classdef LocationCurrent < handle & matlab.mixin.Copyable
                     else
                         pos = nanmax(posVec);
                     end
+                case PositionType.MarkerDiameter
+                    pos = nanmax(posVec);
             end
         end
     end
@@ -128,19 +132,20 @@ classdef LocationCurrent < handle & matlab.mixin.Copyable
             switch loc.type
                 case 'line'
                     marker = get(loc.h, 'Marker');
-                    markerSize =get(loc.h, 'MarkerSize');
+                    markerDiameterPoints =get(loc.h, 'MarkerSize');
                     if(strcmp(marker, '.'))
-                        markerSize = markerSize / 2;
+                        markerDiameterPoints = markerDiameterPoints * 3.4;
                     end
                     if strcmp(marker, 'none')
-                        markerSize = 0;
+                        markerDiameterPoints = 0;
                     end
+                    % convert marker to data coordinates
+                    markerSizeX = markerDiameterPoints / xDataToPoints;
+                    markerSizeY = markerDiameterPoints / yDataToPoints;
+                    loc.markerDiameter = markerDiameterPoints;
                     
-                    markerSizeX = markerSize / xDataToPoints;
-                    markerSizeY = markerSize / yDataToPoints;
                     xdata = get(loc.h, 'XData');
                     ydata = get(loc.h, 'YData');
-                    %npts = numel(xdata);
 
                     loc.top = nanmax(ydata) + markerSizeY/2;
                     loc.bottom = nanmin(ydata) - markerSizeY/2;
@@ -226,15 +231,27 @@ classdef LocationCurrent < handle & matlab.mixin.Copyable
             switch type
                 case 'line'
                     marker = get(h, 'Marker');
-                    markerSize =get(h, 'MarkerSize');
+                    markerDiameterPoints = get(h, 'MarkerSize');
                     if(strcmp(marker, '.'))
-                        markerSize = markerSize / 2;
+                        markerDiameterPoints = markerDiameterPoints * 3.4;
+                    end
+                    if posType == PositionType.MarkerDiameter
+                        % if we're about to update the marker size, we should 
+                        % use the new value in computing the location of
+                        % the plot
+                        markerDiameterPoints = value * yDataToPoints;
                     end
                     if strcmp(marker, 'none')
-                        markerSize = 0;
+                        markerDiameterPoints = 0;
                     end
-                    markerSizeX = markerSize / xDataToPoints;
-                    markerSizeY = markerSize / yDataToPoints;
+                    markerSizeX = markerDiameterPoints / xDataToPoints;
+                    markerSizeY = markerDiameterPoints / yDataToPoints;
+                    
+                    if posType == PositionType.MarkerDiameter
+                        markerSizeX = value;
+                        markerSizeY = value;
+                    end
+                    setMarkerSize = false;
 
                     xdata = get(h, 'XData');
                     ydata = get(h, 'YData');
@@ -288,25 +305,39 @@ classdef LocationCurrent < handle & matlab.mixin.Copyable
                             lo = nanmin(xdata); hi = nanmax(xdata);
                             if hi - lo < eps, return, end
                             xdata = (xdata - lo) / (hi - lo + markerSizeX) * value + lo;
+                            
+                        case PositionType.MarkerDiameter
+                            markerSize = markerDiameterPoints;
+                            if(strcmp(marker, '.'))
+                                % for ., the size is the diameter
+                                markerSize = markerSize * 3.4;
+                            elseif strcmp(marker, 'none')
+                                markerSize = 0;
+                            end 
+                            setMarkerSize = true;
                     end
 
                     set(h, 'XData', xdata, 'YData', ydata);
+                    if setMarkerSize && markerSize > 0
+                        set(h, 'MarkerSize', markerSize);
+                    end
                     
-                    % update position
+                    % update position based on new settings, including
+                    % marker sizes
                     if xReverse
-                        loc.right = nanmin(xdata);
-                        loc.left = nanmax(xdata);
+                        loc.right = nanmin(xdata) - markerSizeX/2;
+                        loc.left = nanmax(xdata) + markerSizeX/2;
                     else
-                        loc.left = nanmin(xdata);
-                        loc.right = nanmax(xdata);
+                        loc.left = nanmin(xdata) - markerSizeX/2;
+                        loc.right = nanmax(xdata) + markerSizeX/2;
                     end
                     
                     if yReverse
-                        loc.bottom = nanmax(ydata);
-                        loc.top = nanmin(ydata);
+                        loc.bottom = nanmax(ydata) + markerSizeY/2;
+                        loc.top = nanmin(ydata) - markerSizeY/2;
                     else
-                        loc.top = nanmax(ydata);
-                        loc.bottom = nanmin(ydata);
+                        loc.top = nanmax(ydata) + markerSizeY/2;
+                        loc.bottom = nanmin(ydata) - markerSizeY/2;
                     end
                     
                 case 'text'

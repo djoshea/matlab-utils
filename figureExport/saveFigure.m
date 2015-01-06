@@ -68,10 +68,11 @@ function fileList = saveFigure(varargin)
     p = inputParser;
     p.addOptional('name', '', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
     p.addOptional('figh', gcf, @ishandle);
-    p.addParamValue('fontName', 'Source Sans Pro', @ischar);
-    p.addParamValue('ext', [], @(x) ischar(x) || iscellstr(x));
-    p.addParamValue('copy', verLessThan('matlab', '8.4'), @islogical); % copy only for older versions
-    p.addParamValue('quiet', true, @islogical);
+    p.addParameter('fontName', 'Source Sans Pro', @ischar);
+    p.addParameter('ext', [], @(x) ischar(x) || iscellstr(x));
+    p.addParameter('copy', verLessThan('matlab', '8.4'), @islogical); % copy only for older versions
+    p.addParameter('quiet', true, @islogical);
+    p.addParameter('notes', '', @ischar);
     p.KeepUnmatched = true;
     p.parse(varargin{:});
     hfig = p.Results.figh;
@@ -92,7 +93,7 @@ function fileList = saveFigure(varargin)
         for iF = 1:fields
             fileInfo(fields{iF}) = GetFullPath(name.(fields{iF}));
         end
-
+        
     elseif iscell(name) % expect each argument to have extension already
         assert(isempty(ext), 'Extension list invalid with cell name argument');
         [extList] = cellfun(@getExtensionFromFile, name, 'UniformOutput', false);
@@ -125,6 +126,26 @@ function fileList = saveFigure(varargin)
         end
     else
         error('Unknown format for argument name');
+    end
+       
+    values = fileInfo.values;
+    [pathFinal, nameFinal] = fileparts(values{1});
+    
+    % save figure notes
+    if ~isempty(p.Results.notes)
+        notes = p.Results.notes;
+        notesFile = fullfile(pathFinal, [nameFinal, '.notes.txt']);
+        [fid, msg] = fopen(notesFile, 'w');
+        if fid == -1
+            error('Error opening notes file %s : %s', notesFile, msg);
+        end
+        
+        fprintf(fid, '%s', notes);
+        fprintf(fid, '\n\nSaved on %s\n\nFile list:\n', datestr(now));
+        for iKey = 1:fileInfo.Count
+            fprintf(fid, '%s\n', values{iKey});
+        end
+        fclose(fid);
     end
     
     % check extensions
@@ -250,7 +271,7 @@ function convertSvgToPdf(svgFile, pdfFile)
     % use Inkscape to convert pdf
 
     if ismac
-        inkscapePath = '/Applications/Inkscape.app/Contents/Resources/bin/inkscape';
+        inkscapePath = '/usr/local/bin/inkscape';
         if ~exist(inkscapePath, 'file')
             error('Could not locate Inkscape at %s', inkscapePath);
         end
@@ -260,8 +281,9 @@ function convertSvgToPdf(svgFile, pdfFile)
 
     % MATLAB has it's own older version of libtiff.so inside it, so we
     % clear that path when calling imageMagick to avoid issues
-    cmd = sprintf('export LD_LIBRARY_PATH=""; export DYLD_LIBRARY_PATH=""; %s --export-pdf=%s %s', ...
-        inkscapePath, escapePathForShell(pdfFile), escapePathForShell(svgFile));
+%     cmd = sprintf('export LANG=en_US.UTF-8; export LD_LIBRARY_PATH=""; export DYLD_LIBRARY_PATH=""; %s --export-pdf=%s %s', ...
+%         inkscapePath, escapePathForShell(pdfFile), escapePathForShell(svgFile));
+    cmd = sprintf('%s --export-pdf %s %s', inkscapePath, escapePathForShell(pdfFile), escapePathForShell(svgFile));
     [status, result] = system(cmd);
 
     if status
@@ -2085,6 +2107,26 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
                 end
             end
             
+            % @djoshea check new graphics MarkerHandle opacity and line
+            % color RGBA opacity
+            if ~verLessThan('matlab', '8.4')
+                % check MarkerHandle
+                mh = get(axchild(i), 'MarkerHandle');
+                if ~isempty(mh)
+                    if numel(mh.FaceColorData) == 4
+                        markerfacealpha = double(mh.FaceColorData(4)) / 255;
+                    end
+                    if numel(mh.EdgeColorData) == 4
+                        markeredgealpha = double(mh.EdgeColorData(4)) / 255;
+                    end
+                end
+                
+                col = get(axchild(i), 'Color');
+                if numel(col) == 4
+                    linealpha = col(4);
+                end
+            end
+
             linex = get(axchild(i),'XData');
             linex = linex(:)'; % Octave stores the data in a column vector
             if strcmp(get(ax,'XScale'),'log')
@@ -3265,7 +3307,9 @@ function label2svg(fid,group,axpos,id,x,y,tex,align,angle,valign,lines,paperpos,
     fontsize=convertunit(get(id,'FontSize'),get(id,'FontUnits'),'points', axpos(4));   % convert fontsize to inches
     paperposOriginal=get(gcf,'Position');
     fontsize=fontsize*paperpos(4)/paperposOriginal(4);
-    textfontsize=textfontsize*paperpos(4)/paperposOriginal(4);
+    % @djoshea removing because fonts are scaled to the appropriate size on
+    % screen in points already, not pixels.
+    %textfontsize=textfontsize*paperpos(4)/paperposOriginal(4);
     fontweight = get(id,'FontWeight');
     switch lower(fontweight)
         case 'bold', fweight = ' font-weight="bold"';
@@ -3282,12 +3326,13 @@ function label2svg(fid,group,axpos,id,x,y,tex,align,angle,valign,lines,paperpos,
     % Note: The attribute 'alignment-baseline' cannot be used as it is often
     % badly supported. Therfore, we use shifts.
     switch lower(valign)
-         case 'top',shift=fontsize*1.18;
+         case 'top',shift=fontsize*1.18; shift = fontsize*1.5; % @djoshea tweaked this because text seems to be too high vertically otherwise
          case 'cap',shift=fontsize*0.95;
          case 'middle',shift = -((lines-1)/2*fontsize*1.25*1.2) + fontsize * 0.45;
          case 'bottom',shift = -((lines-1)*fontsize*1.25*1.2) + fontsize * -0.25;
          otherwise,shift=0;
     end
+%     shift = 0;
     switch lower(align)
         case 'right', anchor = 'end'; 
         case 'center',anchor = 'middle';

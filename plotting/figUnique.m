@@ -8,7 +8,8 @@ p.parse(varargin{:});
 stack = dbstack();
 stack = rmfield(stack, 'file');
 if numel(stack) == 1
-    % likely in cell mode or at command-line
+    % likely in cell mode, use desktop trickery to figure out where the
+    % line is executing from
     figh = figure();
 else
     % hash the stack method names and call history to a unique figure value

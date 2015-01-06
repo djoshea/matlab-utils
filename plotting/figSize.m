@@ -33,6 +33,10 @@ else
     error('Requires 2 or 3 arguments: [figh=gcf], height, width');
 end
 
+% undock figure
+set(figh, 'WindowStyle', 'normal');
+drawnow;
+
 set(figh, 'PaperUnits' ,'centimeters');
 set(figh, 'Units', 'centimeters');
 figPos = get(figh,'Position');
@@ -51,5 +55,5 @@ if ~isempty(get(gcf, 'CurrentAxes'))
     end
 end
 
-sz = [width, height];
+sz = [height, width];
 

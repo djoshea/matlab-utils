@@ -10,7 +10,9 @@ classdef PositionType < uint32
         HCenter (7)
         Width (8)
         
-        Literal (9)
+        Literal (9) % references an actual location in data coordinates on either X or Y axis. e.g. to implement a rightwards offset from X=20
+        
+        MarkerDiameter(10) % size the height/width of the marker on a line object
     end
 
     methods

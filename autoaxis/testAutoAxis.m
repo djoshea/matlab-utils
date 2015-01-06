@@ -28,12 +28,9 @@ au = AutoAxis();
 
 ylabel('Y Label');
 title('Plot Title');
-
 au.addAutoAxisY();
-%au.addTicklessLabels('y', 'tick', -5:5);
-au.addTitle();
 
-useAutoAxisX = true;
+useAutoAxisX = false;
 if useAutoAxisX
     xlabel('X Label');
     au.addAutoAxisX();
@@ -44,24 +41,22 @@ else
     for i = 1:numel(xvals)
         x = xvals(i);
         au.addMarkerX(x, sprintf('X=%d', x), 'markerColor', cmap(i, :), ...
-            'markerSize', 0.4, 'interval', [x-0.3 x+0.3]);
+            'interval', [x-0.3 x+0.3]);
     end
     
     au.addIntervalX([-2 -1], 'Interval', ...
-        'errorInterval', [-2.25 -0.75], 'Color', 'g', 'thickness', 0.4);
+        'errorInterval', [-2.25 -0.75], 'Color', 'g');
     
     %au.axisInset(2) = 4;
     au.xUnits = 'ms';
     au.addAutoScaleBarX();
-    au.addXLabel('X Label');
-    au.yUnits = 'Hz';
+    au.addXLabelAnchoredToDecorations('X Label');
+    au.yUnits = 'mV';
     au.addAutoScaleBarY();
+    au.axisMarginBottom = 1.2;
 end
-
-au.axisMarginLeft = 2.5;
-au.axisMarginBottom = 2.5;
-au.axisLabelOffsetLeft = 1.3;
-au.axisLabelOffsetBottom = 1.3;
+% au.addYLabelAnchoredToAxis();
+% au.addXLabelAnchoredToAxis();
 
 axis off
 au.update();
