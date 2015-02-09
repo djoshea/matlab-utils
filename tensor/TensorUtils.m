@@ -261,7 +261,37 @@ classdef TensorUtils
         end
     end
     
+    methods(Static) % masks
+       function idx = vectorMaskToIndices(mask)
+            if islogical(mask);
+                idx = makecol(find(mask));
+            else
+                idx = makecol(mask);
+            end
+        end
+        
+        function mask = vectorIndicesToMask(idx, len)
+            if islogical(idx)
+                mask = makecol(idx);
+            else
+                mask = falsevec(len);
+                mask(idx) = true;
+            end
+        end
+        
+        function maskNew = subselectVectorMask(maskOrig, maskAnd)
+            % given logical maskOrig
+            existingKeep = find(maskOrig);
+            assert(numel(maskAnd) == numel(existingKeep), 'Subselection mask does not match nnz of original mask');
+            keep = TensorUtils.vectorIndicesToMask(existingKeep(maskAnd), numel(maskOrig));
+            maskNew = maskOrig;
+            maskNew(~keep) = false;
+        end
+            
+    end
+    
     methods(Static) % Indices and subscripts
+      
         function t = containingLinearInds(sz)
             % build a tensor with size sz where each element contains the linear
             % index it would be accessed at, e.g. t(i) = i
@@ -640,6 +670,10 @@ classdef TensorUtils
             ndimsIn = ndims(in);
             szIn = size(in);
             ndimsOut = length(whichDims);
+            
+            if ~iscell(whichDims)
+                whichDims = {whichDims};
+            end
             
             allDims = cellfun(@(x) x(:), whichDims, 'UniformOutput', false);
             allDims = cat(1, allDims{:});

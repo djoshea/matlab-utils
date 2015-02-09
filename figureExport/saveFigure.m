@@ -63,7 +63,7 @@ function fileList = saveFigure(varargin)
 %   GetFullFile: Jan Simon
 %
     extListFull = {'fig', 'png', 'hires.png', 'svg', 'eps', 'pdf'};
-    extListDefault = {'pdf', 'svg', 'png'};
+    extListDefault = {'pdf', 'svg', 'hires.png'};
 
     p = inputParser;
     p.addOptional('name', '', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
@@ -309,7 +309,7 @@ function convertPdf(pdfFile, file, hires)
 
     % MATLAB has it's own older version of libtiff.so inside it, so we
     % clear that path when calling imageMagick to avoid issues
-    cmd = sprintf('export LD_LIBRARY_PATH=""; export DYLD_LIBRARY_PATH=""; convert -verbose -density %d %s -resize %d%% %s', ...
+    cmd = sprintf('export LD_LIBRARY_PATH=""; export DYLD_LIBRARY_PATH=""; convert -verbose -quality 100 -density %d %s -resize %d%% %s', ...
         density, escapePathForShell(pdfFile), resize, escapePathForShell(file));
     [status, result] = system(cmd);
 
@@ -2864,7 +2864,7 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
                 fprintf(fid, '</g>');
             end
         else
-            disp(['   Warning: Unhandled child type: ' get(axchild(i),'Type')]);
+            warning('Unhandled child type: %s', get(axchild(i),'Type'));
         end
     end
 end

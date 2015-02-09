@@ -2,7 +2,7 @@ classdef MultiAxis < handle
 
     properties(SetAccess=protected)
         figh % figure attached to
-        root % root level container
+        
         axhDraw % overly axis for drawing
         axhOverlay % for plot labels, etc.
         
@@ -21,6 +21,8 @@ classdef MultiAxis < handle
     end
     
     properties
+        root % root level container
+        
         labelFontColor
         labelFontSize
         labelFontWeight
@@ -385,6 +387,10 @@ classdef MultiAxis < handle
         
         function axh = axis(ma, varargin)
             axh = ma.root.axis(varargin{:});
+        end
+        
+        function aa = autoAxis(ma, varargin)
+            aa = ma.root.autoAxis(varargin{:});
         end
         
         function child = cell(ma, varargin)

@@ -17,13 +17,13 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
     properties(Dependent) % Utility properties that read/write through 
         axisPaddingLeft
         axisPaddingBottom
-        axisPaddingTop
         axisPaddingRight
+        axisPaddingTop
         
         axisMarginLeft
         axisMarginBottom
-        axisMarginTop
         axisMarginRight
+        axisMarginTop 
         
         % note that these are only used when addXLabelAnchoredToAxis is
         % used to anchor the label directly to the axis, not to the
@@ -123,6 +123,16 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
     end
       
     methods % Implementations for dependent properties above
+        function set.axisPadding(ax, v)
+            if numel(v) == 1
+                ax.axisPadding = [v v v v];
+            elseif numel(v) == 2 % assume horz, vert
+                ax.axisPadding = [makerow(v), makerow(v)];
+            else
+                ax.axisPadding = makerow(v);
+            end
+        end
+                        
         function v = get.axisPaddingLeft(ax)
             v = ax.axisPadding(1);
         end
@@ -153,6 +163,16 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
         
         function set.axisPaddingTop(ax, v)
             ax.axisPadding(4) = v;
+        end
+        
+        function set.axisMargin(ax, v)
+            if numel(v) == 1
+                ax.axisMargin = [v v v v];
+            elseif numel(v) == 2 % assume horz, vert
+                ax.axisMargin = [makerow(v), makerow(v)];
+            else
+                ax.axisMargin = makerow(v);
+            end
         end
         
         function v = get.axisMarginLeft(ax)
@@ -976,14 +996,19 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             p.addOptional('axh', gca, @ishandle);
             p.addOptional('xUnits', '', @ischar);
             p.addOptional('yUnits', '', @ischar);
+            p.addParameter('axes', 'xy', @ischar);
             p.parse(varargin{:});
 
             ax = AutoAxis(p.Results.axh);
             axis(p.Results.axh, 'off');
             ax.xUnits = p.Results.xUnits;
             ax.yUnits = p.Results.yUnits;
-            ax.addAutoScaleBarX();
-            ax.addAutoScaleBarY();
+            if ismember('x', p.Results.axes)
+                ax.addAutoScaleBarX();
+            end
+            if ismember('y', p.Results.axes)
+                ax.addAutoScaleBarY();
+            end
             ax.addTitle();
             ax.update();
             ax.installCallbacks();
@@ -2219,7 +2244,11 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             
             N = numel(labels);
             
-            hvec = nanvec(N);
+            if nargin < 3 || isempty(colors)
+                colors = get(ax.axh, 'ColorOrder');
+            end
+            
+            hvec = AutoAxis.allocateHandleVector(N);
             
             if strcmp(get(gca, 'YDir'), 'reverse')
                 rev = true;
@@ -2247,10 +2276,10 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
                 hvec(i) = text(0, (~rev * -i), label, 'FontSize', p.Results.fontSize, ...
                     'Color', c, 'HorizontalAlignment', posX.toHorizontalAlignment(), ...
                     'VerticalAlignment', posY.flip().toVerticalAlignment());
-                
-                % put in top layer
-                ax.addHandlesToCollection('topLayer', hvec);
             end
+            
+            % put in top layer
+            ax.addHandlesToCollection('topLayer', hvec);
             
             for i = 1:N
                 if i == root
@@ -2391,6 +2420,7 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             % put 'topLayer' markers and intervals at the top
             hvec = ax.getHandlesInCollection('topLayer');
             if ~isempty(hvec)
+                hvec = hvec(isvalid(hvec));
                 uistack(hvec, 'top');
             end
         end

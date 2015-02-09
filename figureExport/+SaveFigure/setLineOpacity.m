@@ -12,6 +12,9 @@ function setLineOpacity(s, alpha)
             
         if ~verLessThan('matlab', '8.4')
             % first cache marker opacity
+            if isempty(s(i).MarkerHandle)
+                continue;
+            end
             edge = s(i).MarkerHandle.EdgeColorData;
             face = s(i).MarkerHandle.FaceColorData;
             

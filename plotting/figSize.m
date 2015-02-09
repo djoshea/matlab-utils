@@ -26,9 +26,15 @@ if(nargin == 3)
     height = varargin{2};
     width = varargin{3};
 elseif(nargin == 2)
-    figh = gcf;
-    height = varargin{1};
-    width = varargin{2};
+    if ishandle(varargin{1})
+        figh = varargin{1};
+        width = varargin{2}(2);
+        height = varargin{2}(1);
+    else
+        figh = gcf;
+        height = varargin{1};
+        width = varargin{2};
+    end
 else
     error('Requires 2 or 3 arguments: [figh=gcf], height, width');
 end

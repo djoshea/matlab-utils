@@ -2,8 +2,8 @@ function [B, I, J] = uniqueCell(A, varargin)
     removeEmpty = false;
     assignargs(varargin);
 
-    B = {};
-    I = [];
+    B = cell(0, 1);
+    I = zeros(0, 1);
     J = zeros(numel(A),1);
     for iA = 1:numel(A)
         if removeEmpty && isempty(A{iA})

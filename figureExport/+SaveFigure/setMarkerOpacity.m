@@ -19,9 +19,13 @@ for i = 1:length(s)
             drawnow;
             mh = s.MarkerHandle;
         end
-          
-        mh.EdgeColorData(4) = uint8(edgeAlpha*255);
-        mh.FaceColorData(4) = uint8(faceAlpha*255);
+        
+        if ~isempty(mh.EdgeColorData)
+            mh.EdgeColorData(4) = uint8(edgeAlpha*255);
+        end
+        if ~isempty(mh.FaceColorData)
+            mh.FaceColorData(4) = uint8(faceAlpha*255);
+        end
     end
 
 end

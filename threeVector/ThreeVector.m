@@ -532,9 +532,14 @@ classdef ThreeVector < handle
             if ~isempty(tv.hv)
                 delete(tv.hv);
             end
-            tv.hv(1) = plot([0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axhOverlay);
-            tv.hv(2) = plot([0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axhOverlay);
-            tv.hv(3) = plot([0 1], [0 1], '-', 'LineSmoothing', 'on', 'Parent', tv.axhOverlay);
+            if verLessThan('matlab','8.4.0')
+                lineSmoothingArgs = {'LineSmoothing', 'on'};
+            else
+                lineSmoothingArgs = {};
+            end
+            tv.hv(1) = plot([0 1], [0 1], '-', lineSmoothingArgs{:}, 'Parent', tv.axhOverlay);
+            tv.hv(2) = plot([0 1], [0 1], '-', lineSmoothingArgs{:}, 'Parent', tv.axhOverlay);
+            tv.hv(3) = plot([0 1], [0 1], '-', lineSmoothingArgs{:}, 'Parent', tv.axhOverlay);
 
             if ~isempty(tv.ht)
                 delete(tv.ht);

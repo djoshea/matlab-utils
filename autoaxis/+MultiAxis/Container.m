@@ -35,7 +35,7 @@ classdef Container < handle
         boxChildren % 4 x nRows x nCols
     end
     
-    methods
+    methods % High-level update/reset/draw
         function c = Container(p, boxOuter)
             if isa(p, 'MultiAxis')
                 c.ma = p;
@@ -46,9 +46,9 @@ classdef Container < handle
             c.parent = p;
             c.boxOuter = boxOuter;
             c.gridInitialized = false;
-            c.padding = [0.2 0.2 0.2 0.2];
-            c.colGap = 0.2;
-            c.rowGap = 0.2;
+            c.padding = [0 0 0 0];
+            c.colGap = 0;
+            c.rowGap = 0;
         end
         
         function update(c, boxOuter, normToX, normToY)
@@ -194,6 +194,16 @@ classdef Container < handle
     end
     
     methods % Configuration methods
+        function set.padding(ax, v)
+            if numel(v) == 1
+                ax.padding = [v v v v];
+            elseif numel(v) == 2 % assume horz, vert
+                ax.padding = [makerow(v), makerow(v)];
+            else
+                ax.padding = makerow(v);
+            end
+        end
+        
         function grid(c, rows, cols, varargin)
             p = inputParser();
             p.addParameter('shareX', false, @islogical);
@@ -294,8 +304,13 @@ classdef Container < handle
                 if c.nRows == 1 && c.nCols == 1
                     row = 1;
                     col = 1;
+                elseif c.nRows == 1
+                    col = row;
+                    row = 1;
+                elseif c.nCols == 1
+                    col = 1;
                 else
-                    error('Specify row, col');
+                    error('Specify row, col for non-vector grid');
                 end
             end
             
@@ -322,8 +337,13 @@ classdef Container < handle
                 if c.nRows == 1 && c.nCols == 1
                     row = 1;
                     col = 1;
+                elseif c.nRows == 1
+                    col = row;
+                    row = 1;
+                elseif c.nCols == 1
+                    col = 1;
                 else
-                    error('Specify row, col');
+                    error('Specify row, col for non-vector grid');
                 end
             end
             
@@ -342,8 +362,13 @@ classdef Container < handle
                 if c.nRows == 1 && c.nCols == 1
                     row = 1;
                     col = 1;
+                elseif c.nRows == 1
+                    col = row;
+                    row = 1;
+                elseif c.nCols == 1
+                    col = 1;
                 else
-                    error('Specify row, col');
+                    error('Specify row, col for non-vector grid');
                 end
             end
             
@@ -381,15 +406,20 @@ classdef Container < handle
                 if c.nRows == 1 && c.nCols == 1
                     row = 1;
                     col = 1;
+                elseif c.nRows == 1
+                    col = row;
+                    row = 1;
+                elseif c.nCols == 1
+                    col = 1;
                 else
-                    error('Specify row, col');
+                    error('Specify row, col for non-vector grid');
                 end
             end
             
             ax = c.axis(row, col);
             aa = AutoAxis(ax);
            
-            aa.axisMargin = c.defaultMargins;
+            %aa.axisMargin = c.defaultMargins;
             
             if p.Results.scaleBars
                 aa.reset();
@@ -403,8 +433,7 @@ classdef Container < handle
             
             aa.installCallbacks();
         end
-        
-                
+                  
         function aaCell = installAutoAxes(c, varargin)
             if ~c.gridInitialized
                 c.grid(1,1);
@@ -423,7 +452,6 @@ classdef Container < handle
                 end
             end
         end
-        
     end
     
     methods % Auto Axis and convenience layout configuration methods
@@ -513,6 +541,22 @@ classdef Container < handle
             mask = false(c.nRows, c.nCols);
             mask(row, :) = true;
             aaCell = c.collectAutoAxes(mask);
+        end
+        
+        function setOuterMargins(c, marginSpec)
+            marginSpec = MultiAxis.Container.expandMarginSpec(marginSpec);
+            c.columnSetMarginLeft(2:c.nCols, marginSpec(1));
+            c.rowSetMarginBottom(1:c.nRows-1, marginSpec(2));
+            c.columnSetMarginRight(1:c.nCols-1, marginSpec(3));
+            c.rowSetMarginTop(2:c.nRows, marginSpec(4));
+        end
+        
+        function setInnerMargins(c, marginSpec)
+            marginSpec = MultiAxis.Container.expandMarginSpec(marginSpec);
+            c.columnSetMarginLeft(1, marginSpec(1));
+            c.rowSetMarginBottom(c.nRows, marginSpec(2));
+            c.columnSetMarginRight(c.nCols, marginSpec(3));
+            c.rowSetMarginTop(1, marginSpec(4));
         end
         
         function columnSetMarginLeft(c, col, margin)
@@ -687,6 +731,18 @@ classdef Container < handle
         
         function box = expandBoxByInset(box, inset)
             box = [box(1)-inset(1) box(2)-inset(2) box(3)+inset(1)+inset(3) box(4)+inset(2)+inset(4)];
+        end
+        
+        function spec = expandMarginSpec(spec)
+            if numel(spec) == 1
+                spec = [spec spec spec spec];
+            elseif numel(spec) == 2
+                spec = [makerow(spec) makerow(spec)];
+            elseif numel(spec) == 4
+                spec = makerow(spec)
+            else
+                error('Margin specification must be 1, 2, or 4-vector');
+            end  
         end
     end
         
