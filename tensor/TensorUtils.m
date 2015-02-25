@@ -287,7 +287,47 @@ classdef TensorUtils
             maskNew = maskOrig;
             maskNew(~keep) = false;
         end
+        
+        function inflated = inflateMaskedTensor(maskedTensor, dims, masks, fillWith)
+            % takes maskedTensor, which has been formed by slicing some
+            % original tensor by selecting with mask along each dimension
+            % in dims, and returns the original tensor where the masked out
+            % rows, cols, etc. are filled with fill (defaults to NaN)
+            % if dims is a scalar, masks is a logical or numeric vector to use
+            % for selecting along dim. If dim is a vector, select is a cell array of
+        % vectors to be used for selecting along dim(i)
             
+            if ~iscell(masks)
+                masks = {masks};
+            end
+            assert(all(cellfun(@(x) islogical(x) && isvector(x), masks)), ...
+                'Mask must be (cell of) logical vectors. Use vectorIndicesToMask to convert.');
+           
+            if numel(masks) == 1
+                masks = repmat(masks, numel(dims), 1);
+            end
+            assert(numel(masks) == numel(dims), 'Number of dimensions must match number of masks provided');
+            masks = makecol(masks);
+                
+            nInflatedVec = cellfun(@numel, masks);
+            nSelectedVec = cellfun(@nnz, masks);
+            
+            % check size along selected dims
+            assert(isequal(makecol(TensorUtils.sizeMultiDim(maskedTensor, dims)), nSelectedVec), ...
+                'Size along each masked dimension must match nnz(mask)');
+            
+            % compute inflated size
+            inflatedSize = size(maskedTensor);
+            inflatedSize(dims) = nInflatedVec;
+            
+            if nargin < 4
+                fillWith = NaN;
+            end
+            inflated = repmat(fillWith, inflatedSize);
+            
+            maskByDim = TensorUtils.maskByDimCellSelectAlongDimension(inflatedSize, dims, masks);
+            inflated(maskByDim{:}) = maskedTensor;
+        end
     end
     
     methods(Static) % Indices and subscripts
