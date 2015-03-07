@@ -120,6 +120,8 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
         installedCallbacks = false;
         hListeners = [];
         currentlyRepositioningAxes = false;
+        
+        hClaListener = [];
     end
       
     methods % Implementations for dependent properties above
@@ -509,6 +511,16 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
                 ax = axTest;
             end
         end
+        
+        function claCallback(axh, varargin)
+            % reset the autoaxis associated with this axis if the axis is
+            % cleared
+            ax = AutoAxis.recoverForAxis(axh);
+            if ~isempty(ax)
+                %disp('resetting auto axis');
+                ax.reset();
+            end
+        end
     end
     
     methods % Installation, callbacks, tagging, collections
@@ -599,6 +611,7 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             ax.addXLabelAnchoredToAxis();
             ax.addYLabelAnchoredToAxis();
             ax.installCallbacks();
+            ax.installClaListener();
         end
         
         function installCallbacks(ax)
@@ -630,6 +643,11 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             %set(figh, 'ResizeFcn', @(varargin) disp('resize'));
             %addlistener(ax.axh, 'Position', 'PostSet', @(varargin) disp('axis size'));
             %addlistener(figh, 'Position', 'PostSet', @ax.figureCallback);
+        end
+        
+        function installClaListener(ax)
+            % reset this instance if the axis is cleared
+            ax.hClaListener = event.listener(ax.axh, 'Cla', @AutoAxis.claCallback);
         end
         
         function isActive = checkCallbacksActive(ax)
