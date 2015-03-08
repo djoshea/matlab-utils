@@ -1,6 +1,6 @@
 function v = removenan(v)
     % v = removenan(v) : removes nan from vector v
-    if ~isvector(v)
+    if ~isempty(v) && ~isvector(v)
         error('Must specify a vector input');
     end
 

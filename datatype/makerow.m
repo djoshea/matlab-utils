@@ -1,13 +1,14 @@
-function rowVec = makerow( vec )
-% rowVec = makeRow(vec)
-% if it's a vector, rotate to row vector, else do nothing
-    
-if(size(vec,2) == 1 && isvector(vec))
-    rowVec = vec';
-else
-    rowVec = vec;
+function vec = makerow( vec )
+% convert vector to row vector
+
+% leave size == [1 0] alone too
+if(size(vec, 1) > size(vec,2) && isvector(vec)) && ~(size(vec, 2) == 0 && size(vec, 1) == 1)
+    vec = vec';
 end
-        
+
+if size(vec, 1) == 0 && size(vec, 2) == 1
+    vec = vec';
+end
 
 end
 
