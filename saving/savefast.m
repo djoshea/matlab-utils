@@ -17,11 +17,32 @@ function savefast(filename, varargin)
 % Elapsed time is 0.571098 seconds.
 
 % Copyright 2013 by Timothy E. Holy
+% modified by @djoshea to take -struct argument and to use saveLarge to
+% optionally save in v6 format if not too large
 
-  % Extract the variable values
-  vars = cell(size(varargin));
-  for i = 1:numel(vars)
-    vars{i} = evalin('caller', varargin{i});
+  % @djoshea
+  
+  % if first argument is -struct
+  if strcmp(varargin{1}, '-struct')
+      varargin = varargin(2:end);
+      % Extract the variable values
+      sname = varargin{1};
+      s = evalin('caller', sname);
+      flds = fieldnames(s);
+      vars = cell(numel(flds), 1);
+      for i = 1:numel(flds)
+          vars{i} = s.(flds{i});
+      end
+      
+      varnames = flds;
+  else
+      % Extract the variable values
+      vars = cell(size(varargin));
+      for i = 1:numel(vars)
+          vars{i} = evalin('caller', varargin{i});
+      end
+      
+      varnames = varargin;
   end
   
   % Separate numeric arrays from the rest
@@ -43,10 +64,15 @@ function savefast(filename, varargin)
     s = struct;
     for i = 1:numel(isnum)
       if ~isnum(i)
-        s.(varargin{i}) = vars{i};
+        s.(varnames{i}) = vars{i};
       end
     end
-    save(filename, '-v7.3', '-struct', 's');
+    
+    if any(isnum)
+        save(filename, '-v7.3', '-struct', 's');
+    else
+        saveLarge(filename, '-struct', 's');
+    end
   end
   
   % Delete the dummy, if necessary, just in case the user supplied a
@@ -62,7 +88,7 @@ function savefast(filename, varargin)
     if ~isnum(i)
       continue
     end
-    varname = ['/' varargin{i}];
+    varname = ['/' varnames{i}];
     h5create(filename, varname, size(vars{i}), 'DataType', class(vars{i}));
     h5write(filename, varname, vars{i});
   end
