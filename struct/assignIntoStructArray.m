@@ -17,6 +17,9 @@ function S = assignIntoStructArray(S, fld, vals, idx)
 %                 vals = makecol(vals);
 %             end
             idx = 1:size(vals, 1);
+            if numel(vals) == 0
+                idx = [];
+            end
         else
             idx = 1:length(S);
         end
