@@ -195,11 +195,19 @@ classdef ProgressBar < handle
             preStr = str(1:ind);
             postStr = str(ind+1:end);
 
+            try
+                DatabaseAnalysis.pauseOutputLog();
+            catch
+            end
+            
 %            disp(n)
             if pbar.usingTerminal
                 if pbar.parallel
                     fprintf('\033[1A\033[1;44;37m %s\033[49;37m%s\033[0m \n', preStr, postStr);
                 else
+                    if firstUpdate
+                        fprintf(' '); % don't delete whole line on first update
+                    end
                     fprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
                 end
             else
@@ -243,6 +251,11 @@ classdef ProgressBar < handle
                 fprintf('%s%c%s', boxes, fractionalBox, empty);
                 
             end
+            
+            try
+                DatabaseAnalysis.resumeOutputLog();
+            catch
+            end
             %str = sprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
             %disp(str);
             
@@ -257,6 +270,11 @@ classdef ProgressBar < handle
             %spaces = repmat(' ' , 1, gap);
             %fprintf('\b\r%s%s\033[0m\n', pbar.message, spaces);
 
+            try
+                DatabaseAnalysis.pauseOutputLog();
+            catch
+            end
+            
             if pbar.usingTerminal
                 spaces = repmat(' ', 1, pbar.cols-1);
                 if pbar.parallel
@@ -278,6 +296,11 @@ classdef ProgressBar < handle
             %end
             
             pbar.cleanupParallel();
+            
+            try
+                DatabaseAnalysis.resumeOutputLog();
+            catch
+            end
         end
     end
 
@@ -299,6 +322,23 @@ classdef ProgressBar < handle
                 pause(0.01);
             end
             pbar.finish();
+        end
+        
+        function demoNested()
+            ni = 20;
+            nj = 100;
+
+            pi = ProgressBar(ni, 'Outer loop');
+            for i = 1:ni
+                pi.update(i);
+                pj = ProgressBar(nj, 'Inner loop');
+                for j = 1:nj
+                    pj.update(j);
+                    pause(0.001);
+                end
+                pj.finish();
+            end
+            pi.finish();
         end
         
         function demoParallel(N, varargin)
