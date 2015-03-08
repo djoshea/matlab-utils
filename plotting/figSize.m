@@ -15,7 +15,7 @@ if nargin < 2
     set(figh, 'PaperUnits' ,'centimeters');
     set(figh, 'Units', 'centimeters');
     figPos = get(figh,'Position');
-    sz = [figPos(3), figPos(4)];
+    sz = [figPos(4), figPos(3)];
     return;
 end
 
