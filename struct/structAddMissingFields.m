@@ -1,4 +1,4 @@
-function [withAddedFields fieldsToAdd] = structAddMissingFields(addTo, toMatchThis, varargin)
+function [withAddedFields, fieldsToAdd] = structAddMissingFields(addTo, toMatchThis, varargin)
 % withAddedFields = structAddMissingFields(addTo, toMatchThis)
 
 def.ignoreFields = {};
