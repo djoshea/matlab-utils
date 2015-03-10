@@ -97,7 +97,7 @@ function fileList = saveFigure(varargin)
     elseif iscell(name) % expect each argument to have extension already
         assert(isempty(ext), 'Extension list invalid with cell name argument');
         [extList] = cellfun(@getExtensionFromFile, name, 'UniformOutput', false);
-        for iF = 1:length(ext)
+        for iF = 1:length(extList)
             if ~ismember(extList{iF}, extList)
                 error('Could not extract valid extension from file name %s', name{iF});
             end
@@ -300,11 +300,11 @@ function convertPdf(pdfFile, file, hires)
     end
 
     if hires
-        density = 400;
+        density = 600;
         resize = 100;
     else
-        density = 400;
-        resize = 25;
+        density = 300;
+        resize = 100;
     end
 
     % MATLAB has it's own older version of libtiff.so inside it, so we
