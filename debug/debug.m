@@ -9,8 +9,15 @@ function debug(varargin)
     % Example: debug('Loading %s\n', fileName);
     %
     persistent pLastCaller;
+    
+    if nargin == 0
+        % if nothing provied, simply clear the last caller information so
+        % that new calls start with a fresh header
+        pLastCaller = [];
+        return;
+    end
 
-    [st, i] = dbstack('-completenames');
+    [st, ~] = dbstack('-completenames');
     if length(st) == 1
         caller.origin = 'Base';
         caller.line = 0;
