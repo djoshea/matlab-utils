@@ -442,6 +442,22 @@ classdef TensorUtils
         end
     end
     
+    methods(Static) % Multi-dim extensions of any, all, etc.
+        function t = anyMultiDim(t, dims)
+            % works like any, except operates on multiple dimensions
+            for iD = 1:numel(dims)
+                t = any(t, dims(iD));
+            end
+        end
+        
+        function t = allMultiDim(t, dims)
+            % works like any, except operates on multiple dimensions
+            for iD = 1:numel(dims)
+                t = all(t, dims(iD));
+            end
+        end
+    end
+    
     methods(Static) % Squeezing along particular dimensions
         function tsq = squeezeDims(t, dims)
             % like squeeze, except only collapses singleton dimensions in list dims
@@ -981,5 +997,48 @@ classdef TensorUtils
             
         end
         
+    end
+   
+    methods(Static) % Statistics       
+        function t = meanMultiDim(t, dims)
+            % e.g. if t has size [s1, s2, s3, s4], then  mean(t, [2 3]) 
+            % will compute the mean in slices along dims 2 and 3. the
+            % result will have size s1 x 1 x 1 x s4
+            t = cell2mat(TensorUtils.mapSlicesInPlace(@(slice) mean(slice(:)), dims, t));
+        end
+        
+        function t = varMultiDim(t, dims, varargin)
+            % e.g. if t has size [s1, s2, s3, s4], then  mean(t, [2 3]) 
+            % will compute the mean in slices along dims 2 and 3. the
+            % result will have size s1 x 1 x 1 x s4
+            t = cell2mat(TensorUtils.mapSlicesInPlace(@(slice) var(slice(:), varargin{:}), dims, t));
+        end
+        
+        function t = stdMultiDim(t, dims, varargin)
+            % e.g. if t has size [s1, s2, s3, s4], then  mean(t, [2 3]) 
+            % will compute the mean in slices along dims 2 and 3. the
+            % result will have size s1 x 1 x 1 x s4
+            t = cell2mat(TensorUtils.mapSlicesInPlace(@(slice) std(slice(:), varargin{:}), dims, t));
+        end
+        
+        function t = centerAlongDimension(t, alongDims)
+            % for each subscript in dimension(s) alongDims, computes the mean 
+            % along all other dimensions and subtracts it. this ensures
+            % that the mean along any slice in alongDims will have zero
+            % mean.
+            otherDims = TensorUtils.otherDims(size(t), alongDims);
+            meanTensor =  TensorUtils.meanMultiDim(t, otherDims);
+            t = bsxfun(@minus, t, meanTensor);
+        end
+        
+        function t = zscoreAlongDimension(t, alongDims)
+            % for each subscript in dimension(s) alongDims, computes the mean 
+            % along all other dimensions and subtracts it. this ensures
+            % that the mean along any slice in alongDims will have zero
+            % mean.
+            t = TensorUtils.centerAlongDimension(t, alongDims);
+            stdTensor = TensorUtils.stdMultiDim(t, alongDims);
+            t = bsxfun(@rdivide, t, stdTensor);
+        end
     end
 end
