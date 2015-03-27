@@ -2636,6 +2636,13 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
             end
             margin = get(axchild(i),'Margin');
             facecolor = get(axchild(i),'BackgroundColor');
+            try
+                facealpha = double(axchild(i).Text.BackgroundColor_I(4)) / 256;
+                a = 1;
+            catch
+                facealpha = 1;
+            end
+                
             edgecolor = get(axchild(i),'EdgeColor');
             linewidth = get(axchild(i),'LineWidth');
             linestyle = get(axchild(i),'LineStyle');
@@ -2682,8 +2689,8 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
             end
             if ~strcmp(edgecolorname, 'none') || ~strcmp(facecolorname, 'none')
                 pattern = lineStyle2svg(linestyle, linewidth);
-                fprintf(fid,'<rect x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" fill="%s" stroke="%s" stroke-width="%0.1fpt" %s />\n', ...
-                    box(1), box(2), box(3), box(4), facecolorname, edgecolorname, linewidth, pattern);
+                fprintf(fid,'<rect x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" fill="%s" fill-opacity="%.3f" stroke="%s" stroke-width="%0.1fpt" %s />\n', ...
+                    box(1), box(2), box(3), box(4), facecolorname, facealpha, edgecolorname, linewidth, pattern);
             end
             text2svg(fid,1,axpos,paperpos,axchild(i),ax,projection)
             fprintf(fid,'</g>\n');
