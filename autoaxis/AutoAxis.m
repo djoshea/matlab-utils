@@ -2256,6 +2256,8 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             p.addParameter('posY', PositionType.Top, @(x) isa(x, 'AutoAxis.PositionType'));
             p.addParameter('fontSize', ax.labelFontSize, @isscalar);
             p.addParameter('spacing', 'tickLabelOffset', @(x) true);
+            p.addParameter('fillColor', [], @(x) true);
+            p.addParameter('fillAlpha', 1, @isscalar);
             p.parse(varargin{:});
             posX = p.Results.posX;
             posY = p.Results.posY;
@@ -2294,11 +2296,16 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
                 hvec(i) = text(0, (~rev * -i), label, 'FontSize', p.Results.fontSize, ...
                     'Color', c, 'HorizontalAlignment', posX.toHorizontalAlignment(), ...
                     'VerticalAlignment', posY.flip().toVerticalAlignment());
+                if ~isempty(p.Results.fillColor)
+                    set(hvec(i), 'BackgroundColor', p.Results.fillColor);
+                    if p.Results.fillAlpha < 1
+                        hvec(i).BackgroundColor(4) = p.Results.fillAlpha;
+                    end
+                end
+                    
             end
             
-            % put in top layer
-            ax.addHandlesToCollection('topLayer', hvec);
-            
+             
             for i = 1:N
                 if i == root
                     % anchor to axis
@@ -2315,6 +2322,22 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             ai = AnchorInfo(hvec, posX, ax.axh, posX, 0, ...
                 sprintf('colorLabels to axis %s', char(posX), char(posX)));
             ax.addAnchor(ai);
+            
+%             % add background box
+%             if ~isempty(p.Results.fillColor)
+%                 margin = 1;
+%                 hr = rectangle('Position', [0 0 1 1], 'FaceColor', p.Results.fillColor, 'EdgeColor', 'r');
+%                 ax.addAnchor(AnchorInfo(hr, AutoAxis.PositionType.Top, hvec, AutoAxis.PositionType.Top, -margin));
+%                 ax.addAnchor(AnchorInfo(hr, AutoAxis.PositionType.Bottom, hvec, AutoAxis.PositionType.Bottom, margin));
+%                 ax.addAnchor(AnchorInfo(hr, AutoAxis.PositionType.Left, hvec, AutoAxis.PositionType.Left, -margin));
+%                 ax.addAnchor(AnchorInfo(hr, AutoAxis.PositionType.Right, hvec, AutoAxis.PositionType.Right, margin));
+%                 ax.addHandlesToCollection('topLayer', hr);
+%                 ax.addHandlesToCollection('generated', hr);
+%             end
+            
+            % put in top layer
+            ax.addHandlesToCollection('topLayer', hvec);
+ 
             
             % list as generated content
             ax.addHandlesToCollection('generated', hvec);
