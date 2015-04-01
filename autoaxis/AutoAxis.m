@@ -1540,12 +1540,11 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             else
                 if useX
                     ticks = get(axh, 'XTick');
-                    labels = get(axh, 'XTickLabel');
                 else
                     ticks = get(axh, 'YTick');
-                    labels = get(axh, 'YTickLabel');
                 end
-                labels = strtrim(mat2cell(labels, ones(size(labels,1),1), size(labels, 2)));
+                labels = arrayfun(@num2str, ticks, 'UniformOutput', false);
+%                 labels = strtrim(mat2cell(labels, ones(size(labels,1),1), size(labels, 2)));
             end
             
             if isempty(labels)
