@@ -31,7 +31,7 @@ size = p.Results.size;
 if isscalar(size)
     size = [size size];
 end
-figSize(size(1), size(2));
+figSize(figh, size(1), size(2));
 
 hold on;
 t = title(name);

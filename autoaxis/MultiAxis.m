@@ -277,7 +277,7 @@ classdef MultiAxis < handle
             set(ma.axhOverlay, 'LooseInset', [0 0 0 0]);
             uistack(ma.axhDraw, 'bottom');
             
-            set(ma.figh, 'CurrentAxes', oldCA);
+           set(ma.figh, 'CurrentAxes', oldCA);
             
             u = get(ma.figh, 'Units');
             set(ma.figh, 'Units', 'centimeters');

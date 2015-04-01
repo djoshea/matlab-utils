@@ -259,6 +259,11 @@ classdef TensorUtils
             allDims = 1:ndims;
             other = makecol(setdiff(allDims, dims));
         end
+        
+        function d = firstNonSingletonDim(t)
+            sz = size(t);
+            d = find(sz > 1, 1, 'first');
+        end
     end
     
     methods(Static) % masks
@@ -1020,8 +1025,18 @@ classdef TensorUtils
             % result will have size s1 x 1 x 1 x s4
             t = cell2mat(TensorUtils.mapSlicesInPlace(@(slice) std(slice(:), varargin{:}), dims, t));
         end
+    end
+    
+    methods(Static) % Data manipulation
+        function t = centerSlicesOrthogonalToDimension(t, alongDims)
+            % takes slices along dimensions specified, computes the mean 
+            % of the slice and subtracts it. this ensures
+            % that the mean of each slice spanning alongDims will be zero
+            meanTensor =  TensorUtils.meanMultiDim(t, alongDims);
+            t = bsxfun(@minus, t, meanTensor);
+        end
         
-        function t = centerAlongDimension(t, alongDims)
+        function t = centerSlicesSpanningDimension(t, alongDims)
             % for each subscript in dimension(s) alongDims, computes the mean 
             % along all other dimensions and subtracts it. this ensures
             % that the mean along any slice in alongDims will have zero
@@ -1039,6 +1054,30 @@ classdef TensorUtils
             t = TensorUtils.centerAlongDimension(t, alongDims);
             stdTensor = TensorUtils.stdMultiDim(t, alongDims);
             t = bsxfun(@rdivide, t, stdTensor);
+        end
+        
+        function t = makeNonDecreasing(t, dim)
+            if nargin < 2
+                dim = TensorUtils.firstNonSingletonDim(t);
+            end
+            
+            % take cumulative max and replace each value that drops below
+            % the cumulative max with the cumulative max at that point
+            cm = cummax(t, dim);
+            mask = t < cm;
+            t(mask) = cm(mask);
+        end
+        
+        function t = makeNonIncreasing(t, dim)
+            if nargin < 2
+                dim = TensorUtils.firstNonSingletonDim(t);
+            end
+            
+            % take cumulative min and replace each value that rises above
+            % the cumulative min with the cumulative min at that point
+            cm = cummin(t, dim);
+            mask = t > cm;
+            t(mask) = cm(mask);
         end
     end
 end

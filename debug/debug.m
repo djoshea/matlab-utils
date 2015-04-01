@@ -41,7 +41,7 @@ function debug(varargin)
         ~strcmp(pLastCaller.package, caller.package)
     
         if ~isempty(caller.package)
-            tcprintf('purple', '%s.', caller.package);
+            tcprintf('bright purple', '%s.', caller.package);
         end
         
         % new caller file or method, print header line
