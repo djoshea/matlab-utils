@@ -175,12 +175,11 @@ classdef ProgressBar < handle
                 ratio = 1;
             end
             
-            if length(pbar.message) + progLen + 2 > pbar.cols
+            if length(pbar.message) + progLen + 3 > pbar.cols
                 message = [pbar.message(1:(pbar.cols - progLen - 6)), '...'];
             else
                 message = pbar.message;
             end 
-            
             
             gap = pbar.cols - 1 - (length(message)+1) - progLen;
             spaces = repmat(' ', 1, gap);
