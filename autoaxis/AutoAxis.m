@@ -1845,11 +1845,13 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             p.addRequired('orientation', @ischar);
             p.addParameter('length', [], @isvector);
             p.addParameter('units', '', @(x) isempty(x) || ischar(x));
+            p.addParameter('manualLabel', '', @(x) isempty(x) || ischar(x));
             p.addParameter('useAutoScaleBarCollections', false, @islogical);
             p.addParameter('addAnchors', true, @islogical);
             p.addParameter('color', ax.scaleBarColor, @(x) ischar(x) || isvector(x));
             p.addParameter('fontColor', ax.scaleBarFontColor, @(x) ischar(x) || isvector(x));
             p.addParameter('fontSize', ax.scaleBarFontSize, @(x) isscalar(x));
+            p.addParameter('manualPositionAlongAxis', [], @(x) isempty(x) || isscalar(x));
             p.CaseSensitive = false;
             p.parse(varargin{:});
             
@@ -1879,10 +1881,14 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
                     units = ax.yUnits;
                 end
             end
-            if isempty(units)
-                label = sprintf('%g', len);
+            if ismember('manualLabel', p.UsingDefaults) % allow '' to be specified too
+                if isempty(units)
+                    label = sprintf('%g', len);
+                else
+                    label = sprintf('%g %s', len, units);
+                end
             else
-                label = sprintf('%g %s', len, units);
+                label = p.Results.manualLabel;
             end
            
             color = p.Results.color;
@@ -1893,40 +1899,67 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             xl = get(axh, 'XLim');
             yl = get(axh, 'YLim');
             if useX
-                hr = rectangle('Position', [xl(2) - len, yl(1), len, ax.scaleBarThickness], ...
+                if isempty(p.Results.manualPositionAlongAxis)
+                    xpos = xl(2);
+                else
+                    xpos = p.Results.manualPositionAlongAxis;
+                end
+                hr = rectangle('Position', [xpos - len, yl(1), len, ax.scaleBarThickness], ...
                     'Parent', ax.axhDraw);
                 AutoAxis.hideInLegend(hr);
-                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'right', ...
-                    'VerticalAlignment', 'top', 'Parent', ax.axhDraw);
+                if ~isempty(label)
+                    ht = text(xpos, yl(1), label, 'HorizontalAlignment', 'right', ...
+                        'VerticalAlignment', 'top', 'Parent', ax.axhDraw);
+                else
+                    ht = [];
+                end
             else
-                hr = rectangle('Position', [xl(2) - ax.scaleBarThickness, yl(1), ...
+                if isempty(p.Results.manualPositionAlongAxis)
+                    ypos = yl(1);
+                else
+                    ypos = p.Results.manualPositionAlongAxis;
+                end
+                hr = rectangle('Position', [xl(2) - ax.scaleBarThickness, ypos, ...
                     ax.scaleBarThickness, len], ...
                     'Parent', ax.axhDraw);
                 AutoAxis.hideInLegend(hr);
-                ht = text(xl(2), yl(1), label, 'HorizontalAlignment', 'right', ...
-                    'VerticalAlignment', 'bottom', 'Parent', ax.axhDraw, ...
-                    'Rotation', -90);
+                if ~isempty(label)
+                    ht = text(xl(2), ypos, label, 'HorizontalAlignment', 'right', ...
+                        'VerticalAlignment', 'bottom', 'Parent', ax.axhDraw, ...
+                        'Rotation', -90);
+                else
+                    ht = [];
+                end
             end
             
             set(hr, 'FaceColor', color, 'EdgeColor', 'none', 'Clipping', 'off', ...
                 'XLimInclude', 'off', 'YLimInclude', 'off');
-            set(ht, 'FontSize', fontSize, 'Margin', 0.1, 'Color', fontColor, 'Clipping', 'off');
-                
-            if ax.debug
+            if ~isempty(ht)
+                set(ht, 'FontSize', fontSize, 'Margin', 0.1, 'Color', fontColor, 'Clipping', 'off');
+            end
+            
+            if ax.debug && ~isempty(ht)
                 set(ht, 'EdgeColor', 'r');
             end
             
             if p.Results.useAutoScaleBarCollections
                 if useX
                     ax.addHandlesToCollection('autoScaleBarXRect', hr);
-                    ax.addHandlesToCollection('autoScaleBarXText', ht);
                     hrRef = 'autoScaleBarXRect';
-                    htRef = 'autoScaleBarXText';
+                    if ~isempty(ht)
+                        ax.addHandlesToCollection('autoScaleBarXText', ht);
+                        htRef = 'autoScaleBarXText';
+                    end
+                    
+                    
                 else
                     ax.addHandlesToCollection('autoScaleBarYRect', hr);
-                    ax.addHandlesToCollection('autoScaleBarYText', ht);
                     hrRef = 'autoScaleBarYRect';
-                    htRef = 'autoScaleBarYText';
+                    
+                    if ~isempty(ht)
+                        ax.addHandlesToCollection('autoScaleBarYText', ht);
+                        htRef = 'autoScaleBarYText';
+                    end
                 end
             else 
                 hrRef = hr;
@@ -1943,16 +1976,20 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
                         PositionType.Bottom, 'axisPaddingBottom', ...
                         'xScaleBar at bottom of axis');
                     ax.addAnchor(ai);
-                    ai = AnchorInfo(hrRef, PositionType.Right, ax.axh, ...
-                        PositionType.Right, @(a, varargin) a.axisPaddingBottom + a.scaleBarThickness, ...
-                        'xScaleBar flush with right edge of yScaleBar at right of axis');
-                    ax.addAnchor(ai);
-                    ai = AnchorInfo(htRef, PositionType.Top, hrRef, PositionType.Bottom, 0, ...
-                        'xScaleBarLabel below xScaleBar');
-                    ax.addAnchor(ai);
-                    ai = AnchorInfo(htRef, PositionType.Right, hrRef, PositionType.Right, 0, ...
-                        'xScaleBarLabel flush with left edge of xScaleBar');
-                    ax.addAnchor(ai);
+                    if isempty(p.Results.manualPositionAlongAxis)
+                        ai = AnchorInfo(hrRef, PositionType.Right, ax.axh, ...
+                            PositionType.Right, @(a, varargin) a.axisPaddingBottom + a.scaleBarThickness, ...
+                            'xScaleBar flush with right edge of yScaleBar at right of axis');
+                        ax.addAnchor(ai);
+                    end
+                    if ~isempty(ht)
+                        ai = AnchorInfo(htRef, PositionType.Top, hrRef, PositionType.Bottom, 0, ...
+                            'xScaleBarLabel below xScaleBar');
+                        ax.addAnchor(ai);
+                        ai = AnchorInfo(htRef, PositionType.Right, hrRef, PositionType.Right, 0, ...
+                            'xScaleBarLabel flush with left edge of xScaleBar');
+                        ax.addAnchor(ai);
+                    end
                 else
                     ai = AnchorInfo(hrRef, PositionType.Width, [], 'scaleBarThickness', 0, ...
                         'yScaleBar thickness');
@@ -1961,16 +1998,20 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
                         PositionType.Right, 'axisPaddingRight', ...
                         'yScaleBar at right of axis');
                     ax.addAnchor(ai);
-                    ai = AnchorInfo(hrRef, PositionType.Bottom, ax.axh, ...
-                        PositionType.Bottom, @(a, varargin) a.axisPaddingBottom + a.scaleBarThickness, ...
-                        'yScaleBar flush with bottom of xScaleBar at bottom of axis');
-                    ax.addAnchor(ai);
-                    ai = AnchorInfo(htRef, PositionType.Left, hrRef, PositionType.Right, 0, ...
-                        'yScaleBarLabel right of yScaleBar');
-                    ax.addAnchor(ai);
-                    ai = AnchorInfo(htRef, PositionType.Bottom, hrRef, PositionType.Bottom, 0, ...
-                        'yScaleBarLabel bottom edge of xScaleBar');
-                    ax.addAnchor(ai);
+                    if isempty(p.Results.manualPositionAlongAxis)
+                        ai = AnchorInfo(hrRef, PositionType.Bottom, ax.axh, ...
+                            PositionType.Bottom, @(a, varargin) a.axisPaddingBottom + a.scaleBarThickness, ...
+                            'yScaleBar flush with bottom of xScaleBar at bottom of axis');
+                        ax.addAnchor(ai);
+                    end
+                    if ~isempty(ht)
+                        ai = AnchorInfo(htRef, PositionType.Left, hrRef, PositionType.Right, 0, ...
+                            'yScaleBarLabel right of yScaleBar');
+                        ax.addAnchor(ai);
+                        ai = AnchorInfo(htRef, PositionType.Bottom, hrRef, PositionType.Bottom, 0, ...
+                            'yScaleBarLabel bottom edge of xScaleBar');
+                        ax.addAnchor(ai);
+                    end
                 end
             end
            
@@ -2433,9 +2474,6 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
             
                 % process all dereferenced anchors in order
                 for i = 1:numel(ax.anchorInfoDeref)
-                    if i == 14
-                        a = 1;
-                    end
                     ax.processAnchor(ax.anchorInfoDeref(i));
                 end
                 
