@@ -1032,7 +1032,8 @@ classdef TensorUtils
             % takes slices along dimensions specified, computes the mean 
             % of the slice and subtracts it. this ensures
             % that the mean of each slice spanning alongDims will be zero
-            meanTensor =  TensorUtils.meanMultiDim(t, alongDims);
+            otherDims = TensorUtils.otherDims(size(t), alongDims);
+            meanTensor =  TensorUtils.meanMultiDim(t, otherDims);
             t = bsxfun(@minus, t, meanTensor);
         end
         
@@ -1041,8 +1042,7 @@ classdef TensorUtils
             % along all other dimensions and subtracts it. this ensures
             % that the mean along any slice in alongDims will have zero
             % mean.
-            otherDims = TensorUtils.otherDims(size(t), alongDims);
-            meanTensor =  TensorUtils.meanMultiDim(t, otherDims);
+            meanTensor =  TensorUtils.meanMultiDim(t, alongDims);
             t = bsxfun(@minus, t, meanTensor);
         end
         
@@ -1079,5 +1079,33 @@ classdef TensorUtils
             mask = t > cm;
             t(mask) = cm(mask);
         end
+        
+        function reweightedTensor = linearCombinationAlongDimension(t, dim, weightsNewByOld)
+            % looking along dimension dim, reweight the tensor along that
+            % dimension by linearly combining. If dim==1 and the tensor
+            % is a matrix, this is equivalent to matrix multiplication,
+            % reweightedTensor = weightsNewByOld * t.
+            
+            nOld = size(t, dim);
+            assert(size(weightsNewByOld, 2) == nOld, 'Size of weight matrix must have nOld==%d columns', nOld);
+            nNew = size(weightsNewByOld, 1);
+            
+            sz = size(t);
+            newSz = sz;
+            newSz(dim) = nNew;
+            
+            % put combination dimension last
+            pdims = [dim; TensorUtils.otherDims(sz, dim)];
+            tp = permute(t, pdims);
+            
+            % should be nOld x prod(size-t-other-dims)
+            tpMat = tp(:, :);
+            
+            % should be nNew x prod(size-t-other-dims)
+            reweightMat = weightsNewByOld * tpMat;
+            
+            reweightedTensor = ipermute(reshape(reweightMat, newSz(pdims)), pdims);         
+        end
+        
     end
 end
