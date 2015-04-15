@@ -63,7 +63,7 @@ function fileList = saveFigure(varargin)
 %   GetFullFile: Jan Simon
 %
     extListFull = {'fig', 'png', 'hires.png', 'svg', 'eps', 'pdf'};
-    extListDefault = {'pdf', 'svg', 'hires.png'};
+    extListDefault = {'fig', 'pdf', 'hires.png'};
 
     p = inputParser;
     p.addOptional('name', '', @(x) ischar(x) || iscellstr(x) || isstruct(x) || isa(x, 'function_handle'));
