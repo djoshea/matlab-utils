@@ -1543,11 +1543,13 @@ classdef AutoAxis < handle & matlab.mixin.Copyable
                 else
                     ticks = get(axh, 'YTick');
                 end
-                labels = arrayfun(@num2str, ticks, 'UniformOutput', false);
+                labels = {};
+                %labels = arrayfun(@num2str, ticks, 'UniformOutput', false);
 %                 labels = strtrim(mat2cell(labels, ones(size(labels,1),1), size(labels, 2)));
             end
             
             if isempty(labels)
+                ticks(abs(ticks) < 10*eps) = 0;
                 labels = sprintfc('%g', ticks);
             end
             
