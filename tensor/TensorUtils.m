@@ -224,7 +224,7 @@ classdef TensorUtils
         
         function sz = sizeMultiDim(t, dims)
             % sz = sizeMultiDim(t, dims) : sz(i) = size(t, dims(i))
-            szAll = size(t);
+            szAll = TensorUtils.expandSizeToNDims(size(t), max(dims));
             sz = arrayfun(@(d) szAll(d), dims);
         end
         
@@ -236,6 +236,10 @@ classdef TensorUtils
             elseif isscalar(sz)
                 sz = [sz 1];
             end
+        end
+        
+        function sz = sizeNDims(t, nDims)
+            sz = TensorUtils.expandSizeToNDims(size(t), nDims);
         end
         
         % pads sz with 1s to make it nDims length
@@ -809,6 +813,39 @@ classdef TensorUtils
                 end
             end
             
+        end
+        
+        function [out, newDims] = reshapeDimsInPlace(in, whichDims, newSizeInThoseDims)
+            % reshapes a tensor by taking the consecutive dimension in
+            % whichDims and making these a new size, e.g. tensorizes a
+            % flattened dim or set of dims
+            sz = size(in);
+            assert(isequal(makecol(whichDims), makecol(min(whichDims):max(whichDims))), 'Dims must be consecutive');
+            assert(prod(newSizeInThoseDims) == prod(TensorUtils.sizeMultiDim(in, whichDims)), 'Size must not change during reshape');
+            mind = min(whichDims);
+            maxd = max(whichDims);
+            
+            szNew = [sz(1:mind-1), newSizeInThoseDims, sz(maxd+1:end)];
+            out = reshape(in, szNew);
+            newDims = (mind : mind+numel(newSizeInThoseDims)-1)';
+        end
+        
+        function out = flattenDimsInPlace(in, whichDims)
+            newLen = prod(TensorUtils.sizeMultiDim(in, whichDims));
+            out = TensorUtils.reshapeDimsInPlace(in, whichDims, newLen);
+        end
+        
+        function out = selectSetsAlongDimension(in, dim, selectIdxCell)
+            % given a tensor with size s1 x s2 x s3, where lets say dim is 2, 
+            % selects multiple elements along dimension 2 for every
+            % position in dimensions 1, 3. if selectIdxCell has length
+            % S2, returns cell with size s1 x S2 x s3
+            
+            otherDims = TensorUtils.otherDims(size(in), dim);
+            each = cellfun(@(idx) TensorUtils.squeezeSelectEachAlongDimension(...
+                TensorUtils.selectAlongDimension(in, dim, idx), otherDims), selectIdxCell, ...
+                'UniformOutput', false);
+            out = cat(dim, each{:});
         end
     end
     
