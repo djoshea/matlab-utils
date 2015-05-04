@@ -4,7 +4,6 @@ function Hash = DataHash(Data, Opt)
 % dimensions of the input are considered as default, such that UINT8([0,0]) and
 % UINT16(0) have different hash values. Nested STRUCTs and CELLs are parsed
 % recursively.
-%
 % Hash = DataHash(Data, Opt)
 % INPUT:
 %   Data: Array of these built-in types:

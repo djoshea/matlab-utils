@@ -24,6 +24,14 @@ function str = structToString(s, separator)
             str = mat2str(v);
         elseif iscellstr(v)
             str = ['{', strjoin(v, ','), '}'];
+        elseif isobject(v)
+            if ismethod(v, 'char')
+                str = char(v);
+            elseif ismethod(v, 'describe')
+                str = describe(v);
+            else
+                str = class(v);
+            end
         else
             error('Could not convert struct field value');
         end

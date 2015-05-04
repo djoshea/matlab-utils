@@ -15,7 +15,7 @@ classdef ProgressBar < handle
 %   end
 %   pbar.finish([optional final message]);
 %
-% Parallel usage:
+% Parallel usage: (sort of works)
 %   pbar = ProgressBar('Message goes here', nThingsToProcess);
 %   pbar.enableParallel();
 %   for i = 1:nThingsToProcess
@@ -26,9 +26,9 @@ classdef ProgressBar < handle
 %         
 % Demonstration:
 %   ProgressBar.demo();
-%
-%   parpool
+%   ProgressBar.demoNested();
 %   ProgressBar.demoParallel();
+%
 %   
 
     properties(SetAccess=protected)

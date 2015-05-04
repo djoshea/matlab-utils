@@ -955,6 +955,10 @@ function varargout = plot2svg(param1,id,pixelfiletype)
             group=group+1;
             groups=[groups group];
             group=axes2svg(fid,id,ax(j),group,paperpos);
+        elseif strcmp(currenttype, 'legend')
+            group=group+1;
+            groups=[groups group];
+            group=legend2svg(fid,id,ax(j),group,paperpos);
         elseif strcmp(currenttype,'uicontrol')
             if strcmp(get(ax(j),'Visible'),'on')
                 control2svg(fid,id,ax(j),group,paperpos);
@@ -2057,6 +2061,63 @@ function group=axes2svg(fid,id,ax,group,paperpos)
     set(ax,'Units',originalAxesUnits);
 end
     
+function group=legend2svg(fid,id,ax,group,paperpos)
+    originalAxesUnits=get(ax,'Units');
+    set(ax,'Units','normalized');
+    axpos=get(ax,'Position');
+    faces =    [1 2 4 3; 2 4 8 6; 3 4 8 7; 1 2 6 5; 1 5 7 3; 5 6 8 7];
+   
+    [projection, edges] = get_project_legend(ax, id);
+    x = (edges(1,:)*axpos(3)+axpos(1))*paperpos(3);
+    y = (1-(edges(2,:)*axpos(4)+axpos(2)))*paperpos(4);    
+    % Depth Sort of view box edges 
+    [edge_z,edge_index]=sort(edges(3,:));
+    most_back_edge_index = edge_index(1);
+    % Back faces are plot box faces that are behind the plot (as seen by the
+    % view point)
+    back_faces = find(any(faces == most_back_edge_index,2));
+    groupax=group;
+    fprintf(fid,'  <g id ="%s">\n', createId);
+    axIdString = createId;
+    boundingBoxAxes = [min(x) min(y) max(x)-min(x) max(y)-min(y)];
+    fprintf(fid,'  <clipPath id="%s">\n',axIdString);
+    fprintf(fid,'    <rect x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f"/>\n',...
+        boundingBoxAxes(1), boundingBoxAxes(2), boundingBoxAxes(3), boundingBoxAxes(4));
+    fprintf(fid,'  </clipPath>\n');
+    
+    if strcmp(get(ax,'Visible'),'on')
+        group=group+1;
+
+        % Draw back faces 
+        linewidth=get(ax,'LineWidth');
+        if ~strcmp(get(ax,'Color'),'none')
+            background_color = searchcolor(id,get(ax,'Color'));
+            background_opacity = 1;
+        else
+            background_color = '#000000';
+            background_opacity = 0;
+        end
+        for p=1:size(back_faces)
+            patch2svg(fid, group, axpos, x(faces(back_faces(p),:)), y(faces(back_faces(p),:)), background_color, '-', linewidth, 'none', background_opacity, 1.0, true)
+        end
+    end
+    fprintf(fid,'    <g>\n');
+    
+    legchild = ax.EntryContainer.Children;
+    
+    for iC = 1:numel(legchild)
+        new = axchild2svg(fid,id,axIdString,ax,group,paperpos,legchild,axpos,groupax,projection,boundingBoxAxes);
+    end
+    fprintf(fid,'    </g>\n');
+    if strcmp(get(ax,'Visible'),'on')
+        fprintf(fid,'    <g>\n');
+        % Search axis for labeling
+    end
+    fprintf(fid,'  </g>\n');
+    set(ax,'Units',originalAxesUnits);
+end
+    
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % take any axis children and create objects for them
 function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,groupax,projection,boundingBoxAxes)
@@ -2065,6 +2126,10 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
     for i=length(axchild):-1:1
         if strcmp(get(axchild(i), 'Visible'), 'off')
             % do nothing
+        elseif isa(axchild(i), 'matlab.graphics.illustration.legend.LegendEntry')
+            
+        elseif isa(axchild(i), 'matlab.graphics.illustration.legend.LegendIcon')
+            group = axchild2svg(fid,id,axIdString,ax,group,paperpos,get(axchild(i), 'Transform'),axpos,groupax,projection,boundingBoxAxes);
         elseif strcmp(get(axchild(i),'Type'),'line')
             scolorname=searchcolor(id,get(axchild(i),'Color'));
             linestyle=get(axchild(i),'LineStyle');
@@ -3777,6 +3842,51 @@ function IdString = createId
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [projection, edges] = get_project_legend(leg, id)
+%     xc = [0.5 0.5 0.5];
+%     phi = 0;
+    vi = [0 90];
+    xi = [0 1];
+    yi = [0 1];
+    zi = [0 1];
+    projection.aspect_scaling = [1 1 1];
+    projection.xi = xi;
+    projection.yi = yi;
+    projection.zi = zi;
+%     xc(1) = (xc(1) - xi(1))/(xi(2)-xi(1));
+%     xc(2) = (xc(2) - yi(1))/(yi(2)-yi(1));
+%     xc(3) = (xc(3) - zi(1))/(zi(2)-zi(1));
+    projection.A = viewmtx(vi(1),vi(2));
+    projection.xyplane = true;
+    x = [xi(1) xi(2) xi(1) xi(2) xi(1) xi(2) xi(1) xi(2)]/projection.aspect_scaling(1);
+    y = [yi(1) yi(1) yi(2) yi(2) yi(1) yi(1) yi(2) yi(2)]/projection.aspect_scaling(2);
+    z = [zi(1) zi(1) zi(1) zi(1) zi(2) zi(2) zi(2) zi(2)]/projection.aspect_scaling(3);    
+    axpos = get(leg,'Position');
+    figpos = get(id,'Position');
+    [m,n] = size(x);
+    x4d = [x(:),y(:),z(:),ones(m*n,1)]';
+    x2d = projection.A*x4d;
+    x2 = zeros(m,n); y2 = zeros(m,n); z2 = zeros(m,n);
+    x2(:) = x2d(1,:)./x2d(4,:);
+    y2(:) = x2d(2,:)./x2d(4,:);
+    projection.ax = leg;
+    projection.xrange = max(x2) - min(x2);
+    projection.yrange = max(y2) - min(y2);
+    projection.xoffset = (max(x2) + min(x2))/2;
+    projection.yoffset = (max(y2) + min(y2))/2;
+%     if (strcmp(get(leg,'PlotBoxAspectRatioMode'),'manual') || strcmp(get(leg,'DataAspectRatioMode'),'manual'))
+%           if (projection.xrange*axpos(4)*figpos(4) < projection.yrange*axpos(3)*figpos(3))
+%               projection.xrange = projection.yrange*axpos(3)*figpos(3)/axpos(4)/figpos(4);
+%           else
+%               projection.yrange = projection.xrange*axpos(4)*figpos(4)/axpos(3)/figpos(3);
+%           end
+%     end
+    x2(:) = (x2d(1,:)./x2d(4,:) - projection.xoffset)/projection.xrange + 0.5;
+    y2(:) = (x2d(2,:)./x2d(4,:) - projection.yoffset)/projection.yrange + 0.5;
+    z2(:) =  x2d(3,:);
+    edges = [x2; y2; z2];
+end
+
 function [projection, edges] = get_projection(ax,id)
     global PLOT2SVG_globals
     xc = get(ax,'CameraTarget');

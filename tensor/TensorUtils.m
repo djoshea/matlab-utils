@@ -228,6 +228,11 @@ classdef TensorUtils
             sz = arrayfun(@(d) szAll(d), dims);
         end
         
+        function sz = sizeOtherDims(t, excludeDims)
+            otherDims = TensorUtils.otherDims(size(t), excludeDims);
+            sz = TensorUtils.sizeMultiDim(t, otherDims);
+        end
+        
         function sz = expandScalarSize(sz)
             % if sz (size) is a scalar, make it into a valid size vector by
             % appending 1 to the end. i.e. 3 --> [3 1]
@@ -261,7 +266,7 @@ classdef TensorUtils
                 ndims = numel(sz);
             end
             allDims = 1:ndims;
-            other = makecol(setdiff(allDims, dims));
+            other = makerow(setdiff(allDims, dims));
         end
         
         function d = firstNonSingletonDim(t)
@@ -337,6 +342,7 @@ classdef TensorUtils
             maskByDim = TensorUtils.maskByDimCellSelectAlongDimension(inflatedSize, dims, masks);
             inflated(maskByDim{:}) = maskedTensor;
         end
+
     end
     
     methods(Static) % Indices and subscripts
@@ -570,6 +576,14 @@ classdef TensorUtils
             end
         end
         
+                
+        function sel = selectAlongDimensionWithNaNs(t, dim, select, varargin)
+            assert(numel(dim) == 1, 'Must be single dimension');
+            nanMask = isnan(select(:));
+            selNoNan = TensorUtils.selectAlongDimension(t, dim, select(~nanMask), varargin{:});
+            sel = TensorUtils.inflateMaskedTensor(selNoNan, dim, ~nanMask);
+        end
+        
         function [res mask] = squeezeSelectAlongDimension(t, dim, select)
             % select ind along dimension dim and squeeze() the result
             % e.g. squeeze(t(:, :, ... ind, ...))
@@ -687,6 +701,18 @@ classdef TensorUtils
             if nargout > 1
                 which = cell2mat(makecol(cellfun(@(in, idx) idx*ones(size(in, dim), 1), varargin, ...
                     num2cell(1:numel(varargin)), 'UniformOutput', false)));
+            end
+        end
+        
+        function [out, which] = catInnerDimOverOuterDim(t, innerDim, outerDim)
+            % for each entry in t along dimension outerDim, concatenates
+            % these entries along dimmension, innerDim
+            
+            if nargout == 2
+                [out, whichCell]  = TensorUtils.mapSlices(@(slice) TensorUtils.catWhich(innerDim, slice{:}), outerDim, t);
+                which = whichCell{1};
+            else
+                out = TensorUtils.mapSlices(@(slice) cat(innerDim, slice{:}), outerDim, t);
             end
         end
         

@@ -8,6 +8,7 @@ end
 for i = 1:length(s)
     % old version, simply tag it as translucent for saveFigure to pick
     % up during SVG authoring
+    
     userdata = get(s(i),'UserData');
     userdata.svg.MarkerFaceAlpha = faceAlpha;
     userdata.svg.MarkerEdgeAlpha = edgeAlpha;

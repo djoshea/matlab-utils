@@ -1,6 +1,6 @@
-function importStr = getPackageImportString()
+function importStr = getPackageImportString(varargin)
 
-package = getPackage('stackOffset', 1);
+package = getPackage('stackOffset', 1, varargin{:});
 if isempty(package)
     importStr = '';
 else

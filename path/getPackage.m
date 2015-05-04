@@ -6,7 +6,12 @@ p.addParamValue('up', 0, @isscalar); % how many parents to go up to
 p.parse(varargin{:});
 
 files = dbstack('-completenames');
-path = fileparts(files(2 + p.Results.stackOffset).file);
+if numel(files) == 2
+    % must be executing from cell mode
+    path = fileparts(matlab.desktop.editor.getActiveFilename());
+else
+    path = fileparts(files(2 + p.Results.stackOffset).file);
+end
 package = '';
 
 upRemaining = p.Results.up;
