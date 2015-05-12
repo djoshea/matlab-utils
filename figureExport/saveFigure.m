@@ -2189,6 +2189,8 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
                 col = get(axchild(i), 'Color');
                 if numel(col) == 4
                     linealpha = col(4);
+                else
+                    linealpha = double(axchild(i).Edge.ColorData_I(4)) / 255;
                 end
             end
 
