@@ -73,7 +73,7 @@ function fileList = saveFigure(varargin)
     p.addParameter('copy', verLessThan('matlab', '8.4'), @islogical); % copy only for older versions
     p.addParameter('quiet', true, @islogical);
     p.addParameter('notes', '', @ischar);
-    p.KeepUnmatched = true;
+%     p.KeepUnmatched = true;
     p.parse(varargin{:});
     hfig = p.Results.figh;
     fontName = p.Results.fontName;
@@ -2870,16 +2870,20 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
             else
                 error('Invalid number of dimensions of data.');
             end
-            if ndims(pointc) == 3
-                % pointc is not indexed
-                imwrite(pointc,fullfile(PLOT2SVG_globals.basefilepath,filename),PLOT2SVG_globals.pixelfiletype);
-            else
-                % pointc is probably indexed
-                if PLOT2SVG_globals.octave
-                    pointc = max(2, pointc);
-                end
-                imwrite(pointc,cmap,fullfile(PLOT2SVG_globals.basefilepath,filename),PLOT2SVG_globals.pixelfiletype);
-            end
+            
+            % @djoshea changing image rendering to individual rects to
+            % prevent issues with resampling algorithms differing for
+            % svg upsizing
+%             if ndims(pointc) == 3
+%                 % pointc is not indexed
+%                 imwrite(pointc,fullfile(PLOT2SVG_globals.basefilepath,filename),PLOT2SVG_globals.pixelfiletype);
+%             else
+%                 % pointc is probably indexed
+%                 if PLOT2SVG_globals.octave
+%                     pointc = max(2, pointc);
+%                 end
+%                 imwrite(pointc,cmap,fullfile(PLOT2SVG_globals.basefilepath,filename),PLOT2SVG_globals.pixelfiletype);
+%             end
                 lx=(size(pointc,2)*halfwidthx)*axpos(3)*paperpos(3);
                 ly=(size(pointc,1)*halfwidthy)*axpos(4)*paperpos(4);
             if strcmp(get(ax,'DataAspectRatioMode'),'manual')
@@ -2897,17 +2901,36 @@ function group=axchild2svg(fid,id,axIdString,ax,group,paperpos,axchild,axpos,gro
                     % Workaround for Inkscape filter bug
                     fprintf(fid,'<rect x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" fill="none" stroke="none" />\n', boundingBox(1), boundingBox(2), boundingBox(3), boundingBox(4));
                 end
-                fprintf(fid,'<image x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" image-rendering="optimizeSpeed" preserveAspectRatio="none" xlink:href="%s" />\n', pointsx, pointsy, lx, ly, filename);
-                fprintf(fid,'</g>\n');
             else
                 fprintf(fid,'<g id="%s" %s>\n', createId, filterString);
                 if ~isempty(filterString)
                     % Workaround for Inkscape filter bug
                     fprintf(fid,'<rect x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" fill="none" stroke="none" />\n', boundingBox(1), boundingBox(2), boundingBox(3), boundingBox(4));
                 end
-                fprintf(fid,'<image x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" image-rendering="optimizeSpeed" preserveAspectRatio="none" xlink:href="%s" />\n', pointsx, pointsy, lx, ly, filename);
-                fprintf(fid,'</g>\n');
+%                 fprintf(fid,'<image x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" image-rendering="optimizeSpeed" preserveAspectRatio="none" xlink:href="%s" />\n', pointsx, pointsy, lx, ly, filename);
+
             end
+              
+             % @djoshea changing image rendering to individual rects to
+            % prevent issues with resampling algorithms differing for
+            % svg upsizing
+            %
+            % render as grid of rects! based on http://phrogz.net/tmp/canvas_image_zoom_svg.xhtml
+%                 fprintf(fid,'<image x="%0.3f" y="%0.3f" width="%0.3f" height="%0.3f" image-rendering="optimizeSpeed" preserveAspectRatio="none" xlink:href="%s" />\n', pointsx, pointsy, lx, ly, filename);      
+            nR = size(pointc, 1);
+            nC = size(pointc, 2);
+            px = lx / nC;
+            py = ly / nR;
+            for iR = 1:nR
+                for iC = 1:nC
+                    c = cmap(pointc(iR, iC), :);
+                    fprintf(fid, '<rect x="%f" y="%f" width="%f" height="%f" fill="rgb(%.0f, %.0f, %.0f)" opacity="1.00"/>', ...
+                        pointsx + px*(iC-1), pointsy + py*(iR-1), px * 1.01, py * 1.01, c(1)*255, c(2)*255, c(3)*255);
+                end
+            end
+                
+                fprintf(fid,'</g>\n');
+
         elseif strcmp(get(axchild(i),'Type'), 'hggroup')
             % handle group types (like error bars)
             % FIXME: they are not yet perfectly handled, there are more options
