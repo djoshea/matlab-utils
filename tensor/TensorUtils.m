@@ -1158,7 +1158,7 @@ classdef TensorUtils
             newSz(dim) = nNew;
             
             % put combination dimension last
-            pdims = [dim; TensorUtils.otherDims(sz, dim)];
+            pdims = [dim, TensorUtils.otherDims(sz, dim)];
             tp = permute(t, pdims);
             
             % should be nOld x prod(size-t-other-dims)
