@@ -11,6 +11,8 @@ end
 
 cla;
 
+m = squeeze(m);
+
 if isvector(m)
     m = repmat(makerow(m), 2, 1);
 end
@@ -51,6 +53,7 @@ set(hcbar, 'TickLength', [0]);
 
 box off
 axis ij
+axis on;
 
 if size(m, 1) > 50 || size(m, 2) > 50
     return;
@@ -65,5 +68,7 @@ yTickLabels = arrayfun(@num2str, y(1:end-1), 'UniformOutput', false);
 set(gca, 'XAxisLocation', 'top', 'TickLength', [0 0]);
 set(gca, 'XTick', xTick, 'XTickLabel', xTickLabels, ...
     'YTick', yTick, 'YTickLabel', yTickLabels);
+
+axis on;
 
 

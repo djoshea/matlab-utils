@@ -10,20 +10,25 @@ stack = rmfield(stack, 'file');
 if numel(stack) == 1
     % likely in cell mode, use desktop trickery to figure out where the
     % line is executing from
-    figh = figure();
-else
-    % hash the stack method names and call history to a unique figure value
-    hashVec = DataHash(stack, struct('Method', 'MD5', 'Format', 'uint8'));
-    hash = dot(double(hashVec), 2.^(0:numel(hashVec)-1));
-
-    figh = figure(hash);
+    doc = matlab.desktop.editor.getActive();
+    [~, stack(2).name] = fileparts(doc.Filename);
+    stack(2).line = doc.Selection(1);
 end
+
+% hash the stack method names and call history to a unique figure value
+hashVec = DataHash(stack, struct('Method', 'MD5', 'Format', 'uint8'));
+hash = dot(double(hashVec), 2.^(0:numel(hashVec)-1));
+
+figh = figure(hash);
 
 clf(figh);
 
 name = p.Results.name;
 if isempty(name)
-    name = sprintf('%s:%d', stack(1).name, stack(1).line);
+    name = sprintf('%s:%d', stack(2).name, stack(2).line);
+    blankTitle = true;
+else
+    blankTitle = false;
 end
 set(figh, 'NumberTitle', 'off', 'Name', name);
 
@@ -34,8 +39,10 @@ end
 figSize(figh, size(1), size(2));
 
 hold on;
-t = title(name);
-set(t, 'FontWeight', 'bold', 'Interpreter', 'none');
+if ~blankTitle
+    t = title(name);
+    set(t, 'FontWeight', 'bold', 'Interpreter', 'none');
+end
 box off;
 
 end

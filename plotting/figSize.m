@@ -54,12 +54,12 @@ if ~strcmp(get(figh, 'WindowStyle'), 'docked')
     set(figh, 'Position', newPos);
 end
 
-if ~isempty(get(gcf, 'CurrentAxes'))
-    au = AutoAxis.recoverForAxis(gca);
-    if ~isempty(au)
-        au.update();
-    end
-end
+% if ~isempty(get(gcf, 'CurrentAxes'))
+%     au = AutoAxis.recoverForAxis(gca);
+%     if ~isempty(au)
+%         au.update();
+%     end
+% end
 
 sz = [height, width];
 

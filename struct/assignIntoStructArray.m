@@ -21,7 +21,7 @@ function S = assignIntoStructArray(S, fld, vals, idx)
                 idx = [];
             end
         else
-            idx = 1:length(S);
+            idx = 1:numel(S);
         end
     end
      
