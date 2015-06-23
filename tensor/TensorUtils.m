@@ -715,6 +715,10 @@ classdef TensorUtils
             
             isEmpty = cellfun(@isempty, varargin);
             out = cat(dim, varargin{~isEmpty});
+            if isempty(out)
+                which = [];
+                return;
+            end
             if nargout > 1
                 whichMasked = cell2mat(makecol(cellfun(@(in, idx) idx*ones(size(in, dim), 1), varargin(~isEmpty), ...
                     num2cell(1:nnz(~isEmpty)), 'UniformOutput', false)));
