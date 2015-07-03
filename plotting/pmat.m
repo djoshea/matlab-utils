@@ -1,13 +1,12 @@
-function [h, hcbar] = pmat(varargin)
+function [h, hcbar] = pmat(m, varargin)
 % visualize a matrix using pcolor
 
-if(length(varargin) == 1)
-    m = varargin{1};
-else
-    x = varargin{1};
-    y = varargin{2};
-    m = varargin{3};
-end
+p = inputParser();
+p.addParamValue('x', [], @(x) isvector(x));
+p.addParamValue('y', [], @(x) isvector(x));
+p.addParamValue('xlabel', {}, @(x) isvector(x) || iscellstr(x));
+p.addParamValue('ylabel', {}, @(x) isvector(x) || iscellstr(x));
+p.parse(varargin{:});
 
 cla;
 
@@ -21,21 +20,27 @@ if islogical(m)
     m = double(m);
 end
 
+if ndims(m) > 2
+    warning('Selecting (:, :, 1) of tensor to display');
+    m = m(:, :, 1);
+end
+
 % add an extra row onto m
 addRowCol = @(v) [v, v(:, end)+diff(v(:, end-1:end), 1, 2); ...
     v(end, :) + diff(v(end-1:end, :), 1, 1), 2*v(end, end)-v(end-1, end-1)];
 
-if nargin == 1
-    x = 1:size(m, 2);
-    y = 1:size(m, 1);
+if isempty(p.Results.x)
+    x = 0.5:size(m, 2)-0.5;
+else
+    x = p.Results.x;
+end
+if isempty(p.Results.y)
+    y = 0.5:size(m, 1)-0.5;
+else
+    y = p.Results.y;
 end
 
-if isvector(x)
-    [X, Y] = meshgrid(x, y);
-else
-    X = x;
-    Y = y;
-end
+[X, Y] = meshgrid(x, y);
         
 m = addRowCol(m);
 X = addRowCol(X);
@@ -45,30 +50,53 @@ h = pcolor(X,Y, m);
 
 set(h, 'EdgeColor', 'none');
 colormap(flipud(cbrewer('div', 'RdYlBu', 256)));
+%colormap(pmkmp(256));
 %colormap gray;
 
 hcbar = colorbar;
 box(hcbar, 'off');
-set(hcbar, 'TickLength', [0]);
+set(hcbar, 'TickLength', 0);
 
 box off
 axis ij
 axis on;
 
-if size(m, 1) > 50 || size(m, 2) > 50
-    return;
-end
 x = X(1, :);
 y = Y(:, 1);
+showX = size(m, 2) < 20;
+showY = size(m, 1) < 20;
+xRot = 0;
 xTick = x(1:end-1) + diff(x) / 2;
-xTickLabels = arrayfun(@num2str, x(1:end-1), 'UniformOutput', false);
+if isempty(p.Results.xlabel)
+    xTickLabels = arrayfun(@num2str, xTick, 'UniformOutput', false);
+else
+    showX = true;
+    xRot = 45;
+    xTickLabels = p.Results.xlabel;
+    if isnumeric(xTickLabels)
+        xTickLabels = arrayfun(@num2str, xTickLabels, 'UniformOutput', false);
+    end
+end
+if showX
+    set(gca, 'XTick', xTick, 'XTickLabel', xTickLabels, 'XTickLabelRotation', xRot);
+end
+
 yTick = y(1:end-1) + diff(y) / 2;
-yTickLabels = arrayfun(@num2str, y(1:end-1), 'UniformOutput', false);
-
-set(gca, 'XAxisLocation', 'top', 'TickLength', [0 0]);
-set(gca, 'XTick', xTick, 'XTickLabel', xTickLabels, ...
-    'YTick', yTick, 'YTickLabel', yTickLabels);
-
+if isempty(p.Results.ylabel)
+    yTickLabels = arrayfun(@num2str, yTick, 'UniformOutput', false);
+else
+    showY = true;
+    yTickLabels = p.Results.ylabel;
+    if isnumeric(yTickLabels)
+        yTickLabels = arrayfun(@num2str, yTickLabels, 'UniformOutput', false);
+    end
+end
+if showY
+    set(gca, 'YTick', yTick, 'YTickLabel', yTickLabels);
+end
 axis on;
+set(gca, 'TickLength', [0 0]);
+axis tight;
+box on;
 
 
