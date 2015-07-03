@@ -44,9 +44,10 @@ classdef TensorUtils
         end
         
         function varargout = map(fn, varargin)
-            % works just like cellfun or arrayfun  except auto converts each arg
-            % to a cell so that cellfun may be used. Returns a cell array with
-            % the same size as the tensor
+            % works just like cellfun or arrayfun except auto converts each arg
+            % to a cell so that cellfun may be used. Returns a cell arrays with
+            % the same size as the tensor, although cell arrays containing
+            % the same 
             for iArg = 1:length(varargin)
                 if ~iscell(varargin{iArg})
                     varargin{iArg} = num2cell(varargin{iArg});
@@ -54,11 +55,11 @@ classdef TensorUtils
             end
             [varargout{1:nargout}] = cellfun(fn, varargin{:}, 'UniformOutput', false);
             % convert scalar numeric cells back to matrices
-            for iArg = 1:numel(varargout);
-                if all(cellfun(@(x) isnumeric(x) && isscalar(x), varargout{iArg}));
-                    varargout{iArg} = cell2mat(varargout{iArg});
-                end
-            end
+%             for iArg = 1:numel(varargout);
+%                 if all(cellfun(@(x) isnumeric(x) && isscalar(x), varargout{iArg}));
+%                     varargout{iArg} = cell2mat(varargout{iArg});
+%                 end
+%             end
         end
         
         function results = mapIncludeSubs(fn, varargin)
@@ -202,6 +203,16 @@ classdef TensorUtils
             % combined will be size [nByArg(:) nFieldsTotal)
             combined = cat(nargin+1, asCells{:});
             t = cell2struct(combined, allFields, nArg+1);
+        end
+        
+        function t = mapCatToTensor(fn, varargin)
+            % like arrayfun, except with UniformOutput false, and the
+            % results will be concatenated together using cellmat to form a
+            % tensor
+            t = TensorUtils.map(fn, varargin{:});
+            if iscell(t)
+                t = cell2mat(t);
+            end
         end
     end
     
