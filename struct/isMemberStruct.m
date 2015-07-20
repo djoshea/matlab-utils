@@ -1,4 +1,4 @@
-function index = isMemberStruct(A, S)
+function [found, index] = isMemberStruct(A, S)
 % just like ismember, except for struct and struct arrays, and only returns
 % the index, not the useless boolean output argument
     nA = max(length(A), 1); % for empty A, return 0
