@@ -1,4 +1,5 @@
 function h = ticks(xvals, y, varargin)
+% h = ticks(xvals, y, varargin)
 
 if nargin < 2
     y = 0;

@@ -15,8 +15,11 @@ if numel(stack) == 1
     stack(2).line = doc.Selection(1);
 end
 
+hashInput.name = p.Results.name;
+hashInput.stack = stack;
+
 % hash the stack method names and call history to a unique figure value
-hashVec = DataHash(stack, struct('Method', 'MD5', 'Format', 'uint8'));
+hashVec = DataHash(hashInput, struct('Method', 'MD5', 'Format', 'uint8'));
 hash = dot(double(hashVec), 2.^(0:numel(hashVec)-1));
 
 figh = figure(hash);

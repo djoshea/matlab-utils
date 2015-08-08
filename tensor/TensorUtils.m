@@ -720,6 +720,25 @@ classdef TensorUtils
             end
         end
         
+%         function out = catPad(dim, with, varargin)
+%             % works like cat, except pads each element to be the same size
+%             % along dimension dim before concatenating
+%             szAlongDim = cellfun(@(x) size(x, dim), varargin);
+%             if numel(unique(szAlongDim)) == 1
+%                 % no padding needed
+%                 out = cat(dim, varargin{:});
+%             else
+%                 newSzAlongDim = max(szAlongDim);
+%                 paddedCell = cell(size(varargin));
+%                 for iA = 1:numel(varargin)
+%                     szVec = size(varargin{iA});
+%                     szVec(dim) = newSzAlongDim - szVec(dim);
+%                     paddedCell{iA} = cat(dim, varargin{iA}, repmat(with, szVec));
+%                 end
+%                 out = cat(dim, paddedCell{:});
+%             end
+%         end
+        
         function [out, which] = catWhichIgnoreEmpty(dim, varargin)
             % works like cat, but returns a vector indicating which of the
             % inputs each element of out came from
