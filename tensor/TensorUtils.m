@@ -320,7 +320,7 @@ classdef TensorUtils
             % rows, cols, etc. are filled with fill (defaults to NaN)
             % if dims is a scalar, masks is a logical or numeric vector to use
             % for selecting along dim. If dim is a vector, select is a cell array of
-        % vectors to be used for selecting along dim(i)
+            % vectors to be used for selecting along dim(i)
             
             if ~iscell(masks)
                 masks = {masks};
@@ -813,8 +813,6 @@ classdef TensorUtils
             % The format of labelsByDimIn and labelsByDimOut is that the
             % output can be used as a input to this function again.
             
-            ndimsIn = ndims(in);
-            szIn = size(in);
             ndimsOut = length(whichDims);
             
             if ~iscell(whichDims)
@@ -823,6 +821,10 @@ classdef TensorUtils
             
             allDims = cellfun(@(x) x(:), whichDims, 'UniformOutput', false);
             allDims = cat(1, allDims{:});
+            
+            szIn = TensorUtils.sizeNDims(in, max(allDims));
+            ndimsIn = max(max(allDims), ndims(in));
+            
             assert(length(allDims) == ndimsIn && ...
                 all(ismember(1:ndimsIn, allDims)), ...
                 'whichDims must contain each dim in 1:ndims(in)');
