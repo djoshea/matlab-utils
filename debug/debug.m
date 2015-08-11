@@ -41,31 +41,26 @@ function debug(varargin)
         ~strcmp(pLastCaller.package, caller.package)
     
         if ~isempty(caller.package)
-            tcprintf('bright purple', '%s.', caller.package);
+            hcprintf('{c79fef}%s.', caller.package);
         end
         
         % new caller file or method, print header line
         if ~isempty(caller.method)
             % is a class method
-            tcprintf('bright red', '%s', caller.origin);
-            tcprintf('bright green', '.%s', caller.method);
+            hcprintf('{0485d1}%s', caller.origin);
+            hcprintf('{9ffeb0}.%s', caller.method);
         else
             % not class method
-            tcprintf('bright green', '%s', caller.origin); 
+            hcprintf('{9ffeb0}%s', caller.origin); 
         end
-        tcprintf('darkGray', ' ::\n');
+        hcprintf('{607c8e} ::\n');
         pLastCaller = caller;
     end
 
     if caller.line == 0
         fprintf('     ');
     else
-        tcprintf('cyan', '%4d ', caller.line);
+        hcprintf('{5a7d9a}%4d ', caller.line);
     end
-    if ~isempty(varargin)
-        tcprintf('gray', varargin{:});
-    else
-        tcprintf('gray', '\n');
-    end
-
+    fprintf(varargin{:});
 end

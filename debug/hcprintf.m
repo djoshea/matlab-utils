@@ -80,7 +80,7 @@ function hcprintf(fmatString, varargin)
     if ~isempty(fmat) && fmat(end) == NEWLINE
         fmat = [fmat(1:end-1) '\x1b[0m\n'];
     else
-        fmat = [fmat '\x1b[0m\n'];
+        fmat = [fmat '\x1b[0m'];
     end
     
     % evaluate the printf style message

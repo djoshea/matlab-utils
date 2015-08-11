@@ -1,12 +1,15 @@
 function hcprintfDemo
 
 [R,C] = getTerminalSize();
-colors = cubehelix(R*C);
+R = R-2;
+bgs = flipud(cubehelix(R*C));
+fgs = repmat(cubehelix(C), R, 1);
 
 pieces = cell(R, C);
 for i = 1:numel(pieces)
-    color = colors(i, :);
-    pieces{i} = sprintf('{;%.4f,%.4f,%.4f} ', color);
+    bg = bgs(i, :);
+    fg = fgs(i, :);
+    pieces{i} = sprintf('{%.4f,%.4f,%.4f;%.4f,%.4f,%.4f}@', fg, bg);
     if mod(i, C) == 0
         pieces{i} = [pieces{i} '\n'];
     end

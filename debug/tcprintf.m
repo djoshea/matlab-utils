@@ -85,7 +85,7 @@ function tcprintf(style, fmatString, varargin)
     stringCell = cell(1, 2*length(formatPairs));
     for iPair = 1:length(formatPairs)
         pair = formatPairs(iPair);
-        codeStr = getCodeStringForStyle(pair.style); 
+        [codeStr, noReset] = getCodeStringForStyle(pair.style); 
         stringCell{2*iPair-1} = makerow(codeStr);
         stringCell{2*iPair} = makerow(pair.text);
     end
@@ -109,11 +109,15 @@ function tcprintf(style, fmatString, varargin)
         endOfLine = '';
     end
             
-    str = [contents '\033[0m' endOfLine];
+    if ~noReset
+        str = [contents '\033[0m' endOfLine];
+    else
+        str = [contents endOfLine];
+    end
     fprintf(str);
 end
 
-function codeStr = getCodeStringForStyle(style)
+function [codeStr, noReset] = getCodeStringForStyle(style)
     if ~isempty(style) && style(1) == '{'
         style = style(2:end);
     end
@@ -126,9 +130,10 @@ function codeStr = getCodeStringForStyle(style)
     if isempty(style) || ismember('none', values)
         % handle return to default
         codes = 0;
+        noReset = false;
 
     else
-        [colorName backColorName bright underline blink] = parseStyleTokens(values);
+        [colorName backColorName bright underline blink noReset] = parseStyleTokens(values);
         colorCodes = getColorCode(colorName, bright);
         if ~isempty(backColorName)
             backColorCode = getBackColorCode(backColorName);
@@ -149,7 +154,7 @@ function codeStr = getCodeStringForStyle(style)
     codeStr = ['\033[', strjoin(codes, ';'), 'm'];
 end
 
-function [colorName backColorName bright underline blink] = parseStyleTokens(values)
+function [colorName backColorName bright underline blink noReset] = parseStyleTokens(values)
     defaultColor = 'default';
     defaultBackColor = '';
 
@@ -169,6 +174,12 @@ function [colorName backColorName bright underline blink] = parseStyleTokens(val
         blink = true;
     else
         blink = false;
+    end
+    
+    if ismember('noReset', values)
+        noReset = true;
+    else
+        noReset = false;
     end
 
     % find foreground color
