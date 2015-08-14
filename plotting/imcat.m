@@ -9,7 +9,7 @@ function imcat(m)
     end
     
     % Now make an RGB image that matches display from IMAGESC:
-    C = colormap;  % Get the figure's colormap.
+    C = get(0, 'DefaultFigureColormap');  % Get the figure's colormap.
     L = size(C,1);
     
     % Scale the matrix to the range of the map.

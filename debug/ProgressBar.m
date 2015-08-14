@@ -35,6 +35,7 @@ classdef ProgressBar < handle
         message
         N
         cols
+        trueColor = false;
         firstUpdate  
         timeStart
         
@@ -50,6 +51,8 @@ classdef ProgressBar < handle
         
         lastNBoxes = 0;
         lastNSpaces = 0;
+        
+        trueCmap;
     end
 
     methods
@@ -69,6 +72,19 @@ classdef ProgressBar < handle
             pbar.usingTerminal = ~usejava('desktop');
             
             [~, pbar.cols] = ProgressBar.getTerminalSize();
+            pbar.trueColor = ~isempty(getenv('ITERM_PROFILE')) && false;
+            
+            if pbar.trueColor
+                hsv = ones(pbar.cols, 3);
+                hsv(:, 1) = 0.5;
+                hsv(:, 2) = 0.6;
+                b = 0.5 * (1+sin((1:pbar.cols) / 8));
+                x = 0.3;
+                b = b*x + 0.95-x;
+                hsv(:, 3) = b;
+                pbar.trueCmap = round(256*hsv2rgb(hsv));
+            end
+            
             pbar.firstUpdate = true;
             pbar.timeStart = now;
             pbar.lastNBoxes = 0;
@@ -194,6 +210,17 @@ classdef ProgressBar < handle
             preStr = str(1:ind);
             postStr = str(ind+1:end);
 
+            % try using 24 color
+            if pbar.trueColor
+                newPreStr = '';
+                for i = 1:numel(preStr)
+                    color = pbar.trueCmap(i, :);
+%                     color = pbar.trueCmap(mod(i-1, size(pbar.trueCmap, 1))+1, :);
+                    newPreStr = [newPreStr, sprintf('\x1b[48;2;%d;%d;%dm%s' , color, preStr(i))];
+                end
+                preStr = newPreStr;
+            end
+            
             try
                 DatabaseAnalysis.pauseOutputLog();
             catch
@@ -207,7 +234,11 @@ classdef ProgressBar < handle
                     if firstUpdate
                         fprintf(' '); % don't delete whole line on first update
                     end
-                    fprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
+                    if pbar.trueColor
+                        fprintf('\b\r%s\033[49;37m%s\033[0m ', preStr, postStr);
+                    else
+                        fprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
+                    end
                 end
             else
                 % figure out number of boxes
