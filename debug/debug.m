@@ -62,5 +62,5 @@ function debug(varargin)
     else
         hcprintf('{5a7d9a}%4d ', caller.line);
     end
-    fprintf(varargin{:});
+    hcprintf(varargin{:});
 end

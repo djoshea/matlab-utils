@@ -1060,7 +1060,7 @@ classdef TensorUtils
                     % 1:scalar as the population rather than just [scalar]
                     list = randsample(list, numel(list), replace);
                 end
-                sNew = TensorUtils.splitListIntoCells(list, TensorUtils.map(@numel, s));
+                sNew = TensorUtils.splitListIntoCells(list, cellfun(@numel, s));
             end
         end
         
@@ -1132,6 +1132,13 @@ classdef TensorUtils
             t = cell2mat(TensorUtils.mapSlicesInPlace(@(slice) mean(slice(:)), dims, t));
         end
         
+        function t = nanmeanMultiDim(t, dims)
+            % e.g. if t has size [s1, s2, s3, s4], then  mean(t, [2 3]) 
+            % will compute the mean in slices along dims 2 and 3. the
+            % result will have size s1 x 1 x 1 x s4
+            t = cell2mat(TensorUtils.mapSlicesInPlace(@(slice) nanmean(slice(:)), dims, t));
+        end
+        
         function t = varMultiDim(t, dims, varargin)
             % e.g. if t has size [s1, s2, s3, s4], then  mean(t, [2 3]) 
             % will compute the mean in slices along dims 2 and 3. the
@@ -1153,16 +1160,17 @@ classdef TensorUtils
             % of the slice and subtracts it. this ensures
             % that the mean of each slice spanning alongDims will be zero
             otherDims = TensorUtils.otherDims(size(t), alongDims);
-            meanTensor =  TensorUtils.meanMultiDim(t, otherDims);
+            meanTensor =  TensorUtils.nanmeanMultiDim(t, otherDims);
             t = bsxfun(@minus, t, meanTensor);
         end
+        
         
         function t = centerSlicesSpanningDimension(t, alongDims)
             % for each subscript in dimension(s) alongDims, computes the mean 
             % along all other dimensions and subtracts it. this ensures
             % that the mean along any slice in alongDims will have zero
             % mean.
-            meanTensor =  TensorUtils.meanMultiDim(t, alongDims);
+            meanTensor =  TensorUtils.nanmeanMultiDim(t, alongDims);
             t = bsxfun(@minus, t, meanTensor);
         end
         
@@ -1171,7 +1179,7 @@ classdef TensorUtils
             % along all other dimensions and subtracts it. this ensures
             % that the mean along any slice in alongDims will have zero
             % mean.
-            t = TensorUtils.centerAlongDimension(t, alongDims);
+            t = TensorUtils.centerSlicesSpanningDimension(t, alongDims);
             stdTensor = TensorUtils.stdMultiDim(t, alongDims);
             t = bsxfun(@rdivide, t, stdTensor);
         end
@@ -1200,11 +1208,18 @@ classdef TensorUtils
             t(mask) = cm(mask);
         end
         
-        function reweightedTensor = linearCombinationAlongDimension(t, dim, weightsNewByOld)
+        function reweightedTensor = linearCombinationAlongDimension(t, dim, weightsNewByOld, varargin)
             % looking along dimension dim, reweight the tensor along that
             % dimension by linearly combining. If dim==1 and the tensor
             % is a matrix, this is equivalent to matrix multiplication,
             % reweightedTensor = weightsNewByOld * t.
+            
+            p = inputParser();
+            p.addParameter('replaceNaNWithZero', false, @islogical); % ignore NaNs by replacing them with zero
+            % on a per-value basis, normalize the conditions by the number of conditions present at that time on the axis
+            % this enables nanmean like computations
+            p.addParameter('normalizeCoeffientsByNumConditions', false, @islogical); 
+            p.parse(varargin{:});
             
             nOld = size(t, dim);
             assert(size(weightsNewByOld, 2) == nOld, 'Size of weight matrix must have nOld==%d columns', nOld);
@@ -1214,15 +1229,29 @@ classdef TensorUtils
             newSz = sz;
             newSz(dim) = nNew;
             
-            % put combination dimension last
+            % put combination dimension first
             pdims = [dim, TensorUtils.otherDims(sz, dim)];
             tp = permute(t, pdims);
             
             % should be nOld x prod(size-t-other-dims)
             tpMat = tp(:, :);
             
+            if p.Results.normalizeCoeffientsByNumConditions
+                % count the number of values in each row
+                nValidMat = sum(~isnan(tpMat), 1);
+            end
+            
+            if p.Results.replaceNaNWithZero
+                tpMat(isnan(tpMat)) = 0;
+            end
+            
             % should be nNew x prod(size-t-other-dims)
             reweightMat = weightsNewByOld * tpMat;
+            
+            if p.Results.normalizeCoeffientsByNumConditions
+                % do the reweighting
+                reweightMat = bsxfun(@rdivide, reweightMat, nValidMat);
+            end
             
             reweightedTensor = ipermute(reshape(reweightMat, newSz(pdims)), pdims);         
         end

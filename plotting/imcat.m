@@ -2,10 +2,17 @@ function imcat(m)
     m = squeeze(m);
     
     % make large enough to see (min dimension should be 500 px)
+    maxPixelSize = 10;
     [r, c] = size(m);
-    resizeBy = round(min(800 / r, 800 / c));
+    
+    if ~ismatrix(m)
+        warning('Showing slice (:, :, 1) of multidimensional matrix');
+        m = m(:, :, 1);
+    end
+    
+    resizeBy = min(maxPixelSize, round(min(800 / r, 800 / c)));
     if resizeBy > 1
-        m = imresize(m, resizeBy, 'nearest');
+        m = kron(m, ones(resizeBy));
     end
     
     % Now make an RGB image that matches display from IMAGESC:
@@ -15,10 +22,14 @@ function imcat(m)
     % Scale the matrix to the range of the map.
     maxM = nanmax(m(:));
     minM = nanmin(m(:));
-    if maxM - minM < eps
-        mc = ones(size(m));
+    if ~isnan(maxM) && ~isnan(minM)
+        if maxM - minM < eps
+            mc = ones(size(m));
+        else
+            mc = round(interp1(linspace(minM,maxM,L),1:L,m));
+        end
     else
-        mc = round(interp1(linspace(minM,maxM,L),1:L,m));
+        mc = m;
     end
     mc(isnan(mc)) = L+1; % specify nan's index into colormap
     C = cat(1, C, [0 0 0]); % make white the nan color
