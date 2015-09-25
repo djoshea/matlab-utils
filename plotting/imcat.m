@@ -1,5 +1,5 @@
 function imcat(m)
-    m = squeeze(m);
+    m = squeeze(double(m));
     
     % make large enough to see (min dimension should be 500 px)
     maxPixelSize = 10;
