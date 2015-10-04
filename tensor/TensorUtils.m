@@ -314,6 +314,7 @@ classdef TensorUtils
         end
         
         function inflated = inflateMaskedTensor(maskedTensor, dims, masks, fillWith)
+            % inflated = inflateMaskedTensor(maskedTensor, dims, masks, fillWith=NaN)
             % takes maskedTensor, which has been formed by slicing some
             % original tensor by selecting with mask along each dimension
             % in dims, and returns the original tensor where the masked out
