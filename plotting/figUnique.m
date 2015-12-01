@@ -1,5 +1,5 @@
 function figh = figUnique(varargin)
-
+% figh = figUnique(name, [height width])
 p = inputParser();
 p.addOptional('name', '', @ischar);
 p.addOptional('size', [15 15], @isvector);
