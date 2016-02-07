@@ -1,7 +1,7 @@
-function r = nanmaxNanEmpty(v)
-    if ~isempty(v)
-        r = nanmax(v);
+function r = nanmaxNanEmpty(v1)
+    if isempty(v1)
+        r = NaN;
     else
-        r = NaN; 
+        r = nanmax(v1);
     end
 end

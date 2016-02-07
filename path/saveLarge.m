@@ -35,29 +35,28 @@ for i = 1:length(varnames)
     end
 end
 
-if(totalBytes > 1.99e9)
-    % use version 7.3 when bigger than 2 GB
-    try
-        cmd = sprintf('save(''%s'', ''-v7.3'', %s %s)', fname, flags, varString);
-        saveV6 = false;
-    catch
-        saveV6 = true;
-    end
-else
-    saveV6 = true;
-end
+success = false;
 
-if saveV6
+if(totalBytes < 1.99e9)
     % else use v6 as it's uncompressed and faster
     cmd = sprintf('save(''%s'', ''-v6'', %s %s)', fname, flags, varString);
+    
+    try
+        evalin('caller', cmd);
+        success = true;
+    catch
+        success = false;
+    end
 end
 
-try
-	evalin('caller', cmd);
-catch exc
-	fprintf('\n');
-	fprintf('ERROR saving %s to disk\n', fname)
-	fprintf('Message: %s', exc.message);
+if ~success
+    % use version 7.3 when bigger than 2 GB or if v6 fails
+    try
+        cmd = sprintf('save(''%s'', ''-v7.3'', %s %s)', fname, flags, varString);
+        evalin('caller', cmd);
+    catch
+        error('Could not save %s to disk using v6 or v7.3\n', fname)
+    end
 end
 
 % grant group write access

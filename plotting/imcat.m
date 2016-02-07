@@ -1,4 +1,4 @@
-function imcat(m)
+function imcat(m, C)
     m = squeeze(double(m));
     
     % make large enough to see (min dimension should be 500 px)
@@ -15,8 +15,10 @@ function imcat(m)
         m = kron(m, ones(resizeBy));
     end
     
-    % Now make an RGB image that matches display from IMAGESC:
-    C = get(0, 'DefaultFigureColormap');  % Get the figure's colormap.
+    if nargin < 2
+        % Now make an RGB image that matches display from IMAGESC:
+        C = get(0, 'DefaultFigureColormap');  % Get the figure's colormap.
+    end
     L = size(C,1);
     
     % Scale the matrix to the range of the map.

@@ -1,7 +1,7 @@
 try
-    dbclear if error
-    dbquit all
-    evalin('base', 'dbquit all');
+    evalin('caller', 'dbquit all');
+%     evalin('base', 'dbquit all');
 catch e
     disp('Couldn''t debug quit');
+    disp(e)
 end

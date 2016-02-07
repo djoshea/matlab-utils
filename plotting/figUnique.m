@@ -2,7 +2,8 @@ function figh = figUnique(varargin)
 % figh = figUnique(name, [height width])
 p = inputParser();
 p.addOptional('name', '', @ischar);
-p.addOptional('size', [15 15], @isvector);
+p.addOptional('size', [15 15], @(x) ~ischar(x) && isvector(x));
+p.addParameter('undock', false, @islogical);
 p.parse(varargin{:});
 
 stack = dbstack();
@@ -23,6 +24,10 @@ hashVec = DataHash(hashInput, struct('Method', 'MD5', 'Format', 'uint8'));
 hash = dot(double(hashVec), 2.^(0:numel(hashVec)-1));
 
 figh = figure(hash);
+
+if p.Results.undock
+    set(figh, 'WindowStyle', 'normal');
+end
 
 clf(figh);
 

@@ -16,11 +16,14 @@ function str = strjoin(strCell, join)
             % convert numeric vectors to strings
             strCell = arrayfun(@num2str, strCell, 'UniformOutput', false);
         elseif iscell(strCell)
-            strCell = cellfun(@num2str, strCell, 'UniformOutput', false);
+            for i = 1:numel(strCell)
+                if isnumeric(strCell{i})
+                    strCell{i} = num2str(strCell{i});
+                end
+                assert(ischar(strCell{i}), 'Contents of strCell must be strings');
+            end
         end
         
-        strCell = cellfun(@num2str, strCell, 'UniformOutput', false);
-
         str = cellfun(@(str) [str join], strCell, ...
             'UniformOutput', false);
         str = [str{:}]; 

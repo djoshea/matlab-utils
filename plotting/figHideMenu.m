@@ -4,4 +4,5 @@ function figHideMenu(figh)
     end
    
     set(figh, 'MenuBar', 'none');
+    set(figh, 'ToolBar', 'none');
 end

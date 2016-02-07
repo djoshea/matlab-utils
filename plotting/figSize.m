@@ -40,7 +40,7 @@ else
 end
 
 % undock figure
-set(figh, 'WindowStyle', 'normal');
+% set(figh, 'WindowStyle', 'normal');
 drawnow;
 
 set(figh, 'PaperUnits' ,'centimeters');
