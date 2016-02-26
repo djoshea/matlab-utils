@@ -25,7 +25,7 @@ function imcat(m, C)
     maxM = nanmax(m(:));
     minM = nanmin(m(:));
     if ~isnan(maxM) && ~isnan(minM)
-        if maxM - minM < eps
+        if maxM - minM <= 2*eps
             mc = ones(size(m));
         else
             mc = round(interp1(linspace(minM,maxM,L),1:L,m));

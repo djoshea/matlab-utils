@@ -11,6 +11,8 @@ function str = strjoin(strCell, join)
 
     if isempty(strCell)
         str = '';
+    elseif ischar(strCell)
+        str = strCell;
     else
         if isnumeric(strCell) || islogical(strCell)
             % convert numeric vectors to strings
