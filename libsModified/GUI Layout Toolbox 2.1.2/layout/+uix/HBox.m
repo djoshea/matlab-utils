@@ -132,7 +132,8 @@ classdef HBox < uix.Box
                 xPositions(:,2), yPositions(:,2)];
             
             % Set positions
-            children = obj.Contents_;
+%             children = obj.Contents_;
+            children = obj.Children;
             for ii = 1:numel( children )
                 child = children(ii);
                 child.Units = 'pixels';

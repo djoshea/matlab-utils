@@ -39,6 +39,7 @@ function rc(varargin)
    if p.Results.run
         btnRunCell = findjobj(jEditor, 'nomenu', 'class', 'com.mathworks.toolstrip.components.TSButton', ...
         '-property', {'ActionCommand', 'eval-cell'});
+        btnRunCell.Enabled = true;
         javaMethodEDT('doClick', btnRunCell);
     end
 
