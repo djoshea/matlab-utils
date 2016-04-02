@@ -2,7 +2,7 @@ function figh = figUnique(varargin)
 % figh = figUnique(name, [height width])
 p = inputParser();
 p.addOptional('name', '', @ischar);
-p.addOptional('size', [15 15], @(x) ~ischar(x) && isvector(x));
+p.addOptional('size', [15 15], @(x) ~ischar(x) && isvector(x)); % [w h]
 p.addParameter('undock', false, @islogical);
 p.parse(varargin{:});
 
@@ -44,7 +44,7 @@ size = p.Results.size;
 if isscalar(size)
     size = [size size];
 end
-figSize(figh, size(1), size(2));
+figSize(size, figh);
 
 hold on;
 if ~blankTitle
