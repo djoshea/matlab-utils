@@ -46,13 +46,13 @@ function resizeFig(figName, wStr, hStr, varargin)
      if isempty(p.Results.as)
         if isempty(hStr)
             % generate name__w#.pdf'
-            newName = sprintf('%s_w%.f.pdf', name, roundTo(wStr, 3));
+            newName = sprintf('%s_w%g.pdf', name, roundTo(wStr, 3));
         elseif isempty(wStr)
             % generate name__h#.pdf'
-            newName = sprintf('%s_h%.f.pdf', name, roundTo(hStr, 3));
+            newName = sprintf('%s_h%g.pdf', name, roundTo(hStr, 3));
         else
             % generate name__h#.w#.pdf
-            newName = sprintf('%s_w%.f_h%.f.pdf', name, roundTo(wStr, 3), roundTo(hStr, 3));
+            newName = sprintf('%s_w%g_h%g.pdf', name, roundTo(wStr, 3), roundTo(hStr, 3));
         end
         newLoc = loc;
      else
@@ -75,6 +75,8 @@ function resizeFig(figName, wStr, hStr, varargin)
     
     s = fullfile(newLoc, newName);
     
+    pause(0.1);
+    drawnow;
     saveFigureAuto(s, gcf);
 end
 

@@ -11,14 +11,17 @@ if nargin < 3
     undock = false;
 end
     
+set(figh, 'PaperUnits' ,'centimeters');
+set(figh, 'Units', 'centimeters');
+figPos = get(figh,'Position');
+sz = [figPos(3), figPos(4)];
+
 % return current figsize as [w h] in cm
 if nargin == 0
-    set(figh, 'PaperUnits' ,'centimeters');
-    set(figh, 'Units', 'centimeters');
-    figPos = get(figh,'Position');
-    sz = [figPos(3), figPos(4)];
     return;
 end
+
+assert(numel(newSize) == 2, 'New size must be [width height] vector');
 
 % undock figure
 if undock
@@ -26,6 +29,22 @@ if undock
 end
 drawnow;
 
+if any(isnan(newSize))
+    % set other dimension to preserve aspect ratio
+    if all(isnan(newSize))
+        error('Must specify at least one of width or height');
+    end
+    
+    aspectHOverW = sz(2) / sz(1);
+    
+    if isnan(newSize(1))
+        % compute width
+        newSize(1) = newSize(2) / aspectHOverW;
+    else
+        newSize(2) = newSize(1) * aspectHOverW;
+    end
+end
+        
 set(figh, 'PaperUnits' ,'centimeters');
 set(figh, 'Units', 'centimeters');
 figPos = get(figh,'Position');

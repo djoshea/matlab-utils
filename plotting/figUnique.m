@@ -4,16 +4,17 @@ p = inputParser();
 p.addOptional('name', '', @ischar);
 p.addOptional('size', [15 15], @(x) ~ischar(x) && isvector(x)); % [w h]
 p.addParameter('undock', false, @islogical);
+p.addParameter('setTitle', true, @islogical);
 p.parse(varargin{:});
 
 stack = dbstack();
-stack = rmfield(stack, 'file');
+stack = rmfield(stack, {'file', 'line'});
 if numel(stack) == 1
     % likely in cell mode, use desktop trickery to figure out where the
     % line is executing from
     doc = matlab.desktop.editor.getActive();
     [~, stack(2).name] = fileparts(doc.Filename);
-    stack(2).line = doc.Selection(1);
+%     stack(2).line = doc.Selection(1);
 end
 
 hashInput.name = p.Results.name;
@@ -47,7 +48,7 @@ end
 figSize(size, figh);
 
 hold on;
-if ~blankTitle
+if ~blankTitle && p.Results.setTitle
     t = title(name);
     set(t, 'FontWeight', 'bold', 'Interpreter', 'none');
 end
