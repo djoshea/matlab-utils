@@ -39,6 +39,8 @@ classdef ProgressBar < handle
         firstUpdate  
         timeStart
         
+        lastCalled
+        
         usingTerminal
 
         % enable for parallel for loops? see .enableParallel / disableParallel
@@ -53,6 +55,12 @@ classdef ProgressBar < handle
         lastNSpaces = 0;
         
         trueCmap;
+        
+        textprogressStrCR = '';
+    end
+    
+    properties(Constant)
+        minInterval = 0.1; % seconds
     end
 
     methods
@@ -86,7 +94,7 @@ classdef ProgressBar < handle
             end
             
             pbar.firstUpdate = true;
-            pbar.timeStart = now;
+            pbar.timeStart = clock;
             pbar.lastNBoxes = 0;
             pbar.lastNSpaces = 0;
             pbar.update(0);
@@ -133,31 +141,33 @@ classdef ProgressBar < handle
         
         function update(pbar, n, message, varargin)
             if nargin > 2
-                newMessage = true;
+%                 newMessage = true;
                 pbar.message = sprintf(message, varargin{:});
             else
-                newMessage = false;
-            end
-            
-            if pbar.firstUpdate
-                newMessage = true;
-                firstUpdate = true;
-                pbar.firstUpdate = false;
-            else
-                firstUpdate = false;
-            end
-            
-            if pbar.N > 0
-                numWidth = ceil(log10(pbar.N));
-            else
-                numWidth = 1;
+%                 newMessage = false;
             end
 
             if pbar.parallel
                 n = pbar.updateParallel(n);
                 if isempty(n)
+                    pbar.firstUpdate = false;
                     return;
                 end
+            end
+            
+            % don't run too often
+            if isempty(pbar.lastCalled)
+                pbar.lastCalled = clock;
+            elseif etime(clock, pbar.lastCalled) < pbar.minInterval
+                return;
+            end
+            
+            pbar.lastCalled = clock;
+            
+            if pbar.N > 0
+                numWidth = ceil(log10(pbar.N));
+            else
+                numWidth = 1;
             end
             
             if n < 0
@@ -231,7 +241,7 @@ classdef ProgressBar < handle
                 if pbar.parallel
                     fprintf('\033[1A\033[1;44;37m %s\033[49;37m%s\033[0m \n', preStr, postStr);
                 else
-                    if firstUpdate
+                    if pbar.firstUpdate
                         fprintf(' '); % don't delete whole line on first update
                     end
                     if pbar.trueColor
@@ -241,44 +251,46 @@ classdef ProgressBar < handle
                     end
                 end
             else
-                % figure out number of boxes
-                boxChar = char(9608);
-                nTotal = pbar.cols - 4;
-                idealBoxCount = ratio*(nTotal-numel(progStr)-2);
-                nBoxes = floor(idealBoxCount);
-                
-                nBoxesLast = pbar.lastNBoxes;
-                newBoxes = nBoxes - nBoxesLast;
-                nSpaces = nTotal-nBoxes;
-                boxes = repmat(boxChar, 1, newBoxes);
-                
-                fracLast = idealBoxCount - nBoxes;
-                fractionalBox = ProgressBar.getFractionalBlockChar(fracLast);
-                
-                empty = blanks(nSpaces);
-                empty((end-numel(progStr)+1):end) = progStr;
-                
-                % clear old lines
-                if ~firstUpdate
-                    if newMessage
-                        backspaces = repmat('\b', 1, pbar.lastNSpaces + pbar.lastNBoxes + 1 + pbar.cols - 1);
-                    else
-                        % no need to update message, clear only the number
-                        % of boxes required
-                        backspaces = repmat('\b', 1, pbar.lastNSpaces + 1);
-                    end
-                    fprintf(backspaces);
-                end
-                
-                pbar.lastNBoxes = nBoxes;
-                pbar.lastNSpaces = nSpaces;
-                
-                
-                if newMessage
-                    fprintf('%s%s\n', preStr, postStr);
-                end
-                
-                fprintf('%s%c%s', boxes, fractionalBox, empty);
+                pbar.textprogressbar(ratio);
+               
+%                 % figure out number of boxes
+%                 boxChar = char(9608);
+%                 nTotal = pbar.cols - 4;
+%                 idealBoxCount = ratio*(nTotal-numel(progStr)-2);
+%                 nBoxes = floor(idealBoxCount);
+%                 
+%                 nBoxesLast = pbar.lastNBoxes;
+%                 newBoxes = nBoxes - nBoxesLast;
+%                 nSpaces = nTotal-nBoxes;
+%                 boxes = repmat(boxChar, 1, newBoxes);
+%                 
+%                 fracLast = idealBoxCount - nBoxes;
+%                 fractionalBox = ProgressBar.getFractionalBlockChar(fracLast);
+%                 
+%                 empty = blanks(nSpaces);
+%                 empty((end-numel(progStr)+1):end) = progStr;
+%                 
+%                 % clear old lines
+%                 if ~firstUpdate
+%                     if newMessage
+%                         backspaces = repmat('\b', 1, pbar.lastNSpaces + pbar.lastNBoxes + 1 + pbar.cols - 1);
+%                     else
+%                         % no need to update message, clear only the number
+%                         % of boxes required
+%                         backspaces = repmat('\b', 1, pbar.lastNSpaces + 1);
+%                     end
+%                     fprintf(backspaces);
+%                 end
+%                 
+%                 pbar.lastNBoxes = nBoxes;
+%                 pbar.lastNSpaces = nSpaces;
+%                 
+%                 
+%                 if newMessage
+%                     fprintf('%s%s\n', preStr, postStr);
+%                 end
+%                 
+%                 fprintf('%s%c%s', boxes, fractionalBox, empty);
                 
             end
             
@@ -286,6 +298,9 @@ classdef ProgressBar < handle
                 DatabaseAnalysis.resumeOutputLog();
             catch
             end
+            
+            pbar.firstUpdate = false;
+            
             %str = sprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
             %disp(str);
             
@@ -313,8 +328,10 @@ classdef ProgressBar < handle
                     fprintf('\b\r%s\033[0m\r', spaces);
                 end
             else
-                backspaces = repmat('\b', 1, pbar.lastNSpaces + pbar.lastNBoxes + 1 + pbar.cols - 1);
-                fprintf(backspaces);
+%                 backspaces = repmat('\b', 1, pbar.lastNSpaces + pbar.lastNBoxes + 1 + pbar.cols - 1);
+%                 fprintf(backspaces);
+                pbar.textprogressbar(1);
+                fprintf('\n');
             end
             if nargin > 1
                 pbar.message = sprintf(message, varargin{:});
@@ -331,6 +348,48 @@ classdef ProgressBar < handle
                 DatabaseAnalysis.resumeOutputLog();
             catch
             end
+        end
+        
+        function textprogressbar(pbar, c)
+            %
+            % Original Author: Paul Proteus (e-mail: proteus.paul (at) yahoo (dot) com)
+            % Version: 1.0
+            % Changes tracker:  29.06.2010  - First version
+            %
+            % Inspired by: http://blogs.mathworks.com/loren/2007/08/01/monitoring-progress-of-a-calculation/
+            %
+            % Modified by Dan O'Shea
+
+            %% Initialization
+            
+            strPercentageLength = 9;   %   Length of percentage string (must be >5)
+            strDotsMaximum      = 15;   %   The total number of dots in a progress bar
+            
+            if pbar.firstUpdate
+                fprintf('%s : ', pbar.message);
+                pbar.textprogressStrCR = -1;
+            end
+            
+            c = round(c*100, 1);
+
+            percentageOut = [num2str(c) '%%'];
+            percentageOut = [repmat(' ',1,strPercentageLength-length(percentageOut)-1) percentageOut ' '];
+            nDots = floor(c/100*strDotsMaximum);
+            dotOut = ['[' repmat('_',1,nDots) repmat(' ',1,strDotsMaximum-nDots) ']   '];
+            strOut = [percentageOut dotOut];
+
+            % Print it on the screen
+            if pbar.textprogressStrCR == -1,
+                % Don't do carriage return during first run
+                fprintf(strOut);
+            else
+                % Do it during all the other runs
+                fprintf([pbar.textprogressStrCR strOut]);
+            end
+
+            % Update carriage return
+            pbar.textprogressStrCR = repmat('\b',1,length(strOut)-1);
+
         end
     end
 
@@ -440,5 +499,7 @@ classdef ProgressBar < handle
                 ch = char(9614 - floor(frac / 0.125));
             end
         end
+        
+        
     end
 end
