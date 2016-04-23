@@ -24,7 +24,12 @@ hashInput.stack = stack;
 hashVec = DataHash(hashInput, struct('Method', 'MD5', 'Format', 'uint8'));
 hash = dot(double(hashVec), 2.^(0:numel(hashVec)-1));
 
-figh = figure(hash);
+if ishandle(hash)
+    set(0, 'CurrentFigure', hash);
+    figh = gcf;
+else
+    figh = figure(hash);
+end
 
 if p.Results.undock
     set(figh, 'WindowStyle', 'normal');

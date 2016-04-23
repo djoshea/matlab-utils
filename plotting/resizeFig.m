@@ -77,7 +77,7 @@ function resizeFig(figName, wStr, hStr, varargin)
     
     pause(0.1);
     drawnow;
-    saveFigureAuto(s, gcf);
+    saveFigure(s, gcf);
 end
 
 function cm = convertToCm(num)

@@ -35,8 +35,9 @@ p.parse(args{:});
 
 cmap = p.Results.colormap;
 set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);
-
+hold on;
 h = plot(tvec, xr, p.Unmatched);
 for iH = 1:numel(h)
     h(iH).Color(4) = p.Results.alpha;
 end
+hold off;
