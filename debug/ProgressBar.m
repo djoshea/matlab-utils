@@ -33,6 +33,7 @@ classdef ProgressBar < handle
 
     properties(SetAccess=protected)
         message
+        n = 0; % last value
         N
         cols
         trueColor = false;
@@ -139,6 +140,10 @@ classdef ProgressBar < handle
             end
         end
         
+        function increment(pbar, message, varargin)
+            pbar.update(pbar.n+1);
+        end
+        
         function update(pbar, n, message, varargin)
             if nargin > 2
 %                 newMessage = true;
@@ -146,6 +151,7 @@ classdef ProgressBar < handle
             else
 %                 newMessage = false;
             end
+            pbar.n = n; % store last update
 
             if pbar.parallel
                 n = pbar.updateParallel(n);
