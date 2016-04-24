@@ -1,0 +1,29 @@
+%set(0, 'ScreenPixelsPerInch', 147);
+set(0, 'DefaultAxesFontName', 'Source Sans Pro');
+set(0, 'DefaultAxesFontSize', 8/1.1);
+set(0, 'DefaultTextFontName', 'Source Sans Pro');
+set(0, 'DefaultTextFontSize', 8/1.1);
+set(0, 'DefaultFigureColor', 'w');
+set(0, 'DefaultAxesLabelFontSizeMultiplier', 1.1);
+set(0, 'DefaultAxesTitleFontSizeMultiplier', 1.1);
+
+set(0, 'DefaultFigureWindowStyle', 'docked');
+
+set(0, 'DefaultHistogramEdgeColor', 'none')
+
+
+set(groot, 'defaultUicontainerBackgroundColor', [1 1 1]);
+set(groot, 'defaultHgjavacomponentBackgroundColor', [1 1 1]);
+set(groot, 'defaultTextBackgroundColor', [1 1 1]);
+set(groot,     'defaultTextarrowshapeTextBackgroundColor', [1 1 1]);
+set(groot,     'defaultTextboxshapeBackgroundColor', [1 1 1]);
+set(groot,     'defaultUibuttongroupBackgroundColor', [1 1 1]);
+set(groot,     'defaultUicontainerBackgroundColor', [1 1 1]);
+set(groot,     'defaultUicontrolBackgroundColor', [1 1 1]);
+set(groot,     'defaultUiflowcontainerBackgroundColor', [1 1 1]);
+set(groot,     'defaultUigridcontainerBackgroundColor', [1 1 1]);
+set(groot,     'defaultUipanelBackgroundColor', [1 1 1]);
+set(groot,     'defaultUitabBackgroundColor', [1 1 1]);
+set(groot,     'defaultUitableBackgroundColor', [1 1 1]);
+
+set(groot, 'DefaultFigureColormap', pmkmp(255, 'CubicL'));
