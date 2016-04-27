@@ -48,7 +48,7 @@ classdef ProgressBar < handle
         parallel = false;
         fnamePrefix
         
-        objWorker
+%         objWorker
         
         nCompleteByWorker
         
@@ -66,13 +66,13 @@ classdef ProgressBar < handle
 
     methods
         function pbar = ProgressBar(N, message, varargin)
-            if nargin > 1
+            if nargin >= 2
                 pbar.message = sprintf(message, varargin{:});
             else
                 pbar.message = '';
             end
             
-            if nargin >= 2
+            if nargin >= 1
                 pbar.N = N;
             else
                 pbar.N = 1;
@@ -109,11 +109,12 @@ classdef ProgressBar < handle
             catch
             end
             
-            pbar.objWorker = WorkerObjWrapper(@labindex, {});
+%             pbar.objWorker = WorkerObjWrapper(@labindex, {});
         end
 
         function n = updateParallel(pbar, n)           
-            id = pbar.objWorker.Value;
+%             id = pbar.objWorker.Value;
+            id = labindex;
             if ~isscalar(id)
                 % not running in parallel mode
                 % n = n;
@@ -145,6 +146,10 @@ classdef ProgressBar < handle
         end
         
         function update(pbar, n, message, varargin)
+            if ~isempty(getCurrentTask()) && ~pbar.parallel
+                return; % print nothing inside parfor loop if I'm not the main progress bar
+            end
+            
             if nargin > 2
 %                 newMessage = true;
                 pbar.message = sprintf(message, varargin{:});
@@ -159,6 +164,10 @@ classdef ProgressBar < handle
                     pbar.firstUpdate = false;
                     return;
                 end
+            end
+            
+            if labindex > 1
+                return;
             end
             
             % don't run too often
@@ -237,9 +246,11 @@ classdef ProgressBar < handle
                 preStr = newPreStr;
             end
             
-            try
-                DatabaseAnalysis.pauseOutputLog();
-            catch
+            if isempty(getCurrentTask())
+                try
+                    DatabaseAnalysis.pauseOutputLog();
+                catch
+                end
             end
             
 %            disp(n)
@@ -253,7 +264,7 @@ classdef ProgressBar < handle
                     if pbar.trueColor
                         fprintf('\b\r%s\033[49;37m%s\033[0m ', preStr, postStr);
                     else
-                        fprintf('\b\r\033[1;44;37m %s\033[49;37m%s\033[0m ', preStr, postStr);
+                        fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m  ', preStr, postStr);
                     end
                 end
             else
@@ -300,9 +311,11 @@ classdef ProgressBar < handle
                 
             end
             
-            try
-                DatabaseAnalysis.resumeOutputLog();
-            catch
+            if isempty(getCurrentTask())
+                try
+                    DatabaseAnalysis.resumeOutputLog();
+                catch
+                end
             end
             
             pbar.firstUpdate = false;
@@ -321,9 +334,15 @@ classdef ProgressBar < handle
             %spaces = repmat(' ' , 1, gap);
             %fprintf('\b\r%s%s\033[0m\n', pbar.message, spaces);
 
-            try
-                DatabaseAnalysis.pauseOutputLog();
-            catch
+            if ~isempty(getCurrentTask()) && ~pbar.parallel
+                return; % print nothing inside parfor loop if I'm not the main progress bar
+            end
+            
+            if isempty(getCurrentTask())
+                try
+                    DatabaseAnalysis.pauseOutputLog();
+                catch
+                end
             end
             
             if pbar.usingTerminal
@@ -331,11 +350,17 @@ classdef ProgressBar < handle
                 if pbar.parallel
                     fprintf('\033[1A%s\033[0m\r', spaces);
                 else
-                    fprintf('\b\r%s\033[0m\r', spaces);
+                    %spaces = repmat(' ', 1, pbar.cols-10);
+                    %fprintf('\033[2K\033[0m\r');
+                 
+                    % working on mac os
+%                     fprintf('\b\r%s\033[0m\r', spaces);
+                    fprintf('\033[1Acll\033[2K\r');
+%                     pause(1);
                 end
             else
 %                 backspaces = repmat('\b', 1, pbar.lastNSpaces + pbar.lastNBoxes + 1 + pbar.cols - 1);
-%                 fprintf(backspaces);
+%                 fprintf(backspaces
                 pbar.textprogressbar(1);
                 fprintf('\n');
             end
@@ -350,9 +375,11 @@ classdef ProgressBar < handle
             
             pbar.cleanupParallel();
             
-            try
-                DatabaseAnalysis.resumeOutputLog();
-            catch
+            if ~isempty(getCurrentTask())
+                try
+                    DatabaseAnalysis.resumeOutputLog();
+                catch
+                end
             end
         end
         
@@ -467,14 +494,14 @@ classdef ProgressBar < handle
                 [~, r] = unix(cmd);
                 num = sscanf(r, '%d');
                 if ~isempty(num)
-                    rows = num;
+                    rows = num(end);
                 end
 
                 cmd = 'tput cols';
                 [~, r] = unix(cmd);
                 num = sscanf(r, '%d');
                 if ~isempty(num)
-                    cols = num;
+                    cols = num(end);
                 end
 
             elseif ~usingTerminal %#ok<*PROP
