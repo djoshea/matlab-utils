@@ -64,6 +64,7 @@ function vim(varargin)
         
         if length(list) < server
             fprintf('Server index out of range. Server list is:\n');
+            pLastServer = [];
             getVimServerList(true);
             return;
         end
@@ -73,6 +74,7 @@ function vim(varargin)
         if ~ismember(server, list)
             fprintf('Server %s not found in list:\n', server);
             getVimServerList(true, pLastServer);
+            pLastServer = [];
             return;
         end
     end 
