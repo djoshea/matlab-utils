@@ -12,6 +12,8 @@ def.lineWidth = 2;
 def.color = 'k';
 def.axh = [];
 def.showMedian = false;
+def.showPValue = false;
+def.xUnits = '';
 def.showPercentile = false;
 def.arrowAt = [];
 def.arrowColor = 'k';
@@ -98,8 +100,22 @@ if showMedian
         drawArrow([m m], arrowY, 'Color', color);
     end
     
-    text(m, yl(2), sprintf(' %.3g, p = %.3g', m, p), 'VerticalA', 'top',...
-        'HorizontalA', 'left', 'Color', color);
+    if isempty(xUnits)
+        xUnitsStr = '';
+    else
+        xUnitsStr = [' (' xUnits ')'];
+    end
+    if showPValue
+        pStr =  getPValueStr(p);
+        if ~isempty(pStr)
+            pStr = [', ' pStr];
+        end
+        text(m, yl(2), sprintf(' %.3g%s%s', m, xUnitsStr, pStr), 'VerticalA', 'top',...
+            'HorizontalA', 'left', 'Color', color);
+    else
+        text(m, yl(2), sprintf(' %.3g%s', m, xUnitsStr), 'VerticalA', 'top',...
+            'HorizontalA', 'left', 'Color', color);
+    end
 end
 
 if showPercentile ~= false && ~isempty(removenan(vals))
@@ -157,8 +173,20 @@ end
 
 hold off
 
+end
 
-
-
-
-
+function s = getPValueStr(p)
+    if p < 0.0001
+        s = 'p < 0.0001';
+    elseif p < 0.001
+        s = 'p < 0.001';
+    elseif p < 0.01
+        s = 'p < 0.01';
+    elseif p < 0.05 
+        s = 'p < 0.05';
+    else
+        s = '';
+    end
+%         s = sprintf('p > 0.05 [%.3f]', p);
+%     end
+end

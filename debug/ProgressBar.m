@@ -246,12 +246,12 @@ classdef ProgressBar < handle
                 preStr = newPreStr;
             end
             
-            if isempty(getCurrentTask())
+%             if isempty(getCurrentTask())
                 try
                     DatabaseAnalysis.pauseOutputLog();
                 catch
                 end
-            end
+%             end
             
 %            disp(n)
             if pbar.usingTerminal
@@ -311,12 +311,12 @@ classdef ProgressBar < handle
                 
             end
             
-            if isempty(getCurrentTask())
+%             if isempty(getCurrentTask())
                 try
                     DatabaseAnalysis.resumeOutputLog();
                 catch
                 end
-            end
+%             end
             
             pbar.firstUpdate = false;
             
@@ -338,12 +338,12 @@ classdef ProgressBar < handle
                 return; % print nothing inside parfor loop if I'm not the main progress bar
             end
             
-            if isempty(getCurrentTask())
+%             if isempty(getCurrentTask())
                 try
                     DatabaseAnalysis.pauseOutputLog();
                 catch
                 end
-            end
+%             end
             
             if pbar.usingTerminal
                 spaces = repmat(' ', 1, pbar.cols-1);
@@ -375,12 +375,12 @@ classdef ProgressBar < handle
             
             pbar.cleanupParallel();
             
-            if ~isempty(getCurrentTask())
+%             if ~isempty(getCurrentTask())
                 try
                     DatabaseAnalysis.resumeOutputLog();
                 catch
                 end
-            end
+%             end
         end
         
         function textprogressbar(pbar, c)

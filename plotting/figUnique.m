@@ -7,14 +7,15 @@ p.addParameter('undock', false, @islogical);
 p.addParameter('setTitle', true, @islogical);
 p.parse(varargin{:});
 
-stack = dbstack();
-stack = rmfield(stack, {'file', 'line'});
+stackFull = dbstack();
+stack = rmfield(stackFull, {'file', 'line'});
 if numel(stack) == 1
     % likely in cell mode, use desktop trickery to figure out where the
     % line is executing from
     doc = matlab.desktop.editor.getActive();
     [~, stack(2).name] = fileparts(doc.Filename);
-%     stack(2).line = doc.Selection(1);
+    stackFull(2).name = stack(2).name;
+    stackFull(2).line = doc.Selection(1);
 end
 
 hashInput.name = p.Results.name;
@@ -39,7 +40,7 @@ clf(figh);
 
 name = p.Results.name;
 if isempty(name)
-    name = sprintf('%s:%d', stack(2).name, stack(2).line);
+    name = sprintf('%s:%d', stack(2).name, stackFull(2).line);
     blankTitle = true;
 else
     blankTitle = false;
