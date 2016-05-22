@@ -1,6 +1,8 @@
 function mkdirRecursive(dirPath, cdTo)
 % like mkdir -p : creates intermediate directories as required
 
+s = warning('off', 'MATLAB:MKDIR:DirectoryExists');
+
 if exist(dirPath, 'dir')
     if nargin >= 2 && cdTo
         cd(dirPath);
@@ -12,9 +14,7 @@ else
         mkdirRecursive(parent);
     end
 
-    s = warning('off', 'MATLAB:MKDIR:DirectoryExists');
     mkdir(dirPath);
-    warning(s);
 end
 
 if nargin < 2
@@ -23,3 +23,5 @@ end
 if cdTo
     cd(dirPath);
 end
+warning(s);
+
