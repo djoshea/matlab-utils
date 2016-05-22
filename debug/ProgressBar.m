@@ -146,9 +146,9 @@ classdef ProgressBar < handle
         end
         
         function update(pbar, n, message, varargin)
-            if ~isempty(getCurrentTask()) && ~pbar.parallel
-                return; % print nothing inside parfor loop if I'm not the main progress bar
-            end
+%             if ~isempty(getCurrentTask()) && ~pbar.parallel
+%                 return; % print nothing inside parfor loop if I'm not the main progress bar
+%             end
             
             if nargin > 2
 %                 newMessage = true;
@@ -334,10 +334,10 @@ classdef ProgressBar < handle
             %spaces = repmat(' ' , 1, gap);
             %fprintf('\b\r%s%s\033[0m\n', pbar.message, spaces);
 
-            if ~isempty(getCurrentTask()) && ~pbar.parallel
-                return; % print nothing inside parfor loop if I'm not the main progress bar
-            end
-            
+%             if ~isempty(getCurrentTask()) && ~pbar.parallel
+%                 return; % print nothing inside parfor loop if I'm not the main progress bar
+%             end
+%             
 %             if isempty(getCurrentTask())
                 try
                     DatabaseAnalysis.pauseOutputLog();

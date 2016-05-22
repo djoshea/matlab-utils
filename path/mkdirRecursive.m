@@ -11,7 +11,10 @@ else
     if ~isempty(parent)
         mkdirRecursive(parent);
     end
+
+    s = warning('off', 'MATLAB:MKDIR:DirectoryExists');
     mkdir(dirPath);
+    warning(s);
 end
 
 if nargin < 2
