@@ -4,6 +4,9 @@ function success = makeSymLink(src, link)
     src = resolveSymLink(GetFullPath(src));
     link = GetFullPath(link);
     mkdirRecursive(fileparts(link));
+    if exist(link, 'file');
+        delete(link);
+    end
     cmd = sprintf('ln -s "%s" "%s"', src, link);
     [status, output] = unix(cmd);
     

@@ -146,7 +146,7 @@ classdef ProgressBar < handle
         end
         
         function update(pbar, n, message, varargin)
-            if ~isempty(getCurrentTask()) && ~pbar.parallel
+            if feature('isdmlworker') && ~pbar.parallel
                 return; % print nothing inside parfor loop if I'm not the main progress bar
             end
             
@@ -164,10 +164,6 @@ classdef ProgressBar < handle
                     pbar.firstUpdate = false;
                     return;
                 end
-            end
-            
-            if labindex > 1
-                return;
             end
             
             % don't run too often
@@ -334,7 +330,7 @@ classdef ProgressBar < handle
             %spaces = repmat(' ' , 1, gap);
             %fprintf('\b\r%s%s\033[0m\n', pbar.message, spaces);
 
-            if ~isempty(getCurrentTask()) && ~pbar.parallel
+            if feature('isdmlworker') && ~pbar.parallel
                 return; % print nothing inside parfor loop if I'm not the main progress bar
             end
             
