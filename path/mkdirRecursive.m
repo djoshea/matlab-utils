@@ -13,6 +13,7 @@ else
     if ~isempty(parent)
         mkdirRecursive(parent);
     end
+
     mkdir(dirPath);
 end
 
@@ -22,5 +23,5 @@ end
 if cdTo
     cd(dirPath);
 end
-
 warning(s);
+

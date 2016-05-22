@@ -333,13 +333,11 @@ classdef ProgressBar < handle
             if feature('isdmlworker') && ~pbar.parallel
                 return; % print nothing inside parfor loop if I'm not the main progress bar
             end
-            
-%             if isempty(getCurrentTask())
-                try
-                    DatabaseAnalysis.pauseOutputLog();
-                catch
-                end
-%             end
+
+	    try
+	        DatabaseAnalysis.pauseOutputLog();
+	    catch
+	    end
             
             if pbar.usingTerminal
                 spaces = repmat(' ', 1, pbar.cols-1);
