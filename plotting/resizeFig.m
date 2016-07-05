@@ -2,7 +2,8 @@ function resizeFig(figName, wStr, hStr, varargin)
     p = inputParser();
     p.addParameter('as', '', @ischar);
     p.addParameter('removeTitles', false, @islogical);
-    p.addParameter('restoreDefaultFonts', true, @islogical);
+    p.addParameter('restoreDefaultFonts', false, @islogical);
+    p.addParameter('appendSizeToName', true, @islogical);
     p.parse(varargin{:});
     
     [loc, name, ext] = fileparts(figName);
@@ -31,7 +32,8 @@ function resizeFig(figName, wStr, hStr, varargin)
     figPos = get(figh,'Position');
     aspect = figPos(3) / figPos(4);
 
-    if isempty(hStr)
+    isNotSpecified = @(x) isempty(x) || (isnumeric(x) && isnan(x));
+    if isNotSpecified(hStr)
         wNew = convertToCm(wStr);
         hNew = wNew / aspect;
     else
@@ -43,25 +45,31 @@ function resizeFig(figName, wStr, hStr, varargin)
         end
     end
 
-     if isempty(p.Results.as)
-        if isempty(hStr)
-            % generate name__w#.pdf'
-            newName = sprintf('%s_w%g.pdf', name, roundTo(wStr, 3));
-        elseif isempty(wStr)
-            % generate name__h#.pdf'
-            newName = sprintf('%s_h%g.pdf', name, roundTo(hStr, 3));
+    if isempty(p.Results.as)
+        if p.Results.appendSizeToName
+            % only append the specified dimension(s)
+            if isempty(hStr)
+                % generate name__w#.pdf'
+                newName = sprintf('%s_w%g.pdf', name, roundTo(wStr, 3));
+            elseif isempty(wStr)
+                % generate name__h#.pdf'
+                newName = sprintf('%s_h%g.pdf', name, roundTo(hStr, 3));
+            else
+                % generate name__h#.w#.pdf
+                newName = sprintf('%s_w%g_h%g.pdf', name, roundTo(wStr, 3), roundTo(hStr, 3));
+            end
         else
-            % generate name__h#.w#.pdf
-            newName = sprintf('%s_w%g_h%g.pdf', name, roundTo(wStr, 3), roundTo(hStr, 3));
+            % use same name
+            newName = [name '.pdf'];
         end
         newLoc = loc;
-     else
+    else
         [newLoc, newName, newExt] = fileparts(p.Results.as);
         if isempty(newLoc)
             newLoc = loc;
         end
         newName = [newName newExt];
-     end
+    end
    
     
     fprintf('Resizing %s to %s\n', fullfile(loc, [name ext]), fullfile(newLoc, newName));
