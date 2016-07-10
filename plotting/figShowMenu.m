@@ -5,4 +5,5 @@ function figShowMenu(figh)
    
     set(figh, 'MenuBar', 'figure');
     set(figh, 'ToolBar', 'auto');
+    set(figh, 'DockControls', 'on');
 end

@@ -2,7 +2,14 @@ function [numStars, text] = getPValueNumStars(p)
 
     numStars = arrayfun(@getNum, p);
     
-    text = arrayfun(@(n) repmat('*', n, 1), numStars, 'UniformOutput', false);
+    text = arrayfun(@(n) repmat('*', 1, n), numStars, 'UniformOutput', false);
+    
+    for iT = 1:numel(text)
+        if isempty(text{iT})
+            text{iT} = '';
+        end
+    end
+    
     if isscalar(p)
         text = text{1};
     end 

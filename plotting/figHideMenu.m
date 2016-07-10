@@ -5,4 +5,5 @@ function figHideMenu(figh)
    
     set(figh, 'MenuBar', 'none');
     set(figh, 'ToolBar', 'none');
+    set(figh, 'DockControls', 'off');
 end

@@ -1,16 +1,19 @@
-function sz = figSize(newSize, figh, undock)
+function sz = figSize(newSize, figh, varargin)
 % figsize([width height], figh)
 % figsize([width height]) - uses gcf by default
 % 
 % Sizes figure to height x width in cm
 
+
 if nargin < 2
     figh = gcf;
 end
-if nargin < 3
-    undock = false;
-end
-    
+
+p = inputParser();
+p.addParameter('undock', true, @islogical);
+p.addParameter('paperPositionMode', 'auto', @ischar);
+p.parse(varargin{:});
+
 set(figh, 'PaperUnits' ,'centimeters');
 set(figh, 'Units', 'centimeters');
 figPos = get(figh,'Position');
@@ -24,9 +27,11 @@ end
 assert(numel(newSize) == 2, 'New size must be [width height] vector');
 
 % undock figure
-if undock
+if p.Results.undock
     set(figh, 'WindowStyle', 'normal');
 end
+
+% force refresh
 drawnow;
 
 if any(isnan(newSize))
@@ -49,11 +54,17 @@ set(figh, 'PaperUnits' ,'centimeters');
 set(figh, 'Units', 'centimeters');
 figPos = get(figh,'Position');
 
-set(figh, 'PaperPositionMode', 'auto');
+set(figh, 'PaperPositionMode', p.Results.paperPositionMode);
 newPos = [figPos(1), figPos(2), newSize];
 
-if ~strcmp(get(figh, 'WindowStyle'), 'docked')
+isDocked =  strcmp(get(figh, 'WindowStyle'), 'docked');
+
+if ~isDocked
     set(figh, 'Position', newPos);
+end
+
+if isDocked || strcmp(p.Results.paperPositionMode, 'manual')
+    set(figh, 'PaperPosition', newPos);
 end
 
 sz = newSize;
