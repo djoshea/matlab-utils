@@ -22,7 +22,7 @@ function resizeFig(figName, wStr, hStr, varargin)
     if p.Results.removeTitles
         axh = findobj(figh, 'Type', 'axes');
         for i = 1:numel(axh)
-            title(axh, '');
+            title(axh(i), '');
         end
     end
     

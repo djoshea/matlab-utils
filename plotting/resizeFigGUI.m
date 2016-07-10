@@ -27,6 +27,12 @@ append =  strcmp(answer, 'Append Size');
 answer = questdlg('Remove titles?', 'Titles', 'Remove Titles', 'Leave Titles', 'Leave Titles');
 remTitles =  strcmp(answer, 'Remove Titles');
     
-resizeFig(fname, w, h, 'appendSizeToName', append, 'removeTitles', remTitles);
+if ischar(fname)
+    fname = {fname};
+end
+
+for iF = 1:numel(fname)
+    resizeFig(fname{iF}, w, h, 'appendSizeToName', append, 'removeTitles', remTitles);
+end
 
 end

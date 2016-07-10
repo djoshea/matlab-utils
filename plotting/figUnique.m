@@ -4,7 +4,7 @@ p = inputParser();
 p.addOptional('name', '', @ischar);
 p.addOptional('size', [15 15], @(x) ~ischar(x) && isvector(x)); % [w h]
 p.addParameter('undock', false, @islogical);
-p.addParameter('setTitle', true, @islogical);
+p.addParameter('setTitle', false, @islogical);
 p.parse(varargin{:});
 
 stackFull = dbstack();
@@ -45,7 +45,7 @@ if isempty(name)
 else
     blankTitle = false;
 end
-set(figh, 'NumberTitle', 'off', 'Name', name);
+set(figh, 'NumberTitle', 'off', 'Name', ['Figure ' name]);
 
 size = p.Results.size;
 if isscalar(size)
