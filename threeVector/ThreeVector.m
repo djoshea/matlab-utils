@@ -67,7 +67,7 @@ classdef ThreeVector < handle
 
     properties
         axisInset = [0.2 0.2]; % in cm [left bottom]
-        vectorLength = 2; % in cm
+        vectorLength = 1; % in cm
         
         % position of axis labels along vectors in units normalized to the
         % vector length. 1 is end of vector, 0.5 is halfway along vector, 
@@ -236,7 +236,7 @@ classdef ThreeVector < handle
             set(tv.ht(3), 'String', get(get(axh, 'ZLabel'), 'String'));
             
             set(tv.ht, 'Clipping', 'off', 'FontSize', tv.fontSize, 'Color', tv.fontColor, ...
-                'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle');
+                'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'BackgroundColor', 'none');
             
             set(tv.ht, 'Visible', 'on');
             set(tv.hv, 'Visible', 'on');
