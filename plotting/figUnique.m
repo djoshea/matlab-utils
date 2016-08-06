@@ -51,7 +51,9 @@ size = p.Results.size;
 if isscalar(size)
     size = [size size];
 end
-figSize(size, figh);
+if p.Results.undock && strcmp(figh.WindowStyle, 'normal');
+    figSize(size, figh);
+end
 
 hold on;
 if ~blankTitle && p.Results.setTitle

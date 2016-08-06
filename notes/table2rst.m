@@ -11,6 +11,7 @@ within = 2;
 indent = 0;
 looseline = '\n';
 isLoose = true;
+fullChar = true;
 [dblFmt,snglFmt] = getFloatFormats();
 
 s = warning('off', 'MATLAB:structOnObject');
