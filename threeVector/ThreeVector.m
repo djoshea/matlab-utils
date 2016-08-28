@@ -97,6 +97,8 @@ classdef ThreeVector < handle
         ht % handles to x,y,z text labels
         
         handleTags % information used to recover handles when saving
+        
+        hListenerTemp
     end
     
     methods
@@ -492,6 +494,28 @@ classdef ThreeVector < handle
         end
     end
     
+    methods
+        function reinstallPostLoad(tv)
+            % recover handles via tags, and reinstall callbacks
+            
+            % first find overlay axes
+            figh = ThreeVector.getParentFigure(tv.axh);
+            h = findobj(figh, 'Type', 'axes', 'Tag', tv.axhOverlayTag);
+            if isempty(h)
+                warning('Could not recover tagged handle %s', tag);
+            end
+            tv.axhOverlay = h;
+            
+            % then find objects within overlay axes
+            h = tv.recoverTaggedHandles();
+            tv.hv = h.hv;
+            tv.ht = h.ht;
+            
+            tv.installInstanceForAxis(tv.axh);
+            tv.installCallbacks();
+        end
+    end
+    
     methods(Access=protected) % installation, handle tagging and recovery
         function installInstanceForAxis(tv, axh)
             % store instance in UserData
@@ -541,6 +565,7 @@ classdef ThreeVector < handle
             else
                 lineSmoothingArgs = {};
             end
+            tv.hv = gobjects(3, 1);
             tv.hv(1) = plot([0 1], [0 1], '-', lineSmoothingArgs{:}, 'Parent', tv.axhOverlay);
             tv.hv(2) = plot([0 1], [0 1], '-', lineSmoothingArgs{:}, 'Parent', tv.axhOverlay);
             tv.hv(3) = plot([0 1], [0 1], '-', lineSmoothingArgs{:}, 'Parent', tv.axhOverlay);
@@ -549,6 +574,7 @@ classdef ThreeVector < handle
                 delete(tv.ht);
             end
             
+            tv.ht = gobjects(3, 1);
             tv.ht(1) = text(0, 1, 'X', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay);
             tv.ht(2) = text(0, 2, 'Y', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay);
             tv.ht(3) = text(0, 3, 'Z', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay);
@@ -573,26 +599,6 @@ classdef ThreeVector < handle
             s = RandStream('mt19937ar');
             letters = 'a':'z';
             tag = ['axis_' letters(randi(s, 26, 10, 1))];
-        end
-        
-        function reinstallPostLoad(tv)
-            % recover handles via tags, and reinstall callbacks
-            
-            % first find overlay axes
-            figh = ThreeVector.getParentFigure(tv.axh);
-            h = findobj(figh, 'Type', 'axes', 'Tag', tv.axhOverlayTag);
-            if isempty(h)
-                warning('Could not recover tagged handle %s', tag);
-            end
-            tv.axhOverlay = h;
-            
-            % then find objects within overlay axes
-            h = tv.recoverTaggedHandles();
-            tv.hv = h.hv;
-            tv.ht = h.ht;
-            
-            tv.installInstanceForAxis(tv.axh);
-            tv.installCallbacks();
         end
         
         function updateAxh(tv, axh)
@@ -698,6 +704,13 @@ classdef ThreeVector < handle
                     h.(f)(j) = val;
                 end
             end
+        end
+    end
+    
+    methods(Static) % Loading from disk
+        function tv = loadobj(tv)
+            % defer reconfiguring until we have our figure set as parent
+            tv.hListenerTemp = addlistener(tv.axh, {'Parent'}, 'PostSet', @(varargin) tv.reinstallPostLoad());
         end
     end
     

@@ -16,7 +16,7 @@ p.parse(varargin{:});
 
 set(figh, 'PaperUnits' ,'centimeters');
 set(figh, 'Units', 'centimeters');
-figPos = get(figh,'Position');
+figPos = get(figh(1),'Position');
 sz = [figPos(3), figPos(4)];
 
 % return current figsize as [w h] in cm
@@ -52,19 +52,21 @@ end
         
 set(figh, 'PaperUnits' ,'centimeters');
 set(figh, 'Units', 'centimeters');
-figPos = get(figh,'Position');
+figPos = get(figh(1),'Position');
 
 set(figh, 'PaperPositionMode', p.Results.paperPositionMode);
 newPos = [figPos(1), figPos(2), newSize];
 
 isDocked =  strcmp(get(figh, 'WindowStyle'), 'docked');
 
-if ~isDocked
-    set(figh, 'Position', newPos);
-end
+for i = 1:numel(figh)
+    if ~isDocked(i)
+        set(figh(i), 'Position', newPos);
+    end
 
-if isDocked || strcmp(p.Results.paperPositionMode, 'manual')
-    set(figh, 'PaperPosition', newPos);
+    if isDocked(i) || strcmp(p.Results.paperPositionMode, 'manual')
+        set(figh(i), 'PaperPosition', newPos);
+    end
 end
 
 sz = newSize;
