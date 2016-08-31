@@ -2,6 +2,7 @@ function setLineOpacity(s, alpha)
 % stores information in UserData struct to cause saveFigure to render
 % lines as translucent when exporting to svg
 
+error('not supported');
     [edge, face] = cellvec(numel(s));
     for i = 1:numel(s)
         

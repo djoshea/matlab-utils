@@ -5,6 +5,8 @@ if nargin < 3
     edgeAlpha = faceAlpha;
 end
 
+error('not supported');
+
 for i = 1:length(s)
     % old version, simply tag it as translucent for saveFigure to pick
     % up during SVG authoring
