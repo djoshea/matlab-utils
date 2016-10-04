@@ -124,6 +124,10 @@ classdef ThreeVector < handle
             end
             if isempty(axh) || isempty(axhOverlay) || ~ishandle(axhOverlay), return, end
             
+            if ~ishandle(tv.ht)
+                tv.reinstallPostLoad();
+            end
+            
             % update the position of the overlay axis
             pos = get(axh, 'OuterPosition');
             set(axhOverlay, 'Units', 'normalized', 'Position', pos);
@@ -693,7 +697,7 @@ classdef ThreeVector < handle
             flds = fieldnames(tv.handleTags);
             for iField = 1:numel(flds)
                 f = flds{iField};
-                h.(f) = nan(numel(tv.handleTags.(f)), 1);
+                h.(f) = gobjects(numel(tv.handleTags.(f)), 1);
                 for j = 1:numel(tv.handleTags.(f))
                     tag = tv.handleTags.(f){j};
                     % important that we search inside axhOverlay
@@ -710,7 +714,13 @@ classdef ThreeVector < handle
     methods(Static) % Loading from disk
         function tv = loadobj(tv)
             % defer reconfiguring until we have our figure set as parent
-            tv.hListenerTemp = addlistener(tv.axh, {'Parent'}, 'PostSet', @(varargin) tv.reinstallPostLoad());
+            if isstruct(tv)
+                return;
+            end
+            try
+                tv.hListenerTemp = addlistener(tv.axh, {'Parent'}, 'PostSet', @(varargin) tv.reinstallPostLoad());
+            catch
+            end
         end
     end
     
