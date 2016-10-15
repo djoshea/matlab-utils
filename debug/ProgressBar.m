@@ -141,8 +141,8 @@ classdef ProgressBar < handle
             end
         end
         
-        function increment(pbar, message, varargin)
-            pbar.update(pbar.n+1);
+        function increment(pbar, varargin)
+            pbar.update(pbar.n+1, varargin{:});
         end
         
         function update(pbar, n, message, varargin)
