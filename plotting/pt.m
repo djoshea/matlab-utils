@@ -9,7 +9,6 @@ function [h, cmap] = pt(timeDim, varargin)
 % like plot except treats timeDim as the timeDimension and moves everything
 % else to the second dim to be plotted on top of it
 
-
 narg = numel(varargin);
 if isvector(varargin{1}) && narg > 1 && isnumeric(varargin{2})
     x = varargin{2};
@@ -27,17 +26,48 @@ xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, otherDims});
 nTraces = size(xr, 2);
 
 p = inputParser();
-p.addParameter('colormap', TrialDataUtilities.Color.hslmap(nTraces, 'fracHueSpan', 0.9), @(x) ~ischar(x) && ismatrix(x));
+p.addParameter('colormap', [], @(x) isempty(x) || (~ischar(x) && ismatrix(x)));
+p.addParameter('coloreval', [], @(x) isempty(x) || isvector(x));
 p.addParameter('alpha', 1, @isscalar);
 p.KeepUnmatched = true;
 p.PartialMatching = false;
 p.parse(args{:});
 
 cmap = p.Results.colormap;
-set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);
-hold on;
-h = plot(tvec, xr, p.Unmatched);
-for iH = 1:numel(h)
-    h(iH).Color(4) = p.Results.alpha;
+if isempty(cmap)
+    cmap = TrialDataUtilities.Color.hslmap(nTraces, 'fracHueSpan', 0.9);
 end
-hold off;
+
+if isempty(p.Results.coloreval)
+    set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);
+    hold on;
+    h = plot(tvec, xr, p.Unmatched);
+    for iH = 1:numel(h)
+        h(iH).Color(4) = p.Results.alpha;
+    end
+    hold off;
+else
+    % plot lines according to their value in cmap
+    coloreval = p.Results.coloreval;
+    colorevalLims = [nanmin(coloreval(:)), nanmax(coloreval(:))];
+    coloreval = TensorUtils.rescaleIntervalToInterval(coloreval, colorevalLims, [0 1]);
+    colors = TrialDataUtilities.Color.evalColorMapAt(cmap, coloreval);
+    
+    hold on;
+    h = plot(tvec, xr, p.Unmatched);
+    
+    for iH = 1:numel(h)
+        if any(isnan(colors(iH, :)))
+%             colors(iH, :) = [0 0 0];
+            delete(h(iH));
+        else
+            h(iH).Color = cat(2, colors(iH, :), p.Results.alpha);
+        end
+    end
+    hold off;
+    
+    ax = gca;
+    ax.ColorSpace.Colormap = cmap;
+    ax.CLim = colorevalLims;
+    colorbar;
+end

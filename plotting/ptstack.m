@@ -23,21 +23,33 @@ end
 
 stackDims = makecol(stackDims);
 
-sz = size(x);
-nStack = prod(sz(stackDims));
-if nStack > 50
-    error('Refusing to stack more than 50 traces');
-end
+% sz = size(x);
+% nStack = prod(sz(stackDims));
+% if nStack > 200
+%     error('Refusing to stack more than 200 traces');
+% end
 
 superimposeDims = TensorUtils.otherDims(size(x), [timeDim; stackDims]);
 
-nSuperimpose = prod(sz(superimposeDims));
-if nSuperimpose > 50
-    error('Refusing to superimpose more than 50 traces');
-end
+% nSuperimpose = prod(sz(superimposeDims));
+% if nSuperimpose > 50
+%     error('Refusing to superimpose more than 50 traces');
+% end
 
 % xr will be T x nStack x nSuperimpose
 xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims});
+
+nStack = size(xr, 2);
+nSuperimpose = size(xr, 3);
+if nStack > 30
+    warning('Truncating to stack only 30 traces');
+    xr = xr(:, 1:30, :);
+end
+if nSuperimpose > 200
+    warning('Truncating to superimpose only 200 traces');
+    xr = xr(:, :, 1:200);
+end
+
 p = inputParser();
 %p.addParameter('colormap', TrialDataUtilities.Color.hslmap(nSuperimpose, 'fracHueSpan', 0.9), @(x) ~ischar(x) && ismatrix(x));
 p.addParameter('namesAlongDims', {}, @iscell);
