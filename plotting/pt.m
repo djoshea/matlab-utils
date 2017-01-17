@@ -21,14 +21,14 @@ else
 end
 
 % other dims taken care of automatically
-otherDims = TensorUtils.otherDims(x, timeDim);
+otherDims = TensorUtils.otherDims(size(x), timeDim);
 xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, otherDims});
 nTraces = size(xr, 2);
 
 p = inputParser();
 p.addParameter('colormap', [], @(x) isempty(x) || (~ischar(x) && ismatrix(x)));
 p.addParameter('coloreval', [], @(x) isempty(x) || isvector(x));
-p.addParameter('alpha', 1, @isscalar);
+p.addParameter('alpha', 0.8, @isscalar);
 p.KeepUnmatched = true;
 p.PartialMatching = false;
 p.parse(args{:});
@@ -67,7 +67,12 @@ else
     hold off;
     
     ax = gca;
+    ax.TickDir = 'out';
     ax.ColorSpace.Colormap = cmap;
     ax.CLim = colorevalLims;
-    colorbar;
+    hc = colorbar;
+    hc.TickDirection = 'out';
+    
+    niceGrid;
+    
 end
