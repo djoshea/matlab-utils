@@ -45,9 +45,9 @@ if nStack > 30
     warning('Truncating to stack only 30 traces');
     xr = xr(:, 1:30, :);
 end
-if nSuperimpose > 200
-    warning('Truncating to superimpose only 200 traces');
-    xr = xr(:, :, 1:200);
+if nSuperimpose > 500
+    warning('Truncating to superimpose only 500 traces');
+    xr = xr(:, :, 1:500);
 end
 
 p = inputParser();
