@@ -54,7 +54,8 @@ else
     colors = TrialDataUtilities.Color.evalColorMapAt(cmap, coloreval);
     
     hold on;
-    h = plot(tvec, xr, p.Unmatched);
+%     h = plot(tvec, xr, p.Unmatched);
+h = stairs(tvec, xr);
     
     for iH = 1:numel(h)
         if any(isnan(colors(iH, :)))

@@ -17,7 +17,7 @@ if isvector(varargin{1}) && narg > 1 && isnumeric(varargin{2})
     args = varargin(3:end);
 else
     x = varargin{1};
-    tvec = (0:size(x, timeDim)-1)';
+    tvec = (1:size(x, timeDim))';
     args = varargin(2:end);
 end
 
@@ -53,6 +53,8 @@ end
 p = inputParser();
 %p.addParameter('colormap', TrialDataUtilities.Color.hslmap(nSuperimpose, 'fracHueSpan', 0.9), @(x) ~ischar(x) && ismatrix(x));
 p.addParameter('namesAlongDims', {}, @iscell);
+p.addParameter('labelsSuperimposed', {}, @iscell);
+p.addParameter('labelsStacked', {}, @iscell);
 %p.addParameter('alpha', 1, @isscalar);
 p.KeepUnmatched = true;
 p.PartialMatching = false;
@@ -65,18 +67,18 @@ if ~isempty(p.Results.namesAlongDims)
     end
     
     namesStack = namesAlongDims(stackDims);
-    namesSuperimpose = namesAlongDims(otherDims);
+    namesSuperimpose = namesAlongDims(superimposeDims);
     
     labelsStack = TensorUtils.flatten(TensorUtils.buildCombinatorialStringTensorFromLists(namesStack));
     labelsSuperimpose = TensorUtils.flatten(TensorUtils.buildCombinatorialStringTensorFromLists(namesSuperimpose));
 else
-    labelsStack = {};
-    labelsSuperimpose = {};
+    labelsStack = p.Results.labelsStacked;
+    labelsSuperimpose = p.Results.labelsSuperimposed;
 end   
 
 clf;
 [traceCenters, hLines] = TrialDataUtilities.Plotting.plotStackedTraces(tvec, xr, ...
-    'labels', labelsStack, 'labelsLinesWithinEachTrace', labelsSuperimpose, p.Unmatched);
+    'labels', labelsStack, 'labelsSuperimposed', labelsSuperimpose, 'labels', labelsStack, p.Unmatched);
 
 % set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);
 % hold on;

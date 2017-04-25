@@ -33,7 +33,7 @@ for i=1:size(rgb,1),
     if(mx-mn)==0,%if all three colors have same value, 
         hsl(i,2)=0;%then s=0 and 
         hsl(i,1)=0;%h is undefined but for practical reasons 0
-        return;
+        continue;
     end;
     if hsl(i,3)<0.5,
         hsl(i,2)=(mx-mn)/(mx+mn);

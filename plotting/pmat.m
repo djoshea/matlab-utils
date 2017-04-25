@@ -95,7 +95,7 @@ if showY
     set(gca, 'YTick', yTick, 'YTickLabel', yTickLabels);
 end
 axis on;
-set(gca, 'TickLength', [0 0]);
+set(gca, 'TickLength', [0 0], 'XAxisLocation', 'top');
 axis tight;
 box on;
 
