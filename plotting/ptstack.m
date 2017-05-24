@@ -11,17 +11,20 @@ function [traceCenters, hLines] = ptstack(timeDim, stackDims, varargin)
 % dimensions will be superimposed in the same plots
 
 narg = numel(varargin);
+
+timeDim = makecol(timeDim);
+stackDim = makecol(stackDims);
+
 if isvector(varargin{1}) && narg > 1 && isnumeric(varargin{2})
     x = varargin{2};
     tvec = makecol(varargin{1});
     args = varargin(3:end);
 else
     x = varargin{1};
-    tvec = (1:size(x, timeDim))';
+    nTime = prod(TensorUtils.sizeMultiDim(x, timeDim));
+    tvec = (1:nTime)';
     args = varargin(2:end);
 end
-
-stackDims = makecol(stackDims);
 
 % sz = size(x);
 % nStack = prod(sz(stackDims));
