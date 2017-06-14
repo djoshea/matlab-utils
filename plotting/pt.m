@@ -35,7 +35,7 @@ p.parse(args{:});
 
 cmap = p.Results.colormap;
 if isempty(cmap)
-    cmap = TrialDataUtilities.Color.hslmap(nTraces, 'fracHueSpan', 0.9);
+    cmap = TrialDataUtilities.Color.hslmap(nTraces, 'fracHueSpan', 0.8);
 end
 
 if isempty(p.Results.coloreval)
