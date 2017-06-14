@@ -2,7 +2,7 @@ function map = hslmap(n, sat, lum)
 % map = hslmap(n, sat, lum)
 
     if nargin < 2
-        sat = 0.6;
+        sat = 0.7;
     end
     if nargin < 3
         lum = 0.65;

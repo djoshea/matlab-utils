@@ -348,8 +348,8 @@ classdef ProgressBar < handle
                     %fprintf('\033[2K\033[0m\r');
                  
                     % working on mac os
-%                     fprintf('\b\r%s\033[0m\r', spaces);
-                    fprintf('\033[1Acll\033[2K\r');
+                    fprintf('\b\r%s\033[0m\r', spaces);
+%                     fprintf('\033[1Acll\033[2K\r');
 %                     pause(1);
                 end
             else

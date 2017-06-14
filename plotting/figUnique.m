@@ -33,7 +33,7 @@ else
 end
 
 if p.Results.undock
-    set(figh, 'WindowStyle', 'normal');
+%    set(figh, 'WindowStyle', 'normal');
 end
 
 clf(figh);

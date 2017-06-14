@@ -6,6 +6,7 @@ p.addParamValue('x', [], @(x) isvector(x));
 p.addParamValue('y', [], @(x) isvector(x));
 p.addParamValue('xlabel', {}, @(x) isvector(x) || iscellstr(x));
 p.addParamValue('ylabel', {}, @(x) isvector(x) || iscellstr(x));
+p.addParameter('addColorbar', true, @islogical);
 p.parse(varargin{:});
 
 cla;
@@ -49,13 +50,15 @@ Y = addRowCol(Y);
 h = pcolor(X,Y, m);
 
 set(h, 'EdgeColor', 'none');
-colormap(flipud(cbrewer('div', 'RdYlBu', 256)));
+colormap(parula);
+% colormap(flipud(cbrewer('div', 'RdYlBu', 256)));
 %colormap(pmkmp(256));
 %colormap gray;
-
-hcbar = colorbar;
-box(hcbar, 'off');
-set(hcbar, 'TickLength', 0);
+if p.Results.addColorbar
+    hcbar = colorbar;
+    box(hcbar, 'off');
+    set(hcbar, 'TickLength', 0);
+end
 
 box off
 axis ij
@@ -80,6 +83,8 @@ end
 if showX
     set(gca, 'XTick', xTick, 'XTickLabel', xTickLabels, 'XTickLabelRotation', xRot);
 end
+
+set(gca, 'XAxisLocation', 'top');
 
 yTick = y(1:end-1) + diff(y) / 2;
 if isempty(p.Results.ylabel)
