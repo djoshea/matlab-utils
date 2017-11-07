@@ -16,8 +16,8 @@ function varargout = map(fn, varargin)
     [varargout{1:nargout}] = cellfun(fn, varargin{:}, 'UniformOutput', false);
     
     % convert scalar numeric cells back to matrices
-    for iArg = 1:numel(varargout);
-        if all(cellfun(@(x) isnumeric(x) && isscalar(x), varargout{iArg}));
+    for iArg = 1:numel(varargout)
+        if all(cellfun(@(x) isnumeric(x) && isscalar(x), varargout{iArg}))
             varargout{iArg} = cell2mat(varargout{iArg});
         end
     end
