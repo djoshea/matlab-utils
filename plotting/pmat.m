@@ -50,9 +50,9 @@ Y = addRowCol(Y);
 h = pcolor(X,Y, m);
 
 set(h, 'EdgeColor', 'none');
-colormap(parula);
+%colormap(parula);
 % colormap(flipud(cbrewer('div', 'RdYlBu', 256)));
-%colormap(pmkmp(256));
+colormap(pmkmp(256));
 %colormap gray;
 if p.Results.addColorbar
     hcbar = colorbar;
