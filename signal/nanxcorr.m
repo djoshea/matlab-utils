@@ -1,4 +1,4 @@
-function c = nanxcorr(x, y, maxlag)
+function [c, lags] = nanxcorr(x, y, maxlag)
     assert(isvector(x) && isvector(y));
     x = makecol(x);
     y = makecol(y);
@@ -14,6 +14,7 @@ function c = nanxcorr(x, y, maxlag)
     nc = 2*mxl + 1;
     
     c = zeros(nc,1);
+    lags = (-maxlag:maxlag)';
     
     % coder.internal.conjtimes(x,y) is used below to evaluate conj(x)*y. It
     % tends to produce slightly better generated code in some cases, and it has
