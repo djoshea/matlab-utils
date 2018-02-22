@@ -43,6 +43,7 @@ end
 
 [X, Y] = meshgrid(x, y);
         
+% need an extra row and column because of the way that pcolor works
 m = addRowCol(m);
 X = addRowCol(X);
 Y = addRowCol(Y);
@@ -103,5 +104,4 @@ axis on;
 set(gca, 'TickLength', [0 0], 'XAxisLocation', 'top');
 axis tight;
 box on;
-
 

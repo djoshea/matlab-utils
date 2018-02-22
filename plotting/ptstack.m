@@ -26,6 +26,17 @@ else
     args = varargin(2:end);
 end
 
+p = inputParser();
+%p.addParameter('colormap', TrialDataUtilities.Color.hslmap(nSuperimpose, 'fracHueSpan', 0.9), @(x) ~ischar(x) && ismatrix(x));
+p.addParameter('namesAlongDims', {}, @iscell);
+p.addParameter('labelsSuperimposed', {}, @iscell);
+p.addParameter('labelsStacked', {}, @iscell);
+p.addParameter('pca', false, @islogical);
+%p.addParameter('alpha', 1, @isscalar);
+p.KeepUnmatched = true;
+p.PartialMatching = false;
+p.parse(args{:});
+
 % sz = size(x);
 % nStack = prod(sz(stackDims));
 % if nStack > 200
@@ -39,8 +50,13 @@ superimposeDims = TensorUtils.otherDims(size(x), [timeDim; stackDims]);
 %     error('Refusing to superimpose more than 50 traces');
 % end
 
+if p.Results.pca
+    [~, x] = TensorUtils.pcaAlongDim(x, stackDims);
+end
+    
 % xr will be T x nStack x nSuperimpose
 xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims});
+
 
 nStack = size(xr, 2);
 nSuperimpose = size(xr, 3);
@@ -52,16 +68,6 @@ if nSuperimpose > 500
     warning('Truncating to superimpose only 500 traces');
     xr = xr(:, :, 1:500);
 end
-
-p = inputParser();
-%p.addParameter('colormap', TrialDataUtilities.Color.hslmap(nSuperimpose, 'fracHueSpan', 0.9), @(x) ~ischar(x) && ismatrix(x));
-p.addParameter('namesAlongDims', {}, @iscell);
-p.addParameter('labelsSuperimposed', {}, @iscell);
-p.addParameter('labelsStacked', {}, @iscell);
-%p.addParameter('alpha', 1, @isscalar);
-p.KeepUnmatched = true;
-p.PartialMatching = false;
-p.parse(args{:});
 
 if ~isempty(p.Results.namesAlongDims)
     namesAlongDims = p.Results.namesAlongDims;
