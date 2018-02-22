@@ -69,6 +69,8 @@ classdef ThreeVector < handle
         axisInset = [0.2 0.2]; % in cm [left bottom]
         vectorLength = 1; % in cm
         
+        flipAxis = [false false false];
+        
         % position of axis labels along vectors in units normalized to the
         % vector length. 1 is end of vector, 0.5 is halfway along vector, 
         % 1.5 is 1.5 times the length of the vector.
@@ -78,6 +80,12 @@ classdef ThreeVector < handle
         fontColor % font color used for axis labels
         lineWidth % line width used for axis vectors
         lineColor % line color used for axis vectors
+        
+        background = false;
+        backgroundColor = [1 1 1];
+        backgroundAlpha = 0.3;
+        
+        useCallbacks = true;
     end
     
     properties(SetAccess=protected)
@@ -95,6 +103,7 @@ classdef ThreeVector < handle
         
         hv % handles to x,y,z vectors
         ht % handles to x,y,z text labels
+        hback % background rectangle
         
         handleTags % information used to recover handles when saving
         
@@ -102,11 +111,16 @@ classdef ThreeVector < handle
     end
     
     methods
-        function tv = ThreeVector(axh)
+        function tv = ThreeVector(axh, useCallbacks)
             % auto-recover the existing instance if associated with axis
             % axh, otherwise create a new one
             if nargin < 1 || isempty(axh)
                 axh = gca;
+            end
+            if nargin < 2
+                tv.useCallbacks = true;
+            else
+                tv.useCallbacks = useCallbacks;
             end
             
             tv = ThreeVector.createOrRecoverInstance(tv, axh);
@@ -154,9 +168,11 @@ classdef ThreeVector < handle
             
             % build out the three vectors in data coordinates
             cornerData = [0;0;0];
-            sX = 1;
-            sY = 1;
-            sZ = 1;
+            
+            if tv.flipAxis(1), sX = -1; else, sX = 1; end
+            if tv.flipAxis(2), sY = -1; else, sY = 1; end
+            if tv.flipAxis(3), sZ = -1; else, sZ = 1; end
+            
             vecAx = [sX, 0, 0; 0 sY 0; 0 0 sZ];
             ends = [cornerData+vecAx(:, 1), cornerData+vecAx(:, 2), cornerData+vecAx(:, 3)];
             % ends is x,y,z,1 coordinates (rows) for x axis, y axis, z axis endpoints (cols)
@@ -244,6 +260,23 @@ classdef ThreeVector < handle
             set(tv.ht, 'Clipping', 'off', 'FontSize', tv.fontSize, 'Color', tv.fontColor, ...
                 'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'BackgroundColor', 'none');
             
+            % update background rectangle
+            lox = min(allPointsFig(1, :));
+            hix = max(allPointsFig(1, :));
+            dx = (hix - lox) * 0.2;
+            loy = min(allPointsFig(2, :));
+            hiy = max(allPointsFig(2, :));
+            dy = (hiy - loy) * 0.2;
+            back_x = [lox - dx; hix + dx; hix + dx; lox - dx];
+            back_y = [loy - dy; loy - dy; hiy + dy; hiy + dy];
+            set(tv.hback, 'XData', back_x, 'YData', back_y, ...
+                'FaceColor', tv.backgroundColor, 'FaceAlpha', tv.backgroundAlpha);
+            if tv.background
+                set(tv.hback, 'Visible', 'on');
+            else
+                set(tv.hback, 'Visible', 'off');
+            end
+            
             set(tv.ht, 'Visible', 'on');
             set(tv.hv, 'Visible', 'on');
             
@@ -266,7 +299,8 @@ classdef ThreeVector < handle
                 set(tv.ht(3), 'Visible', 'off')
             end
   
-            axes(axh);
+            figh = ThreeVector.getParentFigure(axh);
+            figh.CurrentAxes = axh;
         end
     end
     
@@ -560,6 +594,10 @@ classdef ThreeVector < handle
             uistack(tv.axhOverlay, 'top');
             hold(tv.axhOverlay, 'on');
             
+            % draw the background
+            tv.hback = patch([0;1;1;0], [0;0;1;1], tv.backgroundColor, ...
+                'Parent', tv.axhOverlay, 'EdgeColor', 'none');
+            
             % draw the axis vectors and the text labels
             if ~isempty(tv.hv)
                 delete(tv.hv);
@@ -592,6 +630,7 @@ classdef ThreeVector < handle
             handleStruct = struct();
             handleStruct.hv = tv.hv;
             handleStruct.ht = tv.ht;
+            handleStruct.hback = tv.hback;
             tv.tagHandlesForRecovery(handleStruct);
         end
         
@@ -617,6 +656,7 @@ classdef ThreeVector < handle
         end
         
         function installCallbacks(tv)
+            if ~tv.useCallbacks, return, end
             % install update callbacks for zoom, pan, rotate, resize, x/y/z
             % label changes, x/y/z lims changes
             figh = ThreeVector.getParentFigure(tv.axh);

@@ -29,13 +29,14 @@ p = inputParser();
 p.addParameter('colormap', [], @(x) isempty(x) || (~ischar(x) && ismatrix(x)));
 p.addParameter('coloreval', [], @(x) isempty(x) || isvector(x));
 p.addParameter('alpha', 0.8, @isscalar);
+p.addParameter('stairs', false, @islogical);
 p.KeepUnmatched = true;
 p.PartialMatching = false;
 p.parse(args{:});
 
 cmap = p.Results.colormap;
 if isempty(cmap)
-    cmap = TrialDataUtilities.Color.hslmap(nTraces, 'fracHueSpan', 0.8);
+    cmap = TrialDataUtilities.Color.hslmap(nTraces);
 end
 
 if isempty(p.Results.coloreval)
@@ -50,12 +51,14 @@ else
     % plot lines according to their value in cmap
     coloreval = p.Results.coloreval;
     colorevalLims = [nanmin(coloreval(:)), nanmax(coloreval(:))];
-    coloreval = TensorUtils.rescaleIntervalToInterval(coloreval, colorevalLims, [0 1]);
-    colors = TrialDataUtilities.Color.evalColorMapAt(cmap, coloreval);
+    colors = TrialDataUtilities.Color.evalColorMapAt(cmap, coloreval, colorevalLims);
     
     hold on;
-%     h = plot(tvec, xr, p.Unmatched);
-h = stairs(tvec, xr);
+    if p.Results.stairs
+        h = stairs(tvec, xr, p.Unmatched);
+    else
+        h = plot(tvec, xr, p.Unmatched);
+    end
     
     for iH = 1:numel(h)
         if any(isnan(colors(iH, :)))
@@ -71,9 +74,9 @@ h = stairs(tvec, xr);
     ax.TickDir = 'out';
     ax.ColorSpace.Colormap = cmap;
     ax.CLim = colorevalLims;
-    hc = colorbar;
-    hc.TickDirection = 'out';
+%     hc = colorbar;
+%     hc.TickDirection = 'out';
     
-    niceGrid;
+%     niceGrid;
     
 end
