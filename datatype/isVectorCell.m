@@ -8,6 +8,7 @@ function [tf vecCell] = isVectorCell(c, varargin)
 %    are not accepted
 
 ignoreEmpty = true;
+logicalOkay = true;
 emptyValue = [];
 assignargs(varargin);
 
@@ -28,7 +29,11 @@ nanMask = cellfun(@(c) isnumeric(c) && all(isnan(c)),c);
 emptyMask = cellfun(@(x) isempty(x) || (ischar(x) && isempty(strtrim(x))), c);
 
 % find cells which already contain numeric vectors
-numericMask = cellfun(@(x) isvector(x) && all(isnumeric(x)), c);
+if logicalOkay
+    numericMask = cellfun(@(x) isvector(x) && all(isnumeric(x) | islogical(x)), c);
+else
+    numericMask = cellfun(@(x) isvector(x) && all(isnumeric(x)), c);
+end
 
 % figure out which entries are either numeric/nan/empty and can safely be ignored
 if ignoreEmpty
@@ -53,4 +58,5 @@ if any(emptyMask)
 end
 
 tf = ~any(invalidMask);
+
 
