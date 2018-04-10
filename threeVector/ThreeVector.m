@@ -84,8 +84,12 @@ classdef ThreeVector < handle
         background = false;
         backgroundColor = [1 1 1];
         backgroundAlpha = 0.3;
+        backgroundMargin = 0.2;
         
         useCallbacks = true;
+        
+        positionFrozen = false;
+        positionFrozenCorner
     end
     
     properties(SetAccess=protected)
@@ -211,14 +215,22 @@ classdef ThreeVector < handle
 
             % translate the axis indicators to avoid leaving the outer
             % position box + the axis inset
+            set(tv.ht, 'Units', 'data');
             textExtents = get(tv.ht, 'Extent');
             textExtents = cat(1, textExtents{:});
             maxTextWidth = max(textExtents(:, 3));
             maxTextHeight = max(textExtents(:, 4));
             xMin = min(allPointsFig(1, :));
-            allPointsFig(1, :) = allPointsFig(1, :) - xMin + pos(1)+offsetX+maxTextWidth/2;
             yMin = min(allPointsFig(2, :));
-            allPointsFig(2, :) = allPointsFig(2, :) - yMin + pos(2)+offsetY+maxTextHeight/2;
+            
+            allPointsFig(1, :) = allPointsFig(1, :) -xMin + pos(1)+offsetX+maxTextWidth/2;
+            allPointsFig(2, :) = allPointsFig(2, :) -yMin + pos(2)+offsetY+maxTextHeight/2;
+            if ~tv.positionFrozen || isempty(tv.positionFrozenCorner)
+                tv.positionFrozenCorner = allPointsFig(1:2, 1);
+            else 
+                allPointsFig(1, :) = allPointsFig(1, :) - allPointsFig(1, 1) + tv.positionFrozenCorner(1);
+                allPointsFig(2, :) = allPointsFig(2, :) - allPointsFig(2, 1) + tv.positionFrozenCorner(2);
+            end
             
             % no need to convert back to data coordinates since we're
             % plotting in the overlay axis whose data coords match the
@@ -263,10 +275,10 @@ classdef ThreeVector < handle
             % update background rectangle
             lox = min(allPointsFig(1, :));
             hix = max(allPointsFig(1, :));
-            dx = (hix - lox) * 0.2;
+            dx = tv.backgroundMargin * xUnitsToNorm;
             loy = min(allPointsFig(2, :));
             hiy = max(allPointsFig(2, :));
-            dy = (hiy - loy) * 0.2;
+            dy = tv.backgroundMargin * yUnitsToNorm;
             back_x = [lox - dx; hix + dx; hix + dx; lox - dx];
             back_y = [loy - dy; loy - dy; hiy + dy; hiy + dy];
             set(tv.hback, 'XData', back_x, 'YData', back_y, ...
@@ -301,6 +313,14 @@ classdef ThreeVector < handle
   
             figh = ThreeVector.getParentFigure(axh);
             figh.CurrentAxes = axh;
+        end
+        
+        function freezePosition(tv)
+            tv.positionFrozen = true;
+        end
+        
+        function unfreezePosition(tv)
+            tv.positionFrozen = false;
         end
     end
     
@@ -617,9 +637,9 @@ classdef ThreeVector < handle
             end
             
             tv.ht = gobjects(3, 1);
-            tv.ht(1) = text(0, 1, 'X', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay);
-            tv.ht(2) = text(0, 2, 'Y', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay);
-            tv.ht(3) = text(0, 3, 'Z', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay);
+            tv.ht(1) = text(0, 1, 'X', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay, 'Units', 'Normalized');
+            tv.ht(2) = text(0, 2, 'Y', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay, 'Units', 'Normalized');
+            tv.ht(3) = text(0, 3, 'Z', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay, 'Units', 'Normalized');
             
             axis(tv.axhOverlay, 'off');
             

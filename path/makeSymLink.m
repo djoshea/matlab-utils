@@ -2,6 +2,10 @@ function success = makeSymLink(src, link)
 % makeSymLink(src, linkDest)
 
     src = resolveSymLink(GetFullPath(src));
+    if ~exist(src, 'file')
+        warning('Source is a dangling symlink, not creating');
+    end
+    
     link = GetFullPath(link);
     mkdirRecursive(fileparts(link));
     if exist(link, 'file');
