@@ -1,6 +1,6 @@
-function [offset, maxDelta] = findAlignment(reference, insert, refFirstValid, minOverlap, refValid, ignoreValue)
+function [offset, maxDelta] = findAlignment(reference, insert, refFirstValid, refLastValid, minOverlap, refValid, ignoreValue)
 
-    if nargin < 4
+    if nargin < 5
         minOverlap = 10;
     end
     if nargin < 3 || isempty(refFirstValid) || refFirstValid == 1
@@ -12,6 +12,14 @@ function [offset, maxDelta] = findAlignment(reference, insert, refFirstValid, mi
         minOffset = refFirstValid - 1;
     end
     
+    if nargin < 4
+        % if say numel(reference) is 10 and minOverlap is 1, then max offset is
+        % 9 meaning insert(1) --> reference(10)
+        maxOffset = numel(reference) - minOverlap;
+    else
+        maxOffset = refLastValid - minOverlap;
+    end
+
     if nargin < 5 || isempty(refValid)
         refValid = true(size(reference));
     end
@@ -22,9 +30,7 @@ function [offset, maxDelta] = findAlignment(reference, insert, refFirstValid, mi
     nIns = numel(insert);
     nRef = numel(reference);
     
-    % if say numel(reference) is 10 and minOverlap is 1, then max offset is
-    % 9 meaning insert(1) --> reference(10)
-    maxOffset = numel(reference) - minOverlap;
+    
 
     offsetsPossible = minOffset:maxOffset;
     nOffsets = numel(offsetsPossible);
