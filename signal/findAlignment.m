@@ -63,5 +63,18 @@ function [offset, maxDelta] = findAlignment(reference, insert, refFirstValid, mi
     hold on;
     plot((1:nIns) + offset, insert, 'b-');
     
+    %% interactive
+    figure(3); clf;
+    plot(reference, 'r-');
+    hu = gca;
+    xlim(hu, [0 100]);
+    ylim(hu, [-100 900]);
+    hl = axes('OuterPosition', [0 0 1 0.7], 'Color', 'none');
+    plot(insert, 'b-');
+    hl.Color = 'none';
+    xlim(hl, [0 100]);
+    ylim(hl, [-100 900]);
+    
+    
 end
 
