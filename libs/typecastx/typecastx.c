@@ -11,33 +11,33 @@
  *
  %  This code uses the BSD License:
  %
- %  Redistribution and use in source and binary forms, with or without 
- %  modification, are permitted provided that the following conditions are 
+ %  Redistribution and use in source and binary forms, with or without
+ %  modification, are permitted provided that the following conditions are
  %  met:
  %
- %     * Redistributions of source code must retain the above copyright 
+ %     * Redistributions of source code must retain the above copyright
  %       notice, this list of conditions and the following disclaimer.
- %     * Redistributions in binary form must reproduce the above copyright 
- %       notice, this list of conditions and the following disclaimer in 
+ %     * Redistributions in binary form must reproduce the above copyright
+ %       notice, this list of conditions and the following disclaimer in
  %       the documentation and/or other materials provided with the distribution
- %      
- %  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- %  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- %  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- %  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- %  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- %  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- %  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- %  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- %  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- %  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+ %
+ %  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ %  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ %  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ %  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ %  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ %  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ %  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ %  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ %  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ %  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  %  POSSIBILITY OF SUCH DAMAGE.
  *
  * typecast is a mex function intended to mimic the MATLAB intrinsic typecast function
  * for those users with older versions of MATLAB that do not have this intrinsic. Users
  * of newer versions of MATLAB may be interested in this C-mex version to take advantage
  * of the several extensions offered. This C-mex version of typecast differs from the
- * intrinsic typecast in the following important aspects: 
+ * intrinsic typecast in the following important aspects:
  *
  *                      Intrinsic typecast    C-mex typecast
  *                      ------------------    --------------
@@ -85,9 +85,9 @@
  *
  * The output of typecast can be formatted differently depending on what system you use it on.
  * Some computer systems store data starting with its most significant byte (an ordering
- * called big-endian), while others start with the least significant byte (called little-endian). 
+ * called big-endian), while others start with the least significant byte (called little-endian).
  *
- * typecast issues an error if X contains fewer values than are needed to make an output value. 
+ * typecast issues an error if X contains fewer values than are needed to make an output value.
  *
  */
 
@@ -187,7 +187,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	int out_numeric;
 
 /* Check input arguments */
-    
+
 	if( nrhs > 2 ) {
         mexErrMsgTxt("Too many input arguments.");
 	}
@@ -207,9 +207,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 /* Get input argument byte length */
 
    inbytes = mxGetElementSize(prhs[0]);
-   
+
 /* Check second input argument for desired output type */
-   
+
    outstring = mxArrayToString(prhs[1]);
 
    out_numeric = 1;
@@ -281,7 +281,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 
 /* Check the old & new sizes for compatibility */
-   
+
     ndim = mxGetNumberOfDimensions(prhs[0]);
     dims_old = mxGetDimensions(prhs[0]);
     for( i=0; i<ndim; i++ ) {
@@ -299,13 +299,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 		dims_new[i] = dims_old[i];
     }
 	dims_new[idim] = k;
-   
+
+ mexPrintf("before shared data copy\n");
+
+
 /* Create the output array as a shared data copy, then manually set the class
  * and size parameters by accessing the structure fields directly. Note that
  * this is using undocumented MATLAB API functions and hacking of the
  * mxArray_tag structure, so this may not work in future versions of MATLAB.
  */
-   
+   // mx = (struct mxArray_Tag *) prhs[0];
+   // printf("old flags: %#6x\n", mx->flags);
+
    plhs[0] = mxCreateSharedDataCopy(prhs[0]);
    mx = (struct mxArray_Tag *) plhs[0];
    mx->ClassID = outclass;
@@ -313,6 +318,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    mxSetDimensions(plhs[0],dims_new,ndim);
    mxFree(dims_new);
 
+   mexPrintf("post shared data copy\n");
+
+   // printf("new flags: %#6x\n", mx->flags);
+   return;
+
+   // this breaks in R2018a, @djoshea removing
 /* Also need to fix up the flags */
 
    if( outclass == mxDOUBLE_CLASS ) {

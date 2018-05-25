@@ -1,4 +1,8 @@
-function s = keepfields(s, fields)
-    s = rmfield(s, setdiff(fieldnames(s), fields));
-    s = orderfields(s, intersect(fields, fieldnames(s), 'stable'));
+function [skeep, srem] = keepfields(s, fields)
+    skeep = rmfield(s, setdiff(fieldnames(s), fields));
+    skeep = orderfields(skeep, intersect(fields, fieldnames(skeep), 'stable'));
+    
+    if nargout >= 2
+        srem = rmfield(s, intersect(fieldnames(s), fields));
+    end
 end
