@@ -78,7 +78,8 @@ classdef ProgressBar < handle
                 pbar.N = 1;
             end
             
-            pbar.usingTerminal = ~usejava('desktop');
+            % use simple version in desktop mode AND not inside jupyter kernel
+            pbar.usingTerminal = ~usejava('desktop') || ~isempty(getenv('JUPYTER_KERNEL'));
             
             [~, pbar.cols] = ProgressBar.getTerminalSize();
             pbar.trueColor = ~isempty(getenv('ITERM_PROFILE')) && false;
