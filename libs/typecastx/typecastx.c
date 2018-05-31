@@ -300,9 +300,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
 	dims_new[idim] = k;
 
- mexPrintf("before shared data copy\n");
-
-
 /* Create the output array as a shared data copy, then manually set the class
  * and size parameters by accessing the structure fields directly. Note that
  * this is using undocumented MATLAB API functions and hacking of the
@@ -318,7 +315,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
    mxSetDimensions(plhs[0],dims_new,ndim);
    mxFree(dims_new);
 
-   mexPrintf("post shared data copy\n");
+	//mexPrintf("post shared data copy\n");
 
    // printf("new flags: %#6x\n", mx->flags);
    return;
