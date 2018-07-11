@@ -1,11 +1,12 @@
-function t = h5infoTable(file)
+function t = checkNaN(file)
     info = h5info(file);
-    t = buildTable(info, '');
+    t = checkNaN(info, '', file);
 end
 
-function t = buildTable(info, prefix)
+function t = checkNaN(info, prefix, file)
     ds = info.Datasets;
     [name, size, type] = deal(cell(numel(ds), 1));
+    hasNaN = nan(numel(ds), 1);
     for iD = 1:numel(ds)
         if isempty(prefix)
             name{iD} = ['/', ds(iD).Name];
@@ -14,9 +15,14 @@ function t = buildTable(info, prefix)
         end
         size{iD} = vec2str(ds(iD).Dataspace.Size);
         type{iD} = display_datatype_by_class(ds(iD).Datatype);
+        
+        value = h5read(file, name{iD});
+        if isnumeric(value)
+            hasNaN(iD) = any(isnan(value(:)));
+        end
     end
 
-    t = table(name, size, type);
+    t = table(name, size, type, hasNaN);
     
     groups = info.Groups;
     for iG = 1:numel(groups)

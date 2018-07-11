@@ -3,4 +3,5 @@
 *.mexmaci64
 *.mexa64
 .DS_Store
+.ipynb_checkpoints
 
