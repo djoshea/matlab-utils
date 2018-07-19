@@ -7,7 +7,7 @@ function t = h5infoTable(file)
     [name, size, type] = deal(cell(numel(ds), 1));
     for iD = 1:numel(ds)
         name{iD} = ds(iD).Name;
-        size{iD} = vec2str(ds(iD).Dataspace.Size);
+        size{iD} = vec2str(fliplr(ds(iD).Dataspace.Size)); % python is row major but Matlab is column major
         type{iD} = display_datatype_by_class(ds(iD).Datatype); 
     end
 
