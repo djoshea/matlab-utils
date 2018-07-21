@@ -13,7 +13,7 @@ function hcprintf(fmatString, varargin)
     %     opensource.org/licenses/bsd-license.php
     
     % determine if we're using 
-    usingTerminal = ~usejava('desktop');
+    usingTerminal = ~usejava('desktop') || ~isempty(getenv('JUPYTER_KERNEL'));
 
     % determine if datatipinfo is higher on the stack. If tcprintf
     % is used within an object's disp() method, we don't want to
