@@ -407,7 +407,7 @@ classdef ProgressBar < handle
             strOut = [percentageOut dotOut];
 
             % Print it on the screen
-            if pbar.textprogressStrCR == -1,
+            if pbar.textprogressStrCR == -1
                 % Don't do carriage return during first run
                 fprintf(strOut);
             else
