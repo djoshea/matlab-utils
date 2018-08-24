@@ -43,6 +43,9 @@ classdef ProgressBar < handle
         lastCalled
         
         usingTerminal
+        
+        usingItermStatus = false;
+        backgroundUpdateTimer
 
         % enable for parallel for loops? see .enableParallel / disableParallel
         parallel = false;
@@ -82,9 +85,10 @@ classdef ProgressBar < handle
             pbar.usingTerminal = ~usejava('desktop') || ~isempty(getenv('JUPYTER_KERNEL'));
             
             [~, pbar.cols] = ProgressBar.getTerminalSize();
-            pbar.trueColor = ~isempty(getenv('ITERM_PROFILE')) && false;
+            pbar.trueColor = ~isempty(getenv('ITERM_PROFILE')) && true;
             
             if pbar.trueColor
+                
                 hsv = ones(pbar.cols, 3);
                 hsv(:, 1) = 0.5;
                 hsv(:, 2) = 0.6;
@@ -95,11 +99,21 @@ classdef ProgressBar < handle
                 pbar.trueCmap = round(256*hsv2rgb(hsv));
             end
             
+            if ismac && exist(fullfile(getenv('HOME'), '.iterm2/it2setkeylabel'), 'file')
+                pbar.usingItermStatus = true;
+            else
+                pbar.usingItermStatus = false;
+            end 
+            
             pbar.firstUpdate = true;
             pbar.timeStart = clock;
             pbar.lastNBoxes = 0;
             pbar.lastNSpaces = 0;
             pbar.update(0);
+            
+            timerFcn = @(varargin) pbar.updateItermStatus();
+            pbar.backgroundUpdateTimer = timer('StartDelay',0.5, 'Period', 0.5, 'TimerFcn',timerFcn, 'ExecutionMode', 'fixedDelay');
+            start(pbar.backgroundUpdateTimer);
         end
         
         function enableParallel(pbar)
@@ -146,6 +160,43 @@ classdef ProgressBar < handle
             pbar.update(pbar.n+1, varargin{:});
         end
         
+        function [ratio, progStr, progStrPercentOnly] = computeRatio(pbar)
+           if pbar.N > 0
+                numWidth = ceil(log10(pbar.N));
+            else
+                numWidth = 1;
+           end
+            n = pbar.n;
+            
+            if n < 0
+                n = 0;
+            end
+            
+            if isempty(pbar.N) || pbar.N == 1
+                ratio = n;
+                if ratio < 0
+                    ratio = 0;
+                end
+                if ratio > 1
+                    ratio = 1;
+                end
+                percentage = ratio * 100;
+                progStr = sprintf('[ %5.1f%% ]', percentage);
+                progStrPercentOnly = progStr;
+            else
+                ratio = (n-1)/pbar.N;
+                if ratio < 0
+                    ratio = 0;
+                end
+                if ratio > 1
+                    ratio = 1;
+                end
+                percentage = ratio * 100;
+                progStr = sprintf('%*d / %*d [ %5.1f%% ]', numWidth, n, numWidth, pbar.N, percentage);
+                progStrPercentOnly = sprintf('[ %5.1f%% ]', percentage);
+            end
+        end
+        
         function update(pbar, n, message, varargin)
             if feature('isdmlworker') && ~pbar.parallel
                 return; % print nothing inside parfor loop if I'm not the main progress bar
@@ -176,42 +227,8 @@ classdef ProgressBar < handle
             
             pbar.lastCalled = clock;
             
-            if pbar.N > 0
-                numWidth = ceil(log10(pbar.N));
-            else
-                numWidth = 1;
-            end
-            
-            if n < 0
-                n = 0;
-            end
-            if isempty(pbar.N) || pbar.N == 1
-                ratio = n;
-                if ratio < 0
-                    ratio = 0;
-                end
-                if ratio > 1
-                    ratio = 1;
-                end
-                percentage = ratio * 100;
-                progStr = sprintf('[ %5.1f%% ]', percentage);
-                %progLen = 10;
-            else
-                ratio = (n-1)/pbar.N;
-                percentage = min(max(ratio*100, 0), 100);
-                progStr = sprintf('%*d / %*d [ %5.1f%% ]', numWidth, n, numWidth, pbar.N, percentage);
-                
-                %progLen = numWidth*2 + 4 + 10;
-            end
-            
+            [ratio, progStr] = pbar.computeRatio();
             progLen = length(progStr);
-            
-            if ratio < 0
-                ratio = 0;
-            end
-            if ratio > 1
-                ratio = 1;
-            end
             
             if length(pbar.message) + progLen + 3 > pbar.cols
                 message = [pbar.message(1:(pbar.cols - progLen - 6)), '...'];
@@ -334,11 +351,16 @@ classdef ProgressBar < handle
             if feature('isdmlworker') && ~pbar.parallel
                 return; % print nothing inside parfor loop if I'm not the main progress bar
             end
+            
+            if ~isempty(pbar.backgroundUpdateTimer)
+                stop(pbar.backgroundUpdateTimer);
+                delete(pbar.backgroundUpdateTimer);
+            end
 
-	    try
-	        DatabaseAnalysis.pauseOutputLog();
-	    catch
-	    end
+            try
+                DatabaseAnalysis.pauseOutputLog();
+            catch
+            end
             
             if pbar.usingTerminal
                 spaces = repmat(' ', 1, pbar.cols-1);
@@ -418,6 +440,12 @@ classdef ProgressBar < handle
             % Update carriage return
             pbar.textprogressStrCR = repmat('\b',1,length(strOut)-1);
 
+        end
+        
+        function updateItermStatus(pbar)
+            [~, ~, progStr] = pbar.computeRatio();
+            msg = [progStr, ' ', pbar.message];
+            setItermStatus(msg);
         end
     end
 

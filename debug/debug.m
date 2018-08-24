@@ -63,4 +63,6 @@ function debug(varargin)
         hcprintf('{5a7d9a}%4d ', caller.line);
     end
     hcprintf(varargin{:});
+    
+    setItermStatus(sprintf(varargin{:}));
 end

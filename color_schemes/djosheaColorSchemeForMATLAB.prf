@@ -1,0 +1,33 @@
+# djosheaColorSchemeForMATLAB - MATLAB color scheme
+# Generated with schemer_export v1.3.1, on MATLAB 9.3.0.713579 (R2017b)
+# Fri Dec 22 03:40:00 PST 2017
+# To enable this color scheme in MATLAB use schemer_import, available at:
+#     https://github.com/scottclowe/matlab-schemer
+#     https://www.mathworks.com/matlabcentral/fileexchange/53862-matlab-schemer
+ColorsUseSystem=Bfalse
+ColorsUseMLintAutoFixBackground=Bfalse
+Editor.VariableHighlighting.Automatic=Btrue
+Editor.NonlocalVariableHighlighting=Btrue
+EditorCodepadHighVisible=Btrue
+EditorCodeBlockDividers=Btrue
+Editorhighlight-caret-row-boolean=Btrue
+EditorRightTextLineVisible=Btrue
+EditorRightTextLimitLineWidth=I1
+ColorsText=C-1
+ColorsBackground=C-12632257
+Colors_M_Keywords=C-8921867
+Colors_M_Comments=C-3355444
+Colors_M_Strings=C-3368449
+Colors_M_UnterminatedStrings=C-2444289
+Colors_M_SystemCommands=C-65536
+Colors_M_Errors=C-65536
+Colors_HTML_HTMLLinks=C-5379073
+Colors_M_Warnings=C-2069
+ColorsMLintAutoFixBackground=C-1146549
+Editor.VariableHighlighting.Color=C-8355712
+Editor.NonlocalVariableHighlighting.TextColor=C-6684826
+Editorhighlight-lines=C-11513776
+Editorhighlight-caret-row-boolean-color=C-11513776
+EditorRightTextLimitLineColor=C-8355712
+Color_CmdWinWarnings=C-10496
+Color_CmdWinErrors=C-39322

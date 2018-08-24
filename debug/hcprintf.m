@@ -7,8 +7,17 @@ function hcprintf(fmatString, varargin)
     %
     % # is optional for hex codes, commas imply 
     % semicolon prefixes background color
-    %   Author: Dan O'Shea dan at djoshea.com (c) 2015
-    %  
+    % 
+    % Real braces should be escaped as \{ and \} to avoid being parsed as
+    % colors.
+    %
+    % Color names will be passed through the XKCD color survey called as
+    % 'rgb' by: Chad A. Greene of the University of Texas at
+    % Austin's Institute for Geophysics.  I (Chad) do not claim credit for the data
+    % from the color survey. http://www.chadagreene.com. 
+    %
+    % hcprintf Author: Dan O'Shea dan at djoshea.com (c) 2015
+    % 
     %   Released under the open source BSD license 
     %     opensource.org/licenses/bsd-license.php
     
@@ -29,62 +38,80 @@ function hcprintf(fmatString, varargin)
         return;
     end
     
-    
     tokenRegex = '{#?(?<fg>[\s0-9a-zA-Z,\.]+)?;?(?<bg>[\s0-9a-zA-Z,\.]+)?}';
     [content, colorspec] = regexp(fmatString, tokenRegex, 'split', 'names');
     
+    content = strrep(content, '\{', '{');
+    content = strrep(content, '\}', '}');
+    
      % dump as plaintext if not in terminal or in data tip
-    if ~usingTerminal || inDataTip
+    if inDataTip
         str = cat(1, content{:});
         fprintf(str, varargin{:});
         return;
     end
     
-    % parse and replace color strings with escape codes
-    nSpec = numel(colorspec);
-    escapeCodes = cell(1, nSpec+1);
-    for i = 1:nSpec
-        fg = parseColorString(colorspec(i).fg);
-        bg = parseColorString(colorspec(i).bg);
-        
-        if isempty(fg)
-            if isempty(bg)
-                % neither
-                esc = '\x1b[0m';
+    if usingTerminal
+    
+        % parse and replace color strings with escape codes
+        nSpec = numel(colorspec);
+        escapeCodes = cell(1, nSpec+1);
+        for i = 1:nSpec
+            fg = parseColorString(colorspec(i).fg);
+            bg = parseColorString(colorspec(i).bg);
+
+            if isempty(fg)
+                if isempty(bg)
+                    % neither
+                    esc = '\x1b[0m';
+                else
+                    % bg only
+                    esc = sprintf('\\x1b[48;2;%d;%d;%dm', bg);
+                end
             else
-                % bg only
-                esc = sprintf('\\x1b[48;2;%d;%d;%dm', bg);
+                if isempty(bg)
+                    % fg only
+                    esc = sprintf('\\x1b[38;2;%d;%d;%dm', fg);
+                else
+                    % both
+                    esc = sprintf('\\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm', fg, bg);
+                end
             end
+
+            escapeCodes{i} = esc;
+        end
+        escapeCodes{end} = '';
+
+        % interleave content and escape codes
+        combined = [content; escapeCodes];
+        fmat = cat(2, combined{:});
+
+        % if the message ends with a newline, we should turn off
+        % formatting before the newline to avoid issues with 
+        % background colors
+        NEWLINE = char(10);
+        if ~isempty(fmat) && fmat(end) == NEWLINE
+            fmat = [fmat(1:end-1) '\x1b[0m\n'];
         else
-            if isempty(bg)
-                % fg only
-                esc = sprintf('\\x1b[38;2;%d;%d;%dm', fg);
+            fmat = [fmat '\x1b[0m'];
+        end
+
+        % evaluate the printf style message
+        fprintf(fmat, varargin{:});
+        
+    else
+        % use Yair Altman's cprintf
+        nSpec = numel(colorspec);
+        fprintf(content{1});
+        for i = 1:nSpec
+            fg = parseColorString(colorspec(i).fg) / 255;
+            if isempty(fg)
+                cprintf('text', content{i+1}); % no formatting
             else
-                % both
-                esc = sprintf('\\x1b[38;2;%d;%d;%d;48;2;%d;%d;%dm', fg, bg);
+                cprintf(fg, content{i+1});
             end
         end
-        
-        escapeCodes{i} = esc;
     end
-    escapeCodes{end} = '';
-
-    % interleave content and escape codes
-    combined = [content; escapeCodes];
-    fmat = cat(2, combined{:});
-    
-    % if the message ends with a newline, we should turn off
-    % formatting before the newline to avoid issues with 
-    % background colors
-    NEWLINE = char(10);
-    if ~isempty(fmat) && fmat(end) == NEWLINE
-        fmat = [fmat(1:end-1) '\x1b[0m\n'];
-    else
-        fmat = [fmat '\x1b[0m'];
-    end
-    
-    % evaluate the printf style message
-    fprintf(fmat, varargin{:});
 end
 
 function cvec = parseColorString(fg)
@@ -98,12 +125,12 @@ function cvec = parseColorString(fg)
     if ~all(ismember(fg, valid))
         % try xkcd lookup
         try
-            cvec = round(rgb(fg) * 255);
+            cvec = round(rgb(fg) * 255); % THIS USES THE TOOL RGB!
         catch
             error('Could not parse color %s', fg);
         end
     else
-        if ~isempty(strfind(fg, ','));
+        if contains(fg, ',')
             % is a R,G,B specification
             [red, rem] = strtok(fg, ',');
             cvec(1) = str2double(red);

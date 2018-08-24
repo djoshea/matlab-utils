@@ -1,0 +1,33 @@
+# city_lights_scheme_matlab - MATLAB color scheme
+# Generated with schemer_export v1.3.1, on MATLAB 9.3.0.713579 (R2017b)
+# Wed Feb 21 07:11:53 PST 2018
+# To enable this color scheme in MATLAB use schemer_import, available at:
+#     https://github.com/scottclowe/matlab-schemer
+#     https://www.mathworks.com/matlabcentral/fileexchange/53862-matlab-schemer
+ColorsUseSystem=Bfalse
+ColorsUseMLintAutoFixBackground=Bfalse
+Editor.VariableHighlighting.Automatic=Btrue
+Editor.NonlocalVariableHighlighting=Btrue
+EditorCodepadHighVisible=Btrue
+EditorCodeBlockDividers=Bfalse
+Editorhighlight-caret-row-boolean=Btrue
+EditorRightTextLineVisible=Btrue
+EditorRightTextLimitLineWidth=I1
+ColorsText=C-9203031
+ColorsBackground=C-15196893
+Colors_M_Keywords=C-10566401
+Colors_M_Comments=C-12496802
+Colors_M_Strings=C-2444289
+Colors_M_UnterminatedStrings=C-2447817
+Colors_M_SystemCommands=C-2793073
+Colors_M_Errors=C-65536
+Colors_HTML_HTMLLinks=C-5379073
+Colors_M_Warnings=C-2069
+ColorsMLintAutoFixBackground=C-1146549
+Editor.VariableHighlighting.Color=C-15583708
+Editor.NonlocalVariableHighlighting.TextColor=C-6684826
+Editorhighlight-lines=C-15526373
+Editorhighlight-caret-row-boolean-color=C-14407118
+EditorRightTextLimitLineColor=C-12105913
+Color_CmdWinWarnings=C-10496
+Color_CmdWinErrors=C-39322
