@@ -44,8 +44,8 @@ classdef ProgressBar < handle
         
         usingTerminal
         
+        lastCalledItermStatus
         usingItermStatus = false;
-        backgroundUpdateTimer
 
         % enable for parallel for loops? see .enableParallel / disableParallel
         parallel = false;
@@ -65,6 +65,7 @@ classdef ProgressBar < handle
     
     properties(Constant)
         minInterval = 0.1; % seconds
+        minIntervalItermStatus = 1;
     end
 
     methods
@@ -81,8 +82,8 @@ classdef ProgressBar < handle
                 pbar.N = 1;
             end
             
-            % use simple version in desktop mode AND not inside jupyter kernel
-            pbar.usingTerminal = ~usejava('desktop') || ~isempty(getenv('JUPYTER_KERNEL'));
+            % use simple version in desktop mode  not inside jupyter kernel
+            pbar.usingTerminal = ~usejava('desktop'); % || ~isempty(getenv('JUPYTER_KERNEL'));
             
             [~, pbar.cols] = ProgressBar.getTerminalSize();
             pbar.trueColor = ~isempty(getenv('ITERM_PROFILE')) && true;
@@ -99,7 +100,7 @@ classdef ProgressBar < handle
                 pbar.trueCmap = round(256*hsv2rgb(hsv));
             end
             
-            if ismac && exist(fullfile(getenv('HOME'), '.iterm2/it2setkeylabel'), 'file')
+            if ismac && ~usejava('desktop') && exist(fullfile(getenv('HOME'), '.iterm2/it2setkeylabel'), 'file')
                 pbar.usingItermStatus = true;
             else
                 pbar.usingItermStatus = false;
@@ -110,10 +111,6 @@ classdef ProgressBar < handle
             pbar.lastNBoxes = 0;
             pbar.lastNSpaces = 0;
             pbar.update(0);
-            
-            timerFcn = @(varargin) pbar.updateItermStatus();
-            pbar.backgroundUpdateTimer = timer('StartDelay',0.5, 'Period', 0.5, 'TimerFcn',timerFcn, 'ExecutionMode', 'fixedDelay');
-            start(pbar.backgroundUpdateTimer);
         end
         
         function enableParallel(pbar)
@@ -443,6 +440,12 @@ classdef ProgressBar < handle
         end
         
         function updateItermStatus(pbar)
+            if isempty(pbar.lastCalledItermStatus)
+                pbar.lastCalledItermStatus = clock;
+            elseif etime(clock, pbar.lastCalledItermStatus) < pbar.minIntervalItermStatus
+                return;
+            end
+            
             [~, ~, progStr] = pbar.computeRatio();
             msg = [progStr, ' ', pbar.message];
             setItermStatus(msg);

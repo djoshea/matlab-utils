@@ -1,4 +1,4 @@
-function t = checkNaN(file)
+function t = h5checkNaN(file)
     info = h5info(file);
     t = checkNaN(info, '', file);
 end
