@@ -349,11 +349,6 @@ classdef ProgressBar < handle
                 return; % print nothing inside parfor loop if I'm not the main progress bar
             end
             
-            if ~isempty(pbar.backgroundUpdateTimer)
-                stop(pbar.backgroundUpdateTimer);
-                delete(pbar.backgroundUpdateTimer);
-            end
-
             try
                 DatabaseAnalysis.pauseOutputLog();
             catch

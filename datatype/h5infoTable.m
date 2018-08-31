@@ -1,5 +1,7 @@
-function t = h5infoTable(file)
-
+function t = h5infoTable(file, rowMajor)
+    if nargin < 2
+        rowMajor = false;
+    end
     info = h5info(file);
 
     ds = info.Datasets;
@@ -7,7 +9,12 @@ function t = h5infoTable(file)
     [name, size, type] = deal(cell(numel(ds), 1));
     for iD = 1:numel(ds)
         name{iD} = ds(iD).Name;
-        size{iD} = vec2str(fliplr(ds(iD).Dataspace.Size)); % python is row major but Matlab is column major
+        if rowMajor
+            % python is row major but Matlab is column major
+            size{iD} = vec2str(fliplr(ds(iD).Dataspace.Size));
+        else
+            size{iD} = vec2str(ds(iD).Dataspace.Size);
+        end
         type{iD} = display_datatype_by_class(ds(iD).Datatype); 
     end
 
