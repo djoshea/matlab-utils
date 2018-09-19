@@ -435,6 +435,9 @@ classdef ProgressBar < handle
         end
         
         function updateItermStatus(pbar)
+            if ~pbar.usingItermStatus
+                return;
+            end
             if isempty(pbar.lastCalledItermStatus)
                 pbar.lastCalledItermStatus = clock;
             elseif etime(clock, pbar.lastCalledItermStatus) < pbar.minIntervalItermStatus

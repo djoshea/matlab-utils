@@ -8,7 +8,7 @@ function success = makeSymLink(src, link)
     
     link = GetFullPath(link);
     mkdirRecursive(fileparts(link));
-    if exist(link, 'file');
+    if exist(link, 'file')
         delete(link);
     end
     cmd = sprintf('ln -s "%s" "%s"', src, link);
