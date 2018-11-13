@@ -22,6 +22,8 @@ function str = structToString(s, separator)
             str = '[]';
         elseif isnumeric(v) || islogical(v)
             str = mat2str(v);
+        elseif iscategorical(v)
+            str = ['{', strjoin(arrayfun(@char, v, 'UniformOutput', false), ','), '}'];
         elseif iscellstr(v)
             str = ['{', strjoin(v, ','), '}'];
         elseif isobject(v)

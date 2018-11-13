@@ -15,7 +15,7 @@ function t = h5infoTable(file, rowMajor)
         else
             size{iD} = vec2str(ds(iD).Dataspace.Size);
         end
-        type{iD} = display_datatype_by_class(ds(iD).Datatype); 
+        type{iD} = display_datatype_by_class(ds(iD).Datatype);
     end
 
     t = table(name, size, type);
@@ -24,18 +24,18 @@ end
 
 %% these are stolen from h5disp.m
 
-function str = display_datatype_by_class(datatype) 
+function str = display_datatype_by_class(datatype)
 
     switch(datatype.Class)
         case 'H5T_INTEGER'
-            str = display_integer_datatype(datatype);         
+            str = display_integer_datatype(datatype);
 
         case 'H5T_FLOAT'
-            str = display_floating_point_datatype(datatype); 
-       
+            str = display_floating_point_datatype(datatype);
+
         otherwise
             str = datatype.Class;
-    
+
     end
 
 end
@@ -67,9 +67,9 @@ function str = display_integer_datatype(datatype)
             str = printf('%s', datatype.Type);
 
     end
-        
+
 end
-        
+
 %--------------------------------------------------------------------------
 function str = display_floating_point_datatype(datatype)
 %
