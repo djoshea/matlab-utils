@@ -22,7 +22,7 @@ function hcprintf(fmatString, varargin)
     %     opensource.org/licenses/bsd-license.php
     
     % determine if we're using 
-    usingTerminal = ~usejava('desktop') || ~isempty(getenv('JUPYTER_KERNEL'));
+    usingTerminal = ismember(getMatlabOutputMode(), ["terminal", "notebook"]);
 
     % determine if datatipinfo is higher on the stack. If tcprintf
     % is used within an object's disp() method, we don't want to
@@ -38,16 +38,17 @@ function hcprintf(fmatString, varargin)
         return;
     end
     
+    str = sprintf(fmatString, varargin{:});
+    
     tokenRegex = '{#?(?<fg>[\s0-9a-zA-Z,\.]+)?;?(?<bg>[\s0-9a-zA-Z,\.]+)?}';
-    [content, colorspec] = regexp(fmatString, tokenRegex, 'split', 'names');
+    [content, colorspec] = regexp(str, tokenRegex, 'split', 'names');
     
     content = strrep(content, '\{', '{');
     content = strrep(content, '\}', '}');
     
      % dump as plaintext if not in terminal or in data tip
     if inDataTip
-        str = cat(1, content{:});
-        fprintf(str, varargin{:});
+        fprintf(str);
         return;
     end
     

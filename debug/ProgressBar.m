@@ -83,7 +83,7 @@ classdef ProgressBar < handle
             end
             
             % use simple version in desktop mode  not inside jupyter kernel
-            pbar.usingTerminal = ~usejava('desktop'); % || ~isempty(getenv('JUPYTER_KERNEL'));
+            pbar.usingTerminal = ismember(getMatlabOutputMode(), {'terminal', 'notebook'});
             
             [~, pbar.cols] = ProgressBar.getTerminalSize();
             pbar.trueColor = ~isempty(getenv('ITERM_PROFILE')) && true;
@@ -97,7 +97,7 @@ classdef ProgressBar < handle
                 x = 0.3;
                 b = b*x + 0.95-x;
                 hsv(:, 3) = b;
-                pbar.trueCmap = round(256*hsv2rgb(hsv));
+                pbar.trueCmap = round(256 * winter(pbar.cols));
             end
             
             if ismac && ~usejava('desktop') && exist(fullfile(getenv('HOME'), '.iterm2/it2setkeylabel'), 'file')
@@ -233,7 +233,7 @@ classdef ProgressBar < handle
                 message = pbar.message;
             end 
             
-            gap = pbar.cols - 1 - (length(message)+1) - progLen;
+            gap = pbar.cols - 1 - (length(message)+1) - progLen + 1;
             spaces = repmat(' ', 1, gap);
             if pbar.usingTerminal
                 str = [message spaces progStr]; 
@@ -250,8 +250,8 @@ classdef ProgressBar < handle
             if pbar.trueColor
                 newPreStr = '';
                 for i = 1:numel(preStr)
-                    color = pbar.trueCmap(i, :);
-%                     color = pbar.trueCmap(mod(i-1, size(pbar.trueCmap, 1))+1, :);
+                    %color = pbar.trueCmap(i, :);
+                    color = pbar.trueCmap(mod(i-1, size(pbar.trueCmap, 1))+2, :);
                     newPreStr = [newPreStr, sprintf('\x1b[48;2;%d;%d;%dm%s' , color, preStr(i))];
                 end
                 preStr = newPreStr;
@@ -273,7 +273,7 @@ classdef ProgressBar < handle
                         fprintf(' '); % don't delete whole line on first update
                     end
                     if pbar.trueColor
-                        fprintf('\b\r%s\033[49;37m%s\033[0m ', preStr, postStr);
+                        fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m ', preStr, postStr);
                     else
                         fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m  ', preStr, postStr);
                     end
@@ -506,13 +506,17 @@ classdef ProgressBar < handle
         end
         
         function [rows, cols] = getTerminalSize()
-            usingTerminal = ~usejava('desktop');
+            mode = getMatlabOutputMode();
+            %usingTerminal = ismember(getMatlabOutputMode(), {'terminal', 'notebook'});
 
             % use sensible defaults
             rows = 24;
             cols = 80;
 
-            if (ismac || isunix) && usingTerminal
+            if strcmp(mode, 'notebook')
+                return;
+                
+            elseif (ismac || isunix) && strcmp(mode, 'terminal')
                 % actual terminal: get terminal width using tput
                 cmd = 'tput lines';
                 [~, r] = unix(cmd);
@@ -528,7 +532,7 @@ classdef ProgressBar < handle
                     cols = num(end);
                 end
 
-            elseif ~usingTerminal %#ok<*PROP
+            elseif strcmp(mode, 'desktop') %#ok<*PROP
                 % matlab command window size
                 try
                     jDesktop = com.mathworks.mde.desk.MLDesktop.getInstance;

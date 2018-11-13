@@ -1,12 +1,13 @@
 function [rows, cols] = getTerminalSize()
 % works in either desktop mode or in terminal
-    usingTerminal = ~usejava('desktop');
+    mode = getMatlabOutputMode();
+    
 
     % use sensible defaults
     rows = 24;
     cols = 80;
 
-    if (ismac || isunix) && usingTerminal
+    if (ismac || isunix) && mode == "terminal"
         % actual terminal: get terminal width using tput
         cmd = 'tput lines';
         [~, r] = unix(cmd);
@@ -21,8 +22,7 @@ function [rows, cols] = getTerminalSize()
         if ~isempty(num)
             cols = num;
         end
-
-    elseif ~usingTerminal
+    elseif mode == "desktop"
         % matlab command window size
         try
             jDesktop = com.mathworks.mde.desk.MLDesktop.getInstance;

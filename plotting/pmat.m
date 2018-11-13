@@ -59,6 +59,8 @@ if p.Results.addColorbar
     hcbar = colorbar;
     box(hcbar, 'off');
     set(hcbar, 'TickLength', 0);
+else
+    hcbar = [];
 end
 
 box off

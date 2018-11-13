@@ -37,8 +37,8 @@ function tcprintf(style, fmatString, varargin)
     end
 
     % determine if we're using 
-    usingTerminal = ~usejava('desktop') || ~isempty(getenv('JUPYTER_KERNEL'));
-
+    usingTerminal = ismember(getMatlabOutputMode(), {'terminal', 'notebook'});
+    
     % determine if datatipinfo is higher on the stack. If tcprintf
     % is used within an object's disp() method, we don't want to
     % use color in the hover datatip or all you'll see are ANSI codes.
@@ -74,10 +74,36 @@ function tcprintf(style, fmatString, varargin)
     
     % dump as plaintext if not in terminal or in data tip
     if ~usingTerminal || inDataTip
-        % print the message without color and return
+        % print the message without color wrapped to width and return
         textPieces = {formatPairs.text};
         str = [textPieces{:}];
-        fprintf(str);
+        
+        try
+            jDesktop = com.mathworks.mde.desk.MLDesktop.getInstance;
+            cmdWin = jDesktop.getClient('Command Window');
+            
+            jTextArea = cmdWin.getComponent(0).getViewport.getComponent(0);
+            width = jTextArea.getParent.getWidth();
+            font = jTextArea.getParent().getFont();
+            metrics = cmdWin.getFontMetrics(font);
+            charWidth = metrics.charWidth('A');
+            cols = floor(width/charWidth);
+        catch
+            cols = 80;
+        end
+        
+        firstIndentedBy = find(str ~= ' ', 1, 'first');
+        if isempty(firstIndentedBy)
+            firstIndentedBy = 0; %#ok<NASGU>
+            indentBy = 0;
+        else
+            firstIndentedBy = firstIndentedBy-1;
+            indentBy = firstIndentedBy + 2;
+        end
+        wrapStr = sprintf('.{1,%d}\\s', cols-indentBy-4);
+        str=regexprep(str, wrapStr, [blanks(indentBy) '$0\n']);
+        str = str(indentBy+1:end-1); % strip indent on first line and strip trailing slash
+        fprintf('%s', str);
         return;
     end
     
@@ -101,7 +127,7 @@ function tcprintf(style, fmatString, varargin)
     % if the message ends with a newline, we should turn off
     % formatting before the newline to avoid issues with 
     % background colors
-    NEWLINE = char(10);
+    NEWLINE = newline;
     if ~isempty(contents) && contents(end) == NEWLINE
         contents = contents(1:end-1);
         endOfLine = NEWLINE; 
@@ -133,7 +159,7 @@ function [codeStr, noReset] = getCodeStringForStyle(style)
         noReset = false;
 
     else
-        [colorName backColorName bright underline blink noReset] = parseStyleTokens(values);
+        [colorName, backColorName, bright, underline, blink, noReset] = parseStyleTokens(values);
         colorCodes = getColorCode(colorName, bright);
         if ~isempty(backColorName)
             backColorCode = getBackColorCode(backColorName);
@@ -154,7 +180,7 @@ function [codeStr, noReset] = getCodeStringForStyle(style)
     codeStr = ['\033[', strjoin(codes, ';'), 'm'];
 end
 
-function [colorName backColorName bright underline blink noReset] = parseStyleTokens(values)
+function [colorName, backColorName, bright, underline, blink, noReset] = parseStyleTokens(values)
     defaultColor = 'default';
     defaultBackColor = '';
 
