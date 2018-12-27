@@ -5,7 +5,7 @@ classdef ProgressBar < handle
 %
 % Parallel mode: this class works in spmd and parfor blocks, if
 % .enableParallel is called BEFORE the spmd/parfor block. Only the thread
-% with labindex==1 will output to the screen. 
+% with task id==1 will output to the screen. 
 %
 % Usage:
 %   pbar = ProgressBar('Message goes here', nThingsToProcess);
@@ -90,13 +90,13 @@ classdef ProgressBar < handle
             
             if pbar.trueColor
                 
-                hsv = ones(pbar.cols, 3);
-                hsv(:, 1) = 0.5;
-                hsv(:, 2) = 0.6;
-                b = 0.5 * (1+sin((1:pbar.cols) / 8));
-                x = 0.3;
-                b = b*x + 0.95-x;
-                hsv(:, 3) = b;
+%                 hsv = ones(pbar.cols, 3);
+%                 hsv(:, 1) = 0.5;
+%                 hsv(:, 2) = 0.6;
+%                 b = 0.5 * (1+sin((1:pbar.cols) / 8));
+%                 x = 0.3;
+%                 b = b*x + 0.95-x;
+%                 hsv(:, 3) = b;
                 pbar.trueCmap = round(256 * winter(pbar.cols));
             end
             
@@ -126,25 +126,27 @@ classdef ProgressBar < handle
 
         function n = updateParallel(pbar, n)           
 %             id = pbar.objWorker.Value;
-            id = labindex;
-            if ~isscalar(id)
-                % not running in parallel mode
+            t = getCurrentTask();
+            if isempty(t)
+               % not running in parallel mode
                 % n = n;
                 return;
             end
+            id = t.ID;
+            
             fname = sprintf('%s_%d', pbar.fnamePrefix, id);
             f = fopen(fname, 'a');
             fprintf(f, '.');
             fclose(f);
             
-            if id == 1
-                % i do all output
+            if true || id == 1
+                % allow all workers to do output
                 d = dir([pbar.fnamePrefix '_*']);
-                n = sum([d.bytes]); 
+                n = sum([d.bytes]);
             else
                 % non-primary worker, no output
                 n = [];
-            end
+            end            
         end
         
         function cleanupParallel(pbar)
@@ -213,8 +215,9 @@ classdef ProgressBar < handle
                     pbar.firstUpdate = false;
                     return;
                 end
+                pbar.n = n;
             end
-            
+
             % don't run too often
             if isempty(pbar.lastCalled)
                 pbar.lastCalled = clock;
@@ -252,7 +255,7 @@ classdef ProgressBar < handle
                 for i = 1:numel(preStr)
                     %color = pbar.trueCmap(i, :);
                     color = pbar.trueCmap(mod(i-1, size(pbar.trueCmap, 1))+2, :);
-                    newPreStr = [newPreStr, sprintf('\x1b[48;2;%d;%d;%dm%s' , color, preStr(i))];
+                    newPreStr = [newPreStr, sprintf('\x1b[48;2;%d;%d;%dm%s' , color, preStr(i))]; %#ok<AGROW>
                 end
                 preStr = newPreStr;
             end
@@ -264,9 +267,8 @@ classdef ProgressBar < handle
                 end
 %             end
             
-%            disp(n)
             if pbar.usingTerminal
-                if pbar.parallel
+                if pbar.parallel && false
                     fprintf('\033[1A\033[1;44;37m %s\033[49;37m%s\033[0m \n', preStr, postStr);
                 else
                     if pbar.firstUpdate
@@ -275,8 +277,14 @@ classdef ProgressBar < handle
                     if pbar.trueColor
                         fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m ', preStr, postStr);
                     else
-                        fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m  ', preStr, postStr);
+                        fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m ', preStr, postStr);
                     end
+                    drawnow update
+%                     if pbar.trueColor
+%                         fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m ', preStr, postStr);
+%                     else
+%                         fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m  ', preStr, postStr);
+%                     end
                 end
             else
                 pbar.textprogressbar(ratio);
@@ -418,7 +426,7 @@ classdef ProgressBar < handle
             percentageOut = [repmat(' ',1,strPercentageLength-length(percentageOut)-1) percentageOut ' '];
             nDots = floor(c/100*strDotsMaximum);
             dotOut = ['[' repmat('_',1,nDots) repmat(' ',1,strDotsMaximum-nDots) ']   '];
-            strOut = [percentageOut dotOut];
+            strOut = [percentageOut dotOut newline];
 
             % Print it on the screen
             if pbar.textprogressStrCR == -1
@@ -489,7 +497,7 @@ classdef ProgressBar < handle
         
         function demoParallel(N, varargin)
             if nargin < 1
-                N = 100;
+                N = 200;
             end
             if numel(varargin) == 0
                 varargin = {'Running ProgressBarDemo parallel with %d items', N};

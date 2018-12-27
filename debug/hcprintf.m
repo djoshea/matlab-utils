@@ -56,7 +56,7 @@ function hcprintf(fmatString, varargin)
     
         % parse and replace color strings with escape codes
         nSpec = numel(colorspec);
-        escapeCodes = cell(1, nSpec+1);
+        escapeCodes = cell(1, nSpec+1); 
         for i = 1:nSpec
             fg = parseColorString(colorspec(i).fg);
             bg = parseColorString(colorspec(i).bg);
