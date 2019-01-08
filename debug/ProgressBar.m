@@ -97,7 +97,7 @@ classdef ProgressBar < handle
                 x = 0.3;
                 b = b*x + 0.95-x;
                 hsv(:, 3) = b;
-                cmap = round(256 * winter(ceil(pbar.cols/2)));
+                cmap = winter(ceil(pbar.cols/2));
                 pbar.trueCmap = [cmap; flipud(cmap)];
             end
 
@@ -249,14 +249,14 @@ classdef ProgressBar < handle
             ind = min(length(str), ceil(ratio*pbar.cols));
             preStr = str(1:ind);
             postStr = str(ind+1:end);
-
+            
             % try using 24 color
             if pbar.trueColor
                 newPreStr = '';
                 for i = 1:numel(preStr)
                     %color = pbar.trueCmap(i, :);
                     cmapRow = mod(i-1 + round(ratio*pbar.cols), size(pbar.trueCmap, 1))+1;
-                    color = pbar.trueCmap(cmapRow, :);
+                    color = round(pbar.trueCmap(cmapRow, :) * 255);
                     newPreStr = [newPreStr, sprintf('\x1b[48;2;%d;%d;%dm%s' , color, preStr(i))];
                 end
                 preStr = newPreStr;
