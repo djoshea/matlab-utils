@@ -83,10 +83,11 @@ classdef ProgressBar < handle
             end
 
             % use simple version in desktop mode  not inside jupyter kernel
-            pbar.usingTerminal = ismember(getMatlabOutputMode(), {'terminal', 'notebook'});
+            outputMode = getMatlabOutputMode();
+            pbar.usingTerminal = ismember(outputMode, {'terminal', 'notebook'});
 
             [~, pbar.cols] = ProgressBar.getTerminalSize();
-            pbar.trueColor = ~isempty(getenv('ITERM_PROFILE')) && true;
+            pbar.trueColor = (~isempty(getenv('ITERM_PROFILE')) || strcmp(outputMode, 'notebook')) && true;
 
             if pbar.trueColor
 
