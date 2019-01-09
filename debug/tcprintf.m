@@ -35,6 +35,10 @@ function tcprintf(style, fmatString, varargin)
     if nargin > 0 && (nargin < 2 || ~ischar(style) || ~ischar(fmatString))
         error('Usage: tcprintf(style, fmatString, ...)');
     end
+    
+    if isempty(fmatString)
+        return;
+    end
 
     % determine if we're using 
     usingTerminal = ismember(getMatlabOutputMode(), {'terminal', 'notebook'});
