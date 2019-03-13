@@ -12,7 +12,7 @@ set(hf, 'color', [1 1 1]);
 %axis square;
 set(gca, 'Box', 'off');
 
-figsize(14,14);
+figSize(14,14);
 
 
 
