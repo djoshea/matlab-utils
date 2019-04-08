@@ -1,5 +1,5 @@
 function saveLarge(fname, varargin)
-
+fname = char(fname);
 vars = evalin('caller', 'whos');
 
 if isempty(varargin)
