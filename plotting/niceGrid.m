@@ -14,5 +14,20 @@ function niceGrid(ax)
     ax.MinorGridLineStyle = '-';
     
     grid(ax, 'on');
+    
+    figh = getParentFigure(ax);
+    figh.InvertHardcopy = 'off';
+    
+    box(ax, 'off');
 
+end
+
+
+function fig = getParentFigure(axh)
+    % if the object is a figure or figure descendent, return the
+    % figure. Otherwise return [].
+    fig = axh;
+    while ~isempty(fig) && ~isa(fig, 'matlab.ui.Figure') % ~strcmp('figure', get(fig,'type'))
+      fig = get(fig,'Parent');
+    end
 end
