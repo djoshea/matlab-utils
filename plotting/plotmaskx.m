@@ -1,5 +1,5 @@
 function plotmaskx(varargin)
-% plotmaskx(mask) or plotmaskx(x, mask)
+% plotmaskx(mask, [y]) or plotmaskx(x, mask, [y])
 
     if islogical(varargin{1})
         tf = varargin{1};
