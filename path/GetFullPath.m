@@ -138,6 +138,11 @@ if isempty(File)  % Accept empty matrix as input
    end
 end
 
+if isstring(File)
+    File = char(File);
+end
+
+
 if ischar(File) == 0  % Non-empty inputs must be strings
    error(['JSimon:', mfilename, ':BadInputType'], ...
       ['*** ', mfilename, ': Input must be a string or cell string']);
