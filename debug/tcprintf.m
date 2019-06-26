@@ -58,6 +58,9 @@ function tcprintf(style, fmatString, varargin)
     end
     
     % generate the final string
+    if isempty(fmatString)
+        return;
+    end
     fmatString = strrep(strrep(fmatString, '\{', '\\{'), '\}', '\\}'); 
     str = sprintf(fmatString, varargin{:});
 

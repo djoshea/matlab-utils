@@ -32,6 +32,7 @@ p.addParameter('namesAlongDims', {}, @iscell);
 p.addParameter('labelsSuperimposed', {}, @iscell);
 p.addParameter('labelsStacked', {}, @iscell);
 p.addParameter('pca', false, @islogical);
+p.addParameter('baseline', [], @(x) true);
 %p.addParameter('alpha', 1, @isscalar);
 p.KeepUnmatched = true;
 p.PartialMatching = false;
