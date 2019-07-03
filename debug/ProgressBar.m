@@ -346,6 +346,45 @@ classdef ProgressBar < handle
             %disp(str);
 
         end
+        
+        function pause_for_output(pbar)
+            if feature('isdmlworker') && ~pbar.parallel
+                return; % print nothing inside parfor loop if I'm not the main progress bar
+            end
+            
+            try
+                DatabaseAnalysis.pauseOutputLog();
+            catch
+            end
+            
+            if pbar.usingTerminal
+                spaces = repmat(' ', 1, pbar.cols-1);
+                if pbar.parallel
+                    fprintf('\033[1A%s\033[0m\r', spaces);
+                else
+                    %spaces = repmat(' ', 1, pbar.cols-10);
+                    %fprintf('\033[2K\033[0m\r');
+
+                    % working on mac os
+                    fprintf('\b\r%s\033[0m\r', spaces);
+%                     fprintf('\033[1A\033[2K\r');
+%                     pause(1);
+                end
+            else
+%                 backspaces = repmat('\b', 1, pbar.lastNSpaces + pbar.lastNBoxes + 1 + pbar.cols - 1);
+%                 fprintf(backspaces
+                pbar.textprogressbar(1);
+                fprintf('\n');
+            end
+            
+            try
+                DatabaseAnalysis.resumeOutputLog();
+            catch
+            end
+            
+            pbar.firstUpdate = true; % ensure the line won't be cleared on next update
+        end
+            
 
         function finish(pbar, message, varargin)
             % if message is provided (also in printf format), the message
