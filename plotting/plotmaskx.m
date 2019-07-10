@@ -5,12 +5,17 @@ function plotmaskx(varargin)
         tf = varargin{1};
         x = 1:numel(tf);
         args = varargin(2:end);
-    elseif islogical(varargin{2})
+    elseif nargin > 1 && islogical(varargin{2})
         x = varargin{1};
         tf = varargin{2};
         args = varargin(3:end);
     else
-        error('First or second arg must be logical');
+        inds = varargin{1};
+        x = min(inds):max(inds);
+        tf = ismember(x, inds);
+        args = varargin(2:end);
+        
+        %error('First or second arg must be logical');
     end
 
     if ~isempty(args) && isscalar(args{1})
