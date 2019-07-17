@@ -158,7 +158,13 @@ classdef ProgressBar < handle
         end
 
         function increment(pbar, varargin)
-            pbar.update(pbar.n+1, varargin{:});
+            if nargin > 1 && isnumeric(varargin{1})
+                by = varargin{1};
+                varargin = varargin(2:end);
+            else
+                by = 1;
+            end
+            pbar.update(pbar.n+by, varargin{:});
         end
 
         function [ratio, progStr, progStrPercentOnly] = computeRatio(pbar)
