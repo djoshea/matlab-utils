@@ -47,6 +47,11 @@ if isempty(p.Results.coloreval)
         h(iH).Color(4) = p.Results.alpha;
     end
     hold off;
+    
+    ax = gca;
+    ax.TickDir = 'out';
+    ax.ColorSpace.Colormap = cmap;
+    ax.CLim = [1 numel(h)];
 else
     % plot lines according to their value in cmap
     coloreval = p.Results.coloreval;
