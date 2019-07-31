@@ -29,7 +29,7 @@ function plotmaskx(varargin)
     yv = nan(size(x));
     yv(tf) = y;
 
-    plot(x, yv, 'k-', 'LineWidth', 5, args{:});
+    plot(x, yv, 'k.-', 'LineWidth', 5, args{:});
 
 end
 
