@@ -270,7 +270,8 @@ classdef ThreeVector < handle
             set(tv.ht(3), 'String', get(get(axh, 'ZLabel'), 'String'));
             
             set(tv.ht, 'Clipping', 'off', 'FontSize', tv.fontSize, 'Color', tv.fontColor, ...
-                'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'BackgroundColor', 'none');
+                'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'BackgroundColor', 'none', ...
+                'Interpreter', 'none');
             
             % update background rectangle
             lox = min(allPointsFig(1, :));
@@ -313,6 +314,8 @@ classdef ThreeVector < handle
   
             figh = ThreeVector.getParentFigure(axh);
             figh.CurrentAxes = axh;
+            
+            axis(axh, 'off');
         end
         
         function freezePosition(tv)
