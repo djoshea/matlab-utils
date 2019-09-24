@@ -66,6 +66,8 @@ classdef ThreeVector < handle
 %
 
     properties
+        hideAxes logical = true;
+        niceGrid logical = false;
         axisInset = [0.2 0.2]; % in cm [left bottom]
         vectorLength = 1; % in cm
         
@@ -115,17 +117,21 @@ classdef ThreeVector < handle
     end
     
     methods
-        function tv = ThreeVector(axh, useCallbacks)
+        function tv = ThreeVector(axh, varargin)
+            p = inputParser();
+            p.addParameter('useCallbacks', true, @islogical);
+            p.addParameter('hideAxes', true, @islogical);
+            p.addParameter('niceGrid', false, @islogical);
+            p.parse(varargin{:});
+            
             % auto-recover the existing instance if associated with axis
             % axh, otherwise create a new one
             if nargin < 1 || isempty(axh)
                 axh = gca;
             end
-            if nargin < 2
-                tv.useCallbacks = true;
-            else
-                tv.useCallbacks = useCallbacks;
-            end
+            tv.useCallbacks = p.Results.useCallbacks;
+            tv.hideAxes = p.Results.hideAxes;
+            tv.niceGrid = p.Results.niceGrid;
             
             tv = ThreeVector.createOrRecoverInstance(tv, axh);
             tv.update();
@@ -294,7 +300,6 @@ classdef ThreeVector < handle
             set(tv.hv, 'Visible', 'on');
             
             % hide specific axes for special projections
-            hide = NaN;
             v = get(axh, 'View');
             az = v(1);
             el = v(2);
@@ -313,9 +318,52 @@ classdef ThreeVector < handle
             end
   
             figh = ThreeVector.getParentFigure(axh);
-            figh.CurrentAxes = axh;
             
-            axis(axh, 'off');
+            if tv.niceGrid
+                axis(axh, 'on');
+                if tv.hideAxes
+                    axh.XLabel.Visible = 'off';
+                    axh.YLabel.Visible = 'off';
+                    axh.ZLabel.Visible = 'off';
+                    
+                    axh.XRuler.Visible = 'off';
+                    axh.YRuler.Visible = 'off';
+                    axh.ZRuler.Visible = 'off';
+                else
+                    axh.XLabel.Visible = 'on';
+                    axh.YLabel.Visible = 'on';
+                    axh.ZLabel.Visible = 'on';
+                    
+                    axh.XRuler.Visible = 'on';
+                    axh.YRuler.Visible = 'on';
+                    axh.ZRuler.Visible = 'on';
+                end
+                axh.Color = [0.92 0.92 0.95];
+                axh.GridColor = [1 1 1];
+                axh.GridAlpha = 1;
+                axh.GridLineStyle = '-';
+                axh.MinorGridColor =  [0.96 0.96 0.96];
+                axh.MinorGridAlpha = 1;
+                axh.MinorGridLineStyle = '-';
+
+                grid(axh, 'on');
+                figh.InvertHardcopy = 'off';
+            else
+                axh.Color = 'none';
+                if tv.hideAxes
+                    axis(axh, 'off');
+                    axh.XLabel.Visible = 'off';
+                    axh.YLabel.Visible = 'off';
+                    axh.ZLabel.Visible = 'off';
+                else
+                    axis(axh, 'on');
+                    axh.XLabel.Visible = 'on';
+                    axh.YLabel.Visible = 'on';
+                    axh.ZLabel.Visible = 'on';
+                end
+            end
+
+            figh.CurrentAxes = axh;
         end
         
         function freezePosition(tv)
@@ -469,13 +517,13 @@ classdef ThreeVector < handle
         
         function figureCallback(figh, varargin)
             % update all axes with installed ThreeVectors in a figure
-            if ThreeVector.isMultipleCall(), return, end;
+            if ThreeVector.isMultipleCall(), return, end
             ThreeVector.updateFigure(figh);
         end
              
         function preUpdateCallback(varargin)
             % callback called before update
-            if ThreeVector.isMultipleCall(), return, end;
+            if ThreeVector.isMultipleCall(), return, end
             if isfield(varargin{2}, 'Axes')
                 axh = varargin{2}.Axes;
                 tv = ThreeVector.recoverForAxis(axh);
@@ -486,7 +534,7 @@ classdef ThreeVector < handle
         
         function axisCallback(varargin)
             % callback called on specific axis
-            if ThreeVector.isMultipleCall(), return, end;
+            if ThreeVector.isMultipleCall(), return, end
             if isfield(varargin{2}, 'Axes')
                 axh = varargin{2}.Axes;
                 tv = ThreeVector.recoverForAxis(axh);
@@ -657,7 +705,7 @@ classdef ThreeVector < handle
             tv.tagHandlesForRecovery(handleStruct);
         end
         
-        function tag = generateTagForAxis(tv)
+        function tag = generateTagForAxis(tv) %#ok<MANU>
             % generate a random string tag to use for the transparent
             % overlay axis
             
@@ -717,7 +765,7 @@ classdef ThreeVector < handle
             % ThreeVector.axisCallback will automatically find the right
             % ThreeVector instance for the active axis.
             
-            if ThreeVector.isMultipleCall(), return, end;
+            if ThreeVector.isMultipleCall(), return, end
             tv.update();
         end
         
@@ -727,7 +775,7 @@ classdef ThreeVector < handle
             % ThreeVector.axisCallback will automatically find the right
             % ThreeVector instance for the active axis.
             
-            if ThreeVector.isMultipleCall(), return, end;
+            if ThreeVector.isMultipleCall(), return, end
             hasChanged = tv.updateTransforms();
             if hasChanged
                 tv.update();
