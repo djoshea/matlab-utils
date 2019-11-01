@@ -25,5 +25,5 @@ end
 
 [h, hcbar] = pmat(m, p.Unmatched);
 colormap(cmap);
-L = max(abs(m(:)));
+L = gather(max(abs(m(:))));
 caxis([-L L]);
