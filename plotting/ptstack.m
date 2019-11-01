@@ -61,9 +61,9 @@ xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeD
 
 nStack = size(xr, 2);
 nSuperimpose = size(xr, 3);
-if nStack > 100
-    warning('Truncating to stack only 100 traces');
-    xr = xr(:, 1:100, :);
+if nStack > 400
+    warning('Truncating to stack only 400 traces');
+    xr = xr(:, 1:400, :);
 end
 if nSuperimpose > 500
     warning('Truncating to superimpose only 500 traces');
