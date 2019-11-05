@@ -2,8 +2,27 @@ function [out, transformInfo] = pv(timeDim, stackDims, tensor, varargin)
 % plot vertically, based on Neuropixel.Utils.plotStackedTraces
 
 layerDims = TensorUtils.otherDims(size(tensor), [timeDim; stackDims]);
+if isempty(layerDims)
+    layerDims = ndims(tensor) + 1;
+end
+
+% grab extra numeric arguments
+skip = 0;
+for iA = 1:numel(varargin)
+    if isnumeric(varargin{iA})
+        skip = iA;
+    else
+        break;
+    end
+end
+if skip > 0
+    tensor = cat(layerDims(1), tensor, varargin{1:skip});
+    varargin = varargin(skip+1:end);
+end
+
 % r will be T x nStack x nSuperimpose
 data = TensorUtils.reshapeByConcatenatingDims(tensor, {timeDim, stackDims, layerDims});
+data = gather(data);
 
 p = inputParser();
 p.addParameter('tvec', (1:size(data, 1))', @isvector);
@@ -122,7 +141,8 @@ if style == "traces" || style == "ridgeline"
         if p.Results.invertChannels % first is at bottom
             tform.offsets = 0:nTraces-1;
         else
-            tform.offsets = nTraces-1:-1:0; % default, first is at top
+%             tform.offsets = nTraces-1:-1:0; % default, first is at top
+            tform.offsets = -1:-1:-nTraces;
         end
     end
 else
