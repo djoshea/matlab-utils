@@ -8,7 +8,7 @@ flds = fieldnames(s1);
 
 for iF = 1:numel(flds)
     fld = flds{iF};
-    result.(fld) = isequal(s1.(fld), s2.(fld));
+    result.(fld) = isequaln(s1.(fld), s2.(fld));
 end
 
 warning(swarn);
