@@ -1,4 +1,4 @@
-function xline_multi(vals, linespec, labels, varargin)
+function h = xline_multi(vals, linespec, labels, varargin)
 
 p = inputParser();
 p.addParameter('Color', [], @(x) true);
@@ -40,13 +40,14 @@ if numel(labels) == 1
 end
 
 holding = ishold;
+h = gobjects(N, 1);
 for i = 1:N
     if ~isempty(colors)
         args = {'Color', colors{i}};
     else
         args = {};
     end
-    xline(vals(i), linespec, labels(i), args{:}, extraArgs{:});
+    h(i) = xline(vals(i), linespec, labels(i), args{:}, extraArgs{:});
     hold on;
 end
 
