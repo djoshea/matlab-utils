@@ -93,7 +93,6 @@ if ~isempty(labelsSuperimpose)
     labelsSuperimpose = labelsSuperimpose(1:size(xr, 3));
 end
 
-clf;
 [traceCenters, hLines] = TrialDataUtilities.Plotting.plotStackedTraces(tvec, xr, ...
     'labels', labelsStack, 'labelsSuperimposed', labelsSuperimpose, 'labels', labelsStack, p.Unmatched);
 

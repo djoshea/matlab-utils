@@ -2,8 +2,8 @@ function [h, hcbar] = pmat(m, varargin)
 % visualize a matrix using pcolor
 
 p = inputParser();
-p.addParamValue('x', [], @(x) isvector(x));
-p.addParamValue('y', [], @(x) isvector(x));
+p.addParameter('x', [], @(x) isempty(x) ||  isvector(x));
+p.addParameter('y', [], @(x) isempty(x) || isvector(x));
 p.addParameter('addColorbar', true, @islogical);
 p.parse(varargin{:});
 
