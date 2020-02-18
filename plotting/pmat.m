@@ -5,9 +5,10 @@ p = inputParser();
 p.addParameter('x', [], @(x) isempty(x) ||  isvector(x));
 p.addParameter('y', [], @(x) isempty(x) || isvector(x));
 p.addParameter('addColorbar', true, @islogical);
+p.addParameter('colorAxisLabel', '', @isstringlike);
 p.parse(varargin{:});
 
-cla;
+% cla;
 
 m = squeeze(m);
 
@@ -63,6 +64,11 @@ if p.Results.addColorbar
     hcbar = colorbar;
     box(hcbar, 'off');
     set(hcbar, 'TickLength', 0);
+    
+    colorAxisLabel = string(p.Results.colorAxisLabel);
+    if colorAxisLabel ~= ""
+        hcbar.YLabel.String = colorAxisLabel;
+    end
 else
     hcbar = [];
 end

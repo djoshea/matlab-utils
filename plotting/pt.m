@@ -34,36 +34,42 @@ p.KeepUnmatched = true;
 p.PartialMatching = false;
 p.parse(args{:});
 
+holding = ishold(gca);
+if ~holding
+    cla;
+end
+
 cmap = p.Results.colormap;
 if isempty(cmap)
     cmap = TrialDataUtilities.Color.hslmap(nTraces);
 end
 
 if isempty(p.Results.coloreval)
-    set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);
     hold on;
+    set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);
     h = plot(tvec, xr, p.Unmatched);
+    
     for iH = 1:numel(h)
         h(iH).Color(4) = p.Results.alpha;
     end
-    hold off;
     
     ax = gca;
     ax.TickDir = 'out';
     ax.ColorSpace.Colormap = cmap;
     ax.CLim = [1 numel(h)];
 else
+    hold on;
     % plot lines according to their value in cmap
     coloreval = p.Results.coloreval;
     colorevalLims = [nanmin(coloreval(:)), nanmax(coloreval(:))];
     colors = TrialDataUtilities.Color.evalColorMapAt(cmap, coloreval, colorevalLims);
     
-    hold on;
     if p.Results.stairs
         h = stairs(tvec, xr, p.Unmatched);
     else
         h = plot(tvec, xr, p.Unmatched);
     end
+    
     
     for iH = 1:numel(h)
         if any(isnan(colors(iH, :)))
@@ -73,7 +79,6 @@ else
             h(iH).Color = cat(2, colors(iH, :), p.Results.alpha);
         end
     end
-    hold off;
     
     ax = gca;
     ax.TickDir = 'out';
@@ -84,4 +89,8 @@ else
     
 %     niceGrid;
     
+end
+
+if ~holding
+    hold off;
 end
