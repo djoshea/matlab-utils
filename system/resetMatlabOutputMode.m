@@ -1,5 +1,6 @@
 function resetMatlabOutputMode()
 
-    setenv('JUPYTER_CURRENTLY_EXECUTING');
+    imatlab_post_execute();
+    %setenv('JUPYTER_CURRENTLY_EXECUTING');
 
 end
