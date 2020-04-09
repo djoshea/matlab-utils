@@ -12,7 +12,7 @@ function niceGrid(ax)
     ax.MinorGridColor =  [0.96 0.96 0.96];
     ax.MinorGridAlpha = 1;
     ax.MinorGridLineStyle = '-';
-    
+    ax.TickDir = 'out';
     grid(ax, 'on');
     
     figh = getParentFigure(ax);

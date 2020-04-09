@@ -18,7 +18,7 @@ function se = sem(vals,dim)
     s = std(vals, [], dim);
     se = s / sqrt(n);
     
-    if n == 1;
+    if n == 1
         se(:) = NaN;
     end
 end
