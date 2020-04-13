@@ -29,7 +29,7 @@ end
 p = inputParser();
 %p.addParameter('colormap', TrialDataUtilities.Color.hslmap(nSuperimpose, 'fracHueSpan', 0.9), @(x) ~ischar(x) && ismatrix(x));
 p.addParameter('namesAlongDims', {}, @iscell);
-p.addParameter('labelsSuperimposed', {}, @iscell);
+p.addParameter('labelsSuperimposed', {}, @isstringlike);
 p.addParameter('labelsStacked', {}, @iscell);
 p.addParameter('pca', false, @islogical);
 p.addParameter('baseline', [], @(x) true);
