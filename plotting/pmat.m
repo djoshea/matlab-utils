@@ -4,6 +4,8 @@ function [h, hcbar] = pmat(m, varargin)
 p = inputParser();
 p.addParameter('x', [], @(x) isempty(x) ||  isvector(x));
 p.addParameter('y', [], @(x) isempty(x) || isvector(x));
+p.addParameter('dx', NaN, @isscalar);
+p.addParameter('dy', NaN, @isscalar);
 p.addParameter('addColorbar', true, @islogical);
 p.addParameter('colorAxisLabel', '', @isstringlike);
 p.parse(varargin{:});
@@ -33,15 +35,23 @@ if isempty(p.Results.x)
     x = 0.5:size(m, 2)-0.5;
 else
     x = p.Results.x;
-    dx = diff(x);
-    x = x - dx([1:end end])/2;
+    if isnan(p.Results.dx)
+        dx = median(diff(x));
+    else
+        dx = p.Results.dx;
+    end
+    x = x - dx/2;
 end
 if isempty(p.Results.y)
     y = 0.5:size(m, 1)-0.5;
 else
     y = p.Results.y;
-    dy = diff(y);
-    y = y - dy([1:end end])/2;
+    if isnan(p.Results.dy)
+        dy = median(diff(y));
+    else
+        dy = NaN;
+    end
+    y = y - dy/2;
 end
 
 [X, Y] = meshgrid(x, y);
