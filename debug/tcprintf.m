@@ -109,7 +109,9 @@ function tcprintf(style, fmatString, varargin)
         end
         wrapStr = sprintf('.{1,%d}\\s', cols-indentBy-4);
         str=regexprep(str, wrapStr, [blanks(indentBy) '$0\n']);
-        str = str(indentBy+1:end-1); % strip indent on first line and strip trailing slash
+        if strcmp(str(1:indentBy), blanks(indentBy))
+            str = str(indentBy+1:end-1); % strip indent on first line and strip trailing slash
+        end
         fprintf('%s', str);
         return;
     end
