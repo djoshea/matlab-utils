@@ -99,20 +99,19 @@ function tcprintf(style, fmatString, varargin)
             cols = 80;
         end
         
-        % see tcprintf_wrap
-%         firstIndentedBy = find(str ~= ' ', 1, 'first');
-%         if isempty(firstIndentedBy)
-%             firstIndentedBy = 0; %#ok<NASGU>
-%             indentBy = 0;
-%         else
-%             firstIndentedBy = firstIndentedBy-1;
-%             indentBy = firstIndentedBy + 2;
-%         end
-%         wrapStr = sprintf('.{1,%d}\\s', cols-indentBy-4);
-%         str=regexprep(str, wrapStr, [blanks(indentBy) '$0\n']);
-%         if strlength(str) > indentBy && strcmp(str(1:indentBy), blanks(indentBy))
-%             str = str(indentBy+1:end-1); % strip indent on first line and strip trailing slash
-%         end
+        firstIndentedBy = find(str ~= ' ', 1, 'first');
+        if isempty(firstIndentedBy)
+            firstIndentedBy = 0; %#ok<NASGU>
+            indentBy = 0;
+        else
+            firstIndentedBy = firstIndentedBy-1;
+            indentBy = firstIndentedBy + 2;
+        end
+        wrapStr = sprintf('.{1,%d}\\s', cols-indentBy-4);
+        str=regexprep(str, wrapStr, [blanks(indentBy) '$0\n']);
+        if strlength(str) > indentBy && strcmp(str(1:indentBy), blanks(indentBy))
+            str = str(indentBy+1:end-1); % strip indent on first line and strip trailing slash
+        end
         fprintf('%s', str);
         return;
     end

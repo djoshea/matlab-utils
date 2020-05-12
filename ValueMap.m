@@ -149,7 +149,7 @@ classdef ValueMap < DynamicClass
                 %map.assertKeyValid(key);  
                 opts.Method = 'MD5';
                 opts.format = 'hex';
-                keyHash = ['s' DataHash(key, opts)];
+                keyHash = ['s' Matdb.DataHash(key, opts)];
             end
         end
 
@@ -205,6 +205,11 @@ classdef ValueMap < DynamicClass
                     end
                 end
             end
+        end
+        
+        function clear(map)
+            map.warnIfNoArgOut(nargout);
+            map.remove(map.keySet);
         end
 
         function map = keepOnly(map, keys)
