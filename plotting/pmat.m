@@ -64,6 +64,10 @@ Y = addRowCol(Y);
 h = pcolor(X,Y, m);
 
 set(h, 'EdgeColor', 'none');
+
+if any(isnan(m))
+    h.AlphaData = ~isnan(m);
+end
 %colormap(parula);
 % colormap(flipud(cbrewer('div', 'RdYlBu', 256)));
 % colormap(pmkmp(256));
