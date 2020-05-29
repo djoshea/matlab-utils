@@ -29,8 +29,11 @@ function [rows, cols] = getTerminalSize()
             cmdWin = jDesktop.getClient('Command Window');
             
             jTextArea = cmdWin.getComponent(0).getViewport.getComponent(0);
-            height = jTextArea.getHeight();
-            width = jTextArea.getParent.getWidth();
+            rect = jTextArea.getVisibleRect();
+            height = rect.height;
+            width = rect.width;
+%             height = jTextArea.getHeight();
+%             width = jTextArea.getParent.getWidth();
             font = jTextArea.getParent().getFont();
             metrics = cmdWin.getFontMetrics(font);
             charWidth = metrics.charWidth('A');
