@@ -22,7 +22,7 @@ hashInput.name = p.Results.name;
 hashInput.stack = stack;
 
 % hash the stack method names and call history to a unique figure value
-hashVec = DataHash(hashInput, struct('Method', 'MD5', 'Format', 'uint8'));
+hashVec = Matdb.DataHash(hashInput, struct('Method', 'MD5', 'Format', 'uint8'));
 hash = dot(double(hashVec), 2.^(0:numel(hashVec)-1));
 
 if ishandle(hash)
