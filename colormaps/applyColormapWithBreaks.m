@@ -29,7 +29,7 @@ function rgbimg = applyColormapWithBreaks(img, map, rangeMat, breakAt)
     
     
     rowimg = zeros(rows, cols);
-    rowimg(map <= rangeMat(1, 1)) = 1; % low values map to map(1, :)
+    rowimg(img <= rangeMat(1, 1)) = 1; % low values map to map(1, :)
     
     for iI = 1:nIntervals
         % pick rows of map corresponding to this interval
@@ -53,7 +53,7 @@ function rgbimg = applyColormapWithBreaks(img, map, rangeMat, breakAt)
         rowimg(norm_img >= 1) = rowlims(2);
     end
     
-    rowimg(map >= rangeMat(end, 2)) = nM; % high values map to map(end, :)
+    rowimg(img >= rangeMat(end, 2)) = nM; % high values map to map(end, :)
     
     % rows*cols x 3 --
     rgbimg = reshape(map(rowimg(:), :), [rows cols 3]);
