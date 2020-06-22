@@ -95,6 +95,7 @@ end
 
 [traceCenters, hLines] = TrialDataUtilities.Plotting.plotStackedTraces(tvec, xr, ...
     'labels', labelsStack, 'labelsSuperimposed', labelsSuperimpose, 'labels', labelsStack, p.Unmatched);
+hold off;
 
 % set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);
 % hold on;
