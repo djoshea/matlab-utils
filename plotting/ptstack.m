@@ -13,7 +13,7 @@ function [traceCenters, hLines] = ptstack(timeDim, stackDims, varargin)
 narg = numel(varargin);
 
 timeDim = makecol(timeDim);
-stackDim = makecol(stackDims);
+stackDims = makecol(stackDims);
 
 if isvector(varargin{1}) && narg > 1 && isnumeric(varargin{2})
     x = varargin{2};
@@ -31,8 +31,10 @@ p = inputParser();
 p.addParameter('namesAlongDims', {}, @iscell);
 p.addParameter('labelsSuperimposed', {}, @isstringlike);
 p.addParameter('labelsStacked', {}, @iscell);
+p.addParameter('maxStack', 30, @islogical);
 p.addParameter('pca', false, @islogical);
-p.addParameter('baseline', [], @(x) true);
+p.addParameter('colorDim', [], @(x) true);
+p.addParameter('colormap', [], @(x) true); % applied along colorDim
 %p.addParameter('alpha', 1, @isscalar);
 p.KeepUnmatched = true;
 p.PartialMatching = false;
@@ -51,15 +53,48 @@ superimposeDims = TensorUtils.otherDims(size(x), [timeDim; stackDims]);
 %     error('Refusing to superimpose more than 50 traces');
 % end
 
-if p.Results.pca
-    [~, x] = TensorUtils.pcaAlongDim(x, stackDims);
+if ~isempty(p.Results.colorDim)
+    colorDim = p.Results.colorDim;
+    colormap = p.Results.colormap;
+    if isempty(colormap)
+        colormap = @TrialDataUtilities.Colormaps.linspecer;
+    end
+    
+    nColor = size(x, colorDim);
+    colormap = TrialDataUtilities.Plotting.expandWrapColormap(colormap, nColor);
+    colorInds = TensorUtils.orientVectorAlongDim(1:nColor, colorDim);
+    
+    if ismember(colorDim, stackDims)
+        % specifying the stacking colormap
+        szOtherStack = TensorUtils.sizeMultiDim(x, setdiff(stackDims, colorDim));
+        colorInds = TensorUtils.repmatAlongDims(colorInds, setdiff(stackDim, colorDim), szOtherStack);
+        colorArgs = {'colormapStacked', colormap(colorInds(:), :)};
+    elseif ismember(colorDim, superimposeDims)
+        % specifying the superimposed colormap
+        szOtherSuper = TensorUtils.sizeMultiDim(x, setdiff(superimposeDims, colorDim));
+        colorInds = TensorUtils.repmatAlongDims(colorInds, setdiff(superimposeDims, colorDim), szOtherSuper);
+        colorArgs = {'colormap', colormap(colorInds(:), :)};
+    else
+        error('Cannot color by time dim');
+    end
+else
+    colorArgs = {};
 end
     
 % xr will be T x nStack x nSuperimpose
 xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims});
 
+if p.Results.pca
+    [~, xr] = TensorUtils.pcaAlongDim(xr, 2);
+end
 
 nStack = size(xr, 2);
+maxStack = p.Results.maxStack;
+if nStack > maxStack
+    xr = xr(:, 1:maxStack, :);
+    nStack = maxStack;
+end
+
 nSuperimpose = size(xr, 3);
 if nStack > 400
     warning('Truncating to stack only 400 traces');
@@ -94,7 +129,8 @@ if ~isempty(labelsSuperimpose)
 end
 
 [traceCenters, hLines] = TrialDataUtilities.Plotting.plotStackedTraces(tvec, xr, ...
-    'labels', labelsStack, 'labelsSuperimposed', labelsSuperimpose, 'labels', labelsStack, p.Unmatched);
+    'labels', labelsStack, 'labelsSuperimposed', labelsSuperimpose, 'labels', labelsStack, ...
+    colorArgs{:}, p.Unmatched);
 hold off;
 
 % set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);

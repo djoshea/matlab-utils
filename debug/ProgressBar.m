@@ -461,7 +461,7 @@ classdef ProgressBar < handle
             %% Initialization
 
             strPercentageLength = 9;   %   Length of percentage string (must be >5)
-            strDotsMaximum      = 15;   %   The total number of dots in a progress bar
+            strDotsMaximum      = 50;   %   The total number of dots in a progress bar
 
             if pbar.firstUpdate
                 fprintf('%s : ', pbar.message);
@@ -474,6 +474,7 @@ classdef ProgressBar < handle
             percentageOut = [repmat(' ',1,strPercentageLength-length(percentageOut)-1) percentageOut ' '];
             nDots = floor(c/100*strDotsMaximum);
             dotOut = ['[' repmat('_',1,nDots) repmat(' ',1,strDotsMaximum-nDots) ']   '];
+            dotOut = ['|' repmat('█',1,nDots) repmat(' ',1,strDotsMaximum-nDots) '|   '];
             strOut = [percentageOut dotOut newline];
 
             % Print it on the screen
