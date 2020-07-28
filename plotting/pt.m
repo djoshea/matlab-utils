@@ -56,7 +56,7 @@ if isempty(p.Results.coloreval)
     ax = gca;
     ax.TickDir = 'out';
     ax.ColorSpace.Colormap = cmap;
-    ax.CLim = [1 numel(h)];
+    ax.CLim = [1 numel(h)+eps];
 else
     hold on;
     % plot lines according to their value in cmap

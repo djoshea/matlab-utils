@@ -32,7 +32,8 @@ p.addParameter('namesAlongDims', {}, @iscell);
 p.addParameter('labelsSuperimposed', {}, @isstringlike);
 p.addParameter('labelsStacked', {}, @iscell);
 p.addParameter('maxStack', 30, @islogical);
-p.addParameter('pca', false, @islogical);
+p.addParameter('pca', false, @(x) islogical(x) || isscalar(x)); % pca on stacking dim
+p.addParameter('pcaSuperimposed', false,  @(x) islogical(x) || isscalar(x)); % pca on superimposed dim
 p.addParameter('colorDim', [], @(x) true);
 p.addParameter('colormap', [], @(x) true); % applied along colorDim
 %p.addParameter('alpha', 1, @isscalar);
@@ -53,6 +54,7 @@ superimposeDims = TensorUtils.otherDims(size(x), [timeDim; stackDims]);
 %     error('Refusing to superimpose more than 50 traces');
 % end
 
+colorArgs = {};
 if ~isempty(p.Results.colorDim)
     colorDim = p.Results.colorDim;
     colormap = p.Results.colormap;
@@ -69,23 +71,37 @@ if ~isempty(p.Results.colorDim)
         szOtherStack = TensorUtils.sizeMultiDim(x, setdiff(stackDims, colorDim));
         colorInds = TensorUtils.repmatAlongDims(colorInds, setdiff(stackDim, colorDim), szOtherStack);
         colorArgs = {'colormapStacked', colormap(colorInds(:), :)};
-    elseif ismember(colorDim, superimposeDims)
+    elseif ismember(colorDim, superimposeDims) && ~p.Results.pcaSuperimposed
         % specifying the superimposed colormap
         szOtherSuper = TensorUtils.sizeMultiDim(x, setdiff(superimposeDims, colorDim));
         colorInds = TensorUtils.repmatAlongDims(colorInds, setdiff(superimposeDims, colorDim), szOtherSuper);
         colorArgs = {'colormap', colormap(colorInds(:), :)};
-    else
+    elseif colorDim == timeDim
         error('Cannot color by time dim');
+    elseif ~p.Results.pcaSuperimposed
+        szSuper = TensorUtils.sizeMultiDim(x, superimposeDims);
+        colorInds = TensorUtils.repmatAlongDims(colorInds, superimposeDims, szSuper);
+        colorArgs = {'colormap', colormap(colorInds(:), :)};
     end
-else
-    colorArgs = {};
 end
     
 % xr will be T x nStack x nSuperimpose
 xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims});
 
 if p.Results.pca
-    [~, xr] = TensorUtils.pcaAlongDim(xr, 2);
+    if islogical(p.Results.pca)
+        [~, xr] = TensorUtils.pcaAlongDim(xr, 2);
+    else
+        [~, xr] = TensorUtils.pcaAlongDim(xr, 2, 'NumComponents', p.Results.pca);
+    end
+end
+
+if p.Results.pcaSuperimposed
+    if islogical(p.Results.pcaSuperimposed)
+        [~, xr] = TensorUtils.pcaAlongDim(xr, 3);
+    else
+        [~, xr] = TensorUtils.pcaAlongDim(xr, 3, 'NumComponents', p.Results.pcaSuperimposed);
+    end
 end
 
 nStack = size(xr, 2);
