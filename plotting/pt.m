@@ -30,6 +30,7 @@ p.addParameter('colormap', [], @(x) isempty(x) || (~ischar(x) && ismatrix(x)));
 p.addParameter('coloreval', [], @(x) isempty(x) || isvector(x));
 p.addParameter('alpha', 0.8, @isscalar);
 p.addParameter('stairs', false, @islogical);
+p.addParameter('shuffleZ', false, @islogical); 
 p.KeepUnmatched = true;
 p.PartialMatching = false;
 p.parse(args{:});
@@ -42,6 +43,10 @@ end
 cmap = p.Results.colormap;
 if isempty(cmap)
     cmap = TrialDataUtilities.Color.hslmap(nTraces);
+end
+if isa(cmap, 'function_handle')
+    n = size(xr, 2);
+    cmap = cmap(n);
 end
 
 if isempty(p.Results.coloreval)
@@ -89,6 +94,13 @@ else
     
 %     niceGrid;
     
+end
+
+if p.Results.shuffleZ
+    mask = ismember(ax.Children, h);
+    inds = find(mask);
+    reorder = randsample(nnz(mask), nnz(mask));
+    ax.Children(mask) = ax.Children(inds(reorder));
 end
 
 if ~holding
