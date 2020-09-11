@@ -11,7 +11,7 @@ load('colorbrewer.mat')
 
 ctypes={'div', 'seq', 'qual'};
 ctypes_title={'Diverging', 'Sequential', 'Qualitative'};
-cnames{1,:}={'BrBG', 'PiYG', 'PRGn', 'PuOr', 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn'};
+cnames{1,:}={'BrBG', 'PiYG', 'PRGn', 'PuOr', 'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral'};
 cnames{2,:}={'Blues','BuGn','BuPu','GnBu','Greens','Greys','Oranges','OrRd','PuBu','PuBuGn','PuRd',...
              'Purples','RdPu', 'Reds', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd'};
 cnames{3,:}={'Accent', 'Dark2', 'Paired', 'Pastel1', 'Pastel2', 'Set1', 'Set2', 'Set3'};
@@ -20,7 +20,6 @@ figure('position', [314 327 807 420])
 for itype=1:3
     
     %fh(itype)=figure();
-    
     subplot(1,3,itype)
     
     for iname=1:length(cnames{itype,:})
@@ -44,7 +43,7 @@ for itype=1:3
         axis off
         set(gcf, 'color', [1 1 1])
     end % iname
-
+    ylim([0.1 1.05.*max(Y)]);
 end %itype
 
 set(gcf, 'MenuBar', 'none')

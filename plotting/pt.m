@@ -28,6 +28,7 @@ nTraces = size(xr, 2);
 p = inputParser();
 p.addParameter('colormap', [], @(x) isempty(x) || (~ischar(x) && ismatrix(x)));
 p.addParameter('coloreval', [], @(x) isempty(x) || isvector(x));
+p.addParameter('colorevalLims', [], @(x) isempty(x) || numel(x) == 2);
 p.addParameter('alpha', 0.8, @isscalar);
 p.addParameter('stairs', false, @islogical);
 p.addParameter('shuffleZ', false, @islogical); 
@@ -66,7 +67,10 @@ else
     hold on;
     % plot lines according to their value in cmap
     coloreval = p.Results.coloreval;
-    colorevalLims = [nanmin(coloreval(:)), nanmax(coloreval(:))];
+    colorevalLims = p.Results.colorevalLims;
+    if isempty(colorevalLims)
+        colorevalLims = [nanmin(coloreval(:)), nanmax(coloreval(:))];
+    end
     colors = TrialDataUtilities.Color.evalColorMapAt(cmap, coloreval, colorevalLims);
     
     if p.Results.stairs
