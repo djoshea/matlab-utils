@@ -7,6 +7,11 @@ function n = nn(in, dims)
             for iF = 1:numel(flds)
                 n = n + nn(in.(flds{iF}));
             end
+        elseif iscell(in)
+            n = 0;
+            for iC = 1:numel(in)
+                n = n + nn(in{iC});
+            end
         else
             n = nnz(isnan(in));
         end
