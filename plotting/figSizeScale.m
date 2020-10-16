@@ -5,7 +5,13 @@ function sz = figSizeScale(newSize, figh, varargin)
 % Sizes figure to height x width in cm
 
     scale = getFigureSizeScale();
-    figSize(newSize * scale);
+    if nargin > 0
+        sz = figSize(newSize * scale);
+        sz = sz ./ scale;
+    else
+        sz = figSize();
+        sz = sz ./ scale;
+    end
 
 end
 
