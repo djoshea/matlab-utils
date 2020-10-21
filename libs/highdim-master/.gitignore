@@ -1,0 +1,8 @@
+.DS_Store
+*.mat
+temp/*
+*.mexmaci64
+*.mexa64
+*.mexw64
+*.mexw32
+
