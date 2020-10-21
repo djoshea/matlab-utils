@@ -8,6 +8,7 @@ p.addParameter('dx', NaN, @isscalar);
 p.addParameter('dy', NaN, @isscalar);
 p.addParameter('addColorbar', true, @islogical);
 p.addParameter('colorAxisLabel', '', @isstringlike);
+p.addParameter('nanColor', [], @(x) true);
 p.parse(varargin{:});
 
 % cla;
@@ -33,6 +34,7 @@ addRowCol = @(v) [v, v(:, end)+diff(v(:, end-1:end), 1, 2); ...
 
 if isempty(p.Results.x)
     x = 0.5:size(m, 2)-0.5;
+    dx = 1;
 else
     x = p.Results.x;
     if isnan(p.Results.dx)
@@ -44,6 +46,7 @@ else
 end
 if isempty(p.Results.y)
     y = 0.5:size(m, 1)-0.5;
+    dy = 1;
 else
     y = p.Results.y;
     if isnan(p.Results.dy)
@@ -66,7 +69,23 @@ h = pcolor(X,Y, m);
 set(h, 'EdgeColor', 'none');
 
 if any(isnan(m))
-    h.AlphaData = ~isnan(m);
+    if isempty(p.Results.nanColor)
+        h.AlphaData = ~isnan(m);
+    else
+        nanColor = p.Results.nanColor;
+        nanImg = nan([size(m,1)-1, size(m,2)-1, 3]);
+        nanImg(:, :, 1) = nanColor(1);
+        nanImg(:, :, 2) = nanColor(2);
+        nanImg(:, :, 3) = nanColor(3);
+        
+        washolding = ishold;
+        hold on;
+        hnan = image(x(1)+dx/2, y(1)+dy/2, nanImg);
+        hnan.AlphaData = isnan(m(1:end-1, 1:end-1));
+        if ~washolding
+            hold off;
+        end
+    end
 end
 %colormap(parula);
 % colormap(flipud(cbrewer('div', 'RdYlBu', 256)));

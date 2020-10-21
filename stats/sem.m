@@ -15,7 +15,7 @@ function se = sem(vals,dim)
     end
 
     n = size(vals, dim); 
-    s = std(vals, [], dim);
+    s = std(vals, [], dim, 'omitnan');
     se = s / sqrt(n);
     
     if n == 1
