@@ -83,6 +83,9 @@ classdef ThreeVector < handle
         lineWidth % line width used for axis vectors
         lineColor % line color used for axis vectors
         
+        labelHorizontalAlignment (3, 1) string = ["center"; "center"; "center"];
+        labelVerticalAlignment (3, 1) string = ["middle"; "middle"; "middle"];
+        
         background = false;
         backgroundColor = [1 1 1];
         backgroundAlpha = 0.3;
@@ -276,8 +279,12 @@ classdef ThreeVector < handle
             set(tv.ht(3), 'String', get(get(axh, 'ZLabel'), 'String'));
             
             set(tv.ht, 'Clipping', 'off', 'FontSize', tv.fontSize, 'Color', tv.fontColor, ...
-                'HorizontalAlignment', 'Center', 'VerticalAlignment', 'Middle', 'BackgroundColor', 'none', ...
-                'Interpreter', 'none');
+                'BackgroundColor', 'none', 'Interpreter', 'none');
+            
+            for iA = 1:3
+                tv.ht(iA).HorizontalAlignment = tv.labelHorizontalAlignment(iA);
+                tv.ht(iA).VerticalAlignment = tv.labelVerticalAlignment(iA);
+            end
             
             % update background rectangle
             lox = min(allPointsFig(1, :));
