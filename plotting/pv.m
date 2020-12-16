@@ -86,7 +86,7 @@ if isempty(traceColors) && isempty(layerColors)
     if nLayers > 1
         %layerColors = Neuropixel.Utils.phy_cluster_colors(nLayers);
 %         layerColors = Neuropixel.Utils.linspecer(nLayers);
-        layerColors = cat(1, [0 0 0], cbrewer('qual', 'Set1', nLayers));
+        layerColors = cat(1, [0 0 0], cbrewer('qual', 'Set1', max(nLayers, 3)));
     else
         traceColors = repmat([0 0 0], nTraces, 1);
     end

@@ -30,7 +30,7 @@ p = inputParser();
 %p.addParameter('colormap', TrialDataUtilities.Color.hslmap(nSuperimpose, 'fracHueSpan', 0.9), @(x) ~ischar(x) && ismatrix(x));
 p.addParameter('namesAlongDims', {}, @iscell);
 p.addParameter('labelsSuperimposed', {}, @isstringlike);
-p.addParameter('labelsStacked', {}, @iscell);
+p.addParameter('labelsStacked', {}, @isstringlike);
 p.addParameter('maxStack', 30, @islogical);
 p.addParameter('pca', false, @(x) islogical(x) || isscalar(x)); % pca on stacking dim
 p.addParameter('pcaSuperimposed', false,  @(x) islogical(x) || isscalar(x)); % pca on superimposed dim

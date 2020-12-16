@@ -1,4 +1,4 @@
-function h = histogramWeighted(x, w, varargin)
+function [weightedCounts, edges, bin] = histcountsWeighted(x, w, varargin)
     p = inputParser();
     p.KeepUnmatched = true;
     p.parse(varargin{:});
@@ -12,7 +12,4 @@ function h = histogramWeighted(x, w, varargin)
     
     mask = ~isnan(x) & ~isnan(w) & bin ~= 0;
     weightedCounts = accumarray(bin(mask), w(mask), [nBins, 1]);
-    
-    argsRem = struct2paramValueCell(argsRem);
-    h = histogram('BinEdges', edges, 'BinCounts', weightedCounts(1:end-1), argsRem{:});
 end

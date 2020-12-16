@@ -27,8 +27,10 @@ nTraces = size(xr, 2);
 
 p = inputParser();
 p.addParameter('colormap', [], @(x) isempty(x) || (~ischar(x) && ismatrix(x)));
+p.addParameter('colorIdx', [], @(x) isempty(x) || isvector(x));
 p.addParameter('coloreval', [], @(x) isempty(x) || isvector(x));
 p.addParameter('colorevalLims', [], @(x) isempty(x) || numel(x) == 2);
+p.addParameter('showColorbar', false, @islogical);
 p.addParameter('alpha', 0.8, @isscalar);
 p.addParameter('stairs', false, @islogical);
 p.addParameter('shuffleZ', false, @islogical); 
@@ -50,7 +52,7 @@ if isa(cmap, 'function_handle')
     cmap = cmap(n);
 end
 
-if isempty(p.Results.coloreval)
+if isempty(p.Results.coloreval) && isempty(p.Results.colorIdx)
     hold on;
     set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);
     h = plot(tvec, xr, p.Unmatched);
@@ -66,13 +68,20 @@ if isempty(p.Results.coloreval)
 else
     hold on;
     % plot lines according to their value in cmap
-    coloreval = p.Results.coloreval;
-    colorevalLims = p.Results.colorevalLims;
-    if isempty(colorevalLims)
-        colorevalLims = [nanmin(coloreval(:)), nanmax(coloreval(:))];
+    colorIdx = p.Results.colorIdx;
+    if isempty(colorIdx)
+        coloreval = p.Results.coloreval;
+        colorevalLims = p.Results.colorevalLims;
+        if isempty(colorevalLims)
+            colorevalLims = [nanmin(coloreval(:)), nanmax(coloreval(:))];
+        end
+        colors = TrialDataUtilities.Color.evalColorMapAt(cmap, coloreval, colorevalLims);
+        colors(isnan(coloreval), :) = NaN;
+    else
+        colors_mask = cmap(colorIdx(~isnan(colorIdx)), :);
+        colors = TensorUtils.inflateMaskedTensor(colors_mask, 1, ~isnan(colorIdx));
+        colorevalLims = [1 size(cmap, 1)];
     end
-    colors = TrialDataUtilities.Color.evalColorMapAt(cmap, coloreval, colorevalLims);
-    
     if p.Results.stairs
         h = stairs(tvec, xr, p.Unmatched);
     else
@@ -93,11 +102,14 @@ else
     ax.TickDir = 'out';
     ax.ColorSpace.Colormap = cmap;
     ax.CLim = colorevalLims;
-%     hc = colorbar;
-%     hc.TickDirection = 'out';
     
-%     niceGrid;
+    if p.Results.showColorbar
+        hc = colorbar;
+        hc.TickDirection = 'out';
+    end
     
+    %         niceGrid;
+        
 end
 
 if p.Results.shuffleZ
