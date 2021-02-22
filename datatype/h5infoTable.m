@@ -18,6 +18,9 @@ function t = h5infoTable(file, rowMajor)
         type{iD} = display_datatype_by_class(ds(iD).Datatype);
     end
 
+    name = string(name);
+    size = string(size);
+    type = string(type);
     t = table(name, size, type);
 end
 

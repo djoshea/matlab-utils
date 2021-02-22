@@ -42,7 +42,13 @@ else
     else
         dx = p.Results.dx;
     end
-    x = x - dx/2;
+    if numel(x) == size(m, 2) + 1
+        % x defines bin edges --> convert to left edges
+        x = x(1:end-1);
+    else
+        % x defines centers, convert to left edges
+        x = x - dx/2;
+    end
 end
 if isempty(p.Results.y)
     y = 0.5:size(m, 1)-0.5;
@@ -54,7 +60,12 @@ else
     else
         dy = NaN;
     end
-    y = y - dy/2;
+    if numel(y) == size(m, 1) + 1
+        % y defines bin edges --> convert to bottom edges
+        y = y(1:end-1);
+    else
+        y = y - dy/2;
+    end
 end
 
 [X, Y] = meshgrid(x, y);
