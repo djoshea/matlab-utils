@@ -141,7 +141,7 @@ classdef ProgressBar < handle
             fprintf(f, '.');
             fclose(f);
 
-            if true || id == 1
+            if id == 1
                 % allow all workers to do output
                 d = dir([pbar.fnamePrefix '_*']);
                 n = sum([d.bytes]);
