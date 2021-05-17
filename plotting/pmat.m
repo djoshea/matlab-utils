@@ -102,7 +102,9 @@ end
 % colormap(flipud(cbrewer('div', 'RdYlBu', 256)));
 % colormap(pmkmp(256));
 %colormap gray;
-TrialDataUtilities.Color.cmocean('haline');
+
+% TrialDataUtilities.Color.cmocean('haline');
+colormap(TrialDataUtilities.Colormaps.mako)
 
 if p.Results.addColorbar
     hcbar = colorbar;

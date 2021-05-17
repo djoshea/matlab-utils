@@ -70,7 +70,7 @@ if ~isempty(p.Results.colorDim)
     if ismember(colorDim, stackDims)
         % specifying the stacking colormap
         szOtherStack = TensorUtils.sizeMultiDim(x, setdiff(stackDims, colorDim));
-        colorInds = TensorUtils.repmatAlongDims(colorInds, setdiff(stackDim, colorDim), szOtherStack);
+        colorInds = TensorUtils.repmatAlongDims(colorInds, setdiff(stackDims, colorDim), szOtherStack);
         colorArgs = {'colormapStacked', colormap(colorInds(:), :)};
     elseif ismember(colorDim, superimposeDims) && ~p.Results.pcaSuperimposed
         % specifying the superimposed colormap

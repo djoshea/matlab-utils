@@ -18,7 +18,7 @@ was_holding = ishold();
 hold on;
 
 h = plot(xv, yv, ...
-    'Color', [0.5 0.5 0.5], p.Unmatched, 'XLimInclude', 'off', 'YLimInclude', 'off');
+    'Color', [0.5 0.5 0.5], 'XLimInclude', 'off', 'YLimInclude', 'off', p.Unmatched);
 set(get(get(h, 'Annotation'), 'LegendInformation'), 'IconDisplayStyle', 'off');
 
 if ~was_holding
