@@ -1,6 +1,10 @@
 function n = nn(in, dims)
 
     if nargin < 2
+        if isobject(in)
+            in = struct(in);
+        end
+        
         if isstruct(in)
             flds = fieldnames(in);
             n = 0;

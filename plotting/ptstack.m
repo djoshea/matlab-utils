@@ -33,6 +33,7 @@ p.addParameter('labelsSuperimposed', {}, @isstringlike);
 p.addParameter('labelsStacked', {}, @isstringlike);
 p.addParameter('maxStack', 30, @islogical);
 p.addParameter('pca', false, @(x) islogical(x) || isscalar(x)); % pca on stacking dim
+p.addParameter('pcaInput', [], @(x) isnumeric(x));
 p.addParameter('pcaSuperimposed', false,  @(x) islogical(x) || isscalar(x)); % pca on superimposed dim
 p.addParameter('colorDim', [], @(x) true);
 p.addParameter('colormap', [], @(x) true); % applied along colorDim
@@ -89,10 +90,20 @@ end
 xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims});
 
 if p.Results.pca
-    if islogical(p.Results.pca)
-        [~, xr] = TensorUtils.pcaAlongDim(xr, 2);
+    if isempty(p.Results.pcaInput)
+        if islogical(p.Results.pca)
+            [~, xr] = TensorUtils.pcaAlongDim(xr, 2);
+        else
+            [~, xr] = TensorUtils.pcaAlongDim(xr, 2, 'NumComponents', p.Results.pca);
+        end
     else
-        [~, xr] = TensorUtils.pcaAlongDim(xr, 2, 'NumComponents', p.Results.pca);
+        pcaInput = TensorUtils.reshapeByConcatenatingDims(p.Results.pcaInput, {timeDim, stackDims, superimposeDims});
+        if islogical(p.Results.pca)
+            coeff = TensorUtils.pcaAlongDim(pcaInput, 2);
+        else
+            coeff = TensorUtils.pcaAlongDim(pcaInput, 2, 'NumComponents', p.Results.pca);
+        end
+        xr = TensorUtils.linearCombinationAlongDimension(xr - mean(xr, 2), 2, coeff');
     end
 end
 
