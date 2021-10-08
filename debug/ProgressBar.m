@@ -43,6 +43,7 @@ classdef ProgressBar < handle
         lastCalled
 
         usingTerminal
+        usingNotebook
 
         lastCalledItermStatus
         usingItermStatus = false;
@@ -77,17 +78,20 @@ classdef ProgressBar < handle
             end
 
             if nargin >= 1
-                pbar.N = N;
+                pbar.N = double(N);
             else
                 pbar.N = 1;
             end
 
             % use simple version in desktop mode  not inside jupyter kernel
             outputMode = getMatlabOutputMode();
-            pbar.usingTerminal = ismember(outputMode, {'terminal', 'notebook'});
+            pbar.usingTerminal = strcmp(outputMode, 'terminal');
+            pbar.usingNotebook = strcmp(outputMode, 'notebook');
+%             pbar.usingNotebook = false;
 
             [~, pbar.cols] = ProgressBar.getTerminalSize();
-            pbar.trueColor = (~isempty(getenv('ITERM_PROFILE')) || strcmp(outputMode, 'notebook')) && true;
+%             pbar.trueColor = (~isempty(getenv('ITERM_PROFILE')) || pbar.usingNotebook);
+            pbar.trueColor = true;
 
             if pbar.trueColor
 
@@ -117,6 +121,8 @@ classdef ProgressBar < handle
 
         function enableParallel(pbar)
             pbar.parallel = true;
+            pbar.trueColor = false;
+            pbar.firstUpdate = true;
             pbar.fnamePrefix = tempname();
             try
                 delete(sprintf('%s_*', pbar.fnamePrefix));
@@ -145,6 +151,7 @@ classdef ProgressBar < handle
                 % allow all workers to do output
                 d = dir([pbar.fnamePrefix '_*']);
                 n = sum([d.bytes]);
+%                 fprintf('Got %d bytes\n', n);
             else
                 % non-primary worker, no output
                 n = [];
@@ -243,10 +250,11 @@ classdef ProgressBar < handle
             else
                 message = pbar.message;
             end
+            message = char(message);
 
             gap = pbar.cols - 1 - (length(message)+1) - progLen + 1;
             spaces = repmat(' ', 1, gap);
-            if pbar.usingTerminal
+            if pbar.usingTerminal || pbar.usingNotebook
                 str = [message spaces progStr];
             else
                 str = [message spaces blanks(numel(progStr))];
@@ -276,9 +284,15 @@ classdef ProgressBar < handle
                 end
 %             end
 
-            if pbar.usingTerminal
-                if pbar.parallel && false
-                    fprintf('\033[1A\033[1;44;37m %s\033[49;37m%s\033[0m \n', preStr, postStr);
+            if pbar.usingTerminal || pbar.usingNotebook
+                if pbar.parallel
+                    if pbar.firstUpdate
+                        fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m\n', preStr, postStr);
+                    else
+                        fprintf('\033[2A\033[1;44;37m %s\033[49;37m%s\033[0m \n', preStr, postStr);
+                    end
+%                     fprintf('\033[1A;\033[1;44;37m %s %s\n', preStr, postStr);
+%                     drawnow('update');
                 else
                     if pbar.firstUpdate
                         fprintf(' '); % don't delete whole line on first update
@@ -288,7 +302,7 @@ classdef ProgressBar < handle
                     else
                         fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m ', preStr, postStr);
                     end
-                    drawnow update
+                      drawnow update
 %                     if pbar.trueColor
 %                         fprintf('\b\r\033[1;44;37m%s\033[49;37m%s\033[0m ', preStr, postStr);
 %                     else
@@ -363,7 +377,7 @@ classdef ProgressBar < handle
             catch
             end
             
-            if pbar.usingTerminal
+            if pbar.usingTerminal || pbar.usingNotebook
                 spaces = repmat(' ', 1, pbar.cols-1);
                 if pbar.parallel
                     fprintf('\033[1A%s\033[0m\r', spaces);
@@ -423,6 +437,10 @@ classdef ProgressBar < handle
 %                     fprintf('\033[1A\033[2K\r');
 %                     pause(1);
                 end
+            elseif pbar.usingNotebook
+                fprintf('\n');
+%                 spaces = repmat(' ', 1, pbar.cols+1);
+%                 fprintf('\b\r\033[0m%s ', spaces);
             else
 %                 backspaces = repmat('\b', 1, pbar.lastNSpaces + pbar.lastNBoxes + 1 + pbar.cols - 1);
 %                 fprintf(backspaces
