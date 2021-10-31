@@ -33,12 +33,13 @@ p.addParameter('ci_dim', ndims(x) + 1, @isscalar);
 p.addParameter('namesAlongDims', {}, @iscell);
 p.addParameter('labelsSuperimposed', {}, @isstringlike);
 p.addParameter('labelsStacked', {}, @isstringlike);
-p.addParameter('maxStack', 30, @islogical);
 p.addParameter('pca', false, @(x) islogical(x) || isscalar(x)); % pca on stacking dim
 p.addParameter('pcaInput', [], @(x) isnumeric(x));
 p.addParameter('pcaDim', [],  @(x) isempty(x) || isscalar(x)); % pca on superimposed dim
 p.addParameter('colorDim', [], @(x) true);
 p.addParameter('colormap', [], @(x) true); % applied along colorDim
+p.addParameter('maxStack', 30, @isscalar);
+p.addParameter('maxSuperimpose', 500, @isscalar);
 %p.addParameter('alpha', 1, @isscalar);
 p.KeepUnmatched = true;
 p.PartialMatching = false;
@@ -195,13 +196,16 @@ if nStack > maxStack
 end
 
 nSuperimpose = size(xr, 3);
-if nStack > 400
-    warning('Truncating to stack only 400 traces');
-    xr = xr(:, 1:400, :);
+maxStack = p.Results.maxStack;
+if nStack > maxStack
+    warning('Truncating to stack only maxStack=%d traces', maxStack);
+    xr = xr(:, 1:p.Results.maxStack, :);
 end
-if nSuperimpose > 500
-    warning('Truncating to superimpose only 500 traces');
-    xr = xr(:, :, 1:500);
+
+maxSuperimpose = p.Results.maxSuperimpose;
+if nSuperimpose > maxSuperimpose
+    warning('Truncating to superimpose only maxSuperimpose=%d traces', maxSuperimpose);
+    xr = xr(:, :, 1:maxSuperimpose);
 end
 
 if ~isempty(p.Results.namesAlongDims)

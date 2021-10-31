@@ -26,6 +26,9 @@ xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, otherDims});
 nTraces = size(xr, 2);
 
 p = inputParser();
+p.addParameter('data_ci', [], @(x) true);
+p.addParameter('ci_dim', ndims(x) + 1, @isscalar);
+p.addParameter('ci_alpha', NaN, @isscalar);
 p.addParameter('colormap', [], @(x) isempty(x) || (~ischar(x) && ismatrix(x)));
 p.addParameter('colorIdx', [], @(x) isempty(x) || isvector(x));
 p.addParameter('coloreval', [], @(x) isempty(x) || isvector(x));
@@ -38,44 +41,45 @@ p.KeepUnmatched = true;
 p.PartialMatching = false;
 p.parse(args{:});
 
+if ~isempty(p.Results.data_ci)
+    has_ci = true;
+    ci_dim = p.Results.ci_dim;
+    xci = TensorUtils.reshapeByConcatenatingDims(p.Results.data_ci, {timeDim, setdiff(otherDims, ci_dim), ci_dim});
+    ci_alpha = p.Results.ci_alpha;
+    if isnan(ci_alpha)
+        ci_alpha = p.Results.alpha/2;
+    else
+        ci_alpha = p.Results.ci_alpha;
+    end
+else
+    has_ci = false;
+end
+
 holding = ishold(gca);
 if ~holding
     cla;
 end
+
 
 cmap = p.Results.colormap;
 if isempty(cmap)
     cmap = TrialDataUtilities.Color.hslmap(nTraces);
 end
 if isa(cmap, 'function_handle')
-    n = size(xr, 2);
-    cmap = cmap(n);
+    cmap = cmap(nTraces);
 end
 
 if isempty(p.Results.coloreval) && isempty(p.Results.colorIdx)
-    hold on;
-    set(gca, 'ColorOrder', cmap, 'ColorOrderIndex', 1);
-    h = plot(tvec, xr, p.Unmatched);
-    
-    if p.Results.alpha < 1
-        for iH = 1:numel(h)
-            h(iH).Color(4) = p.Results.alpha;
-        end
-    end
-    
-    ax = gca;
-    ax.TickDir = 'out';
-    ax.ColorSpace.Colormap = cmap;
-    ax.CLim = [1 numel(h)+eps];
+    colors = cmap;
+    colorevalLims = [1 nTraces];
 else
-    hold on;
     % plot lines according to their value in cmap
     colorIdx = p.Results.colorIdx;
     if isempty(colorIdx)
         coloreval = p.Results.coloreval;
         colorevalLims = p.Results.colorevalLims;
         if isempty(colorevalLims)
-            colorevalLims = [nanmin(coloreval(:)), nanmax(coloreval(:))];
+            colorevalLims = [min(coloreval(:), [], 'omitnan'), max(coloreval(:), [], 'omitnan')];
         end
         colors = TrialDataUtilities.Color.evalColorMapAt(cmap, coloreval, colorevalLims);
         colors(isnan(coloreval), :) = NaN;
@@ -84,13 +88,24 @@ else
         colors = TensorUtils.inflateMaskedTensor(colors_mask, 1, ~isnan(colorIdx));
         colorevalLims = [1 size(cmap, 1)];
     end
-    if p.Results.stairs
-        h = stairs(tvec, xr, p.Unmatched);
-    else
-        h = plot(tvec, xr, p.Unmatched);
+end
+    
+hold on;
+
+
+if p.Results.stairs
+    h = stairs(tvec, xr, p.Unmatched);
+else
+
+    if has_ci
+        h_ci = gobjects(nTraces, 1);
+        for iH = 1:nTraces
+            h_ci(iH) = TrialDataUtilities.Plotting.errorshadeInterval(tvec, xci(:, iH, 1), xci(:, iH, 2), colors(iH, :), 'alpha', ci_alpha);
+        end
     end
-    
-    
+
+    h = plot(tvec, xr, p.Unmatched);
+
     for iH = 1:numel(h)
         if any(isnan(colors(iH, :)))
 %             colors(iH, :) = [0 0 0];
@@ -109,7 +124,6 @@ else
         hc = colorbar;
         hc.TickDirection = 'out';
     end
-    
     %         niceGrid;
         
 end
