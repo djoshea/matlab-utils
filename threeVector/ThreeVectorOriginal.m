@@ -145,7 +145,7 @@ classdef ThreeVector < handle
             
             axh = tv.axh; %#ok<*PROP>
             axhOverlay = tv.axhOverlay;
-            if isempty(axh) || ~ishandle(axh) || (~isempty(axhOverlay) && ~ishandle(axhOverlay))
+            if ~ishandle(axh) || (~isempty(axhOverlay) && ~ishandle(axhOverlay))
                 delete(tv);
                 return;
             end
@@ -156,21 +156,20 @@ classdef ThreeVector < handle
             end
             
             % update the position of the overlay axis
-            %pos = get(axh, 'OuterPosition');
-            [pos, ~, posPaper] = tv.getTrueAxesPosition(true); % get outer position
+            pos = get(axh, 'OuterPosition');
             set(axhOverlay, 'Units', 'normalized', 'Position', pos);
             axis(axhOverlay, [pos(1) pos(1)+pos(3) pos(2) pos(2)+pos(4)]);
             
             % get data to paper conversion
-%             set(axhOverlay,  'Units', 'centimeters');
-%             posPaper = get(axhOverlay, 'Position');
-%             set(axhOverlay, 'Units', 'normalized');
+            set(axhOverlay,  'Units', 'centimeters');
+            posPaper = get(axhOverlay, 'Position');
+            set(axhOverlay, 'Units', 'normalized');
             
             axis(axhOverlay, 'off');
             set(axhOverlay, 'Color', 'none', 'HitTest', 'off');
 
             xUnitsToNorm = pos(3) / posPaper(3);
-            yUnitsToNorm = pos(4) / posPaper(4);
+            yUnitsToNorm = pos(3) / posPaper(4);
             zUnitsToNorm = (xUnitsToNorm + yUnitsToNorm) / 2;
             
             % get data to points conversion
@@ -556,7 +555,10 @@ classdef ThreeVector < handle
         function fig = getParentFigure(axh)
             % if the object is a figure or figure descendent, return the
             % figure. Otherwise return [].
-            fig = ancestor(axh, 'figure');
+            fig = axh;
+            while ~isempty(fig) && ~strcmp('figure', get(fig,'type'))
+              fig = get(fig,'parent');
+            end
         end
         
         function flag = isMultipleCall()
@@ -759,10 +761,10 @@ classdef ThreeVector < handle
             addlistener(get(tv.axh, 'YLabel'), 'String', 'PostSet', @tv.localCallback);
             addlistener(get(tv.axh, 'ZLabel'), 'String', 'PostSet', @tv.localCallback);
             
-            addlistener(tv.axh, 'CameraPosition', 'PostSet', @tv.localViewChangeCallback);
-            addlistener(tv.axh, 'CameraTarget', 'PostSet', @tv.localViewChangeCallback);
-            addlistener(tv.axh, 'CameraUpVector', 'PostSet', @tv.localViewChangeCallback);
-            addlistener(tv.axh, 'Position', 'PostSet', @tv.localCallback);
+%             addlistener(tv.axh, 'CameraPosition', 'PostSet', @tv.localViewChangeCallback);
+%             addlistener(tv.axh, 'CameraTarget', 'PostSet', @tv.localViewChangeCallback);
+%             addlistener(tv.axh, 'CameraUpVector', 'PostSet', @tv.localViewChangeCallback);
+            %addlistener(tv.axh, 'Position', 'PostSet', @tv.localCallback);
              addlistener(tv.axh, 'View', 'PostSet', @tv.localCallback);
         end
         
@@ -868,145 +870,6 @@ classdef ThreeVector < handle
             
             hasChanged = ~isequal(old, tv.dataToFig);
         end
-        
-        function [posNorm, posPixels, posCm] = getTrueAxesPosition(tv, outer)
-            % based on plotboxpos by Kelly Kearney https://github.com/kakearney/plotboxpos-pkg
-            %PLOTBOXPOS Returns the position of the plotted axis region
-            %
-            % pos = plotboxpos(h)
-            %
-            % This function returns the position of the plotted region of an axis,
-            % which may differ from the actual axis position, depending on the axis
-            % limits, data aspect ratio, and plot box aspect ratio.  The position is
-            % returned in the same units as the those used to define the axis itself.
-            % This function can only be used for a 2D plot.  
-            %
-            % Input variables:
-            %
-            %   h:      axis handle of a 2D axis (if ommitted, current axis is used).
-            %
-            % Output variables:
-            %
-            %   pos:    four-element position vector, in same units as h
-            % Copyright 2010 Kelly Kearney
-            % Check input
-
-            h = tv.axh;
-            if nargin < 2
-                outer = false;
-            end
-            
-            % Get position of axis in pixels
-            currunits = h.Units;
-            h.Units = 'Pixels';
-            if outer
-                axisPos = h.OuterPosition;
-            else
-                axisPos = h.Position;
-            end
-            
-            % Calculate box position based axis limits and aspect ratios
-            darismanual  = strcmpi(get(h, 'DataAspectRatioMode'),    'manual');
-            pbarismanual = strcmpi(get(h, 'PlotBoxAspectRatioMode'), 'manual');
-            if ~darismanual && ~pbarismanual
-                % simple case
-                posPixels = axisPos;
-                h.Units = 'normalized';
-                posNorm = h.Position;
-                h.Units = 'centimeters';
-                posCm = h.Position;
-                h.Units = currunits;
-                return;
-                
-            else
-                xlim = get(h, 'XLim');
-                ylim = get(h, 'YLim');
-
-                % Deal with axis limits auto-set via Inf/-Inf use
-
-                if any(isinf([xlim ylim]))
-                    hc = get(h, 'Children');
-                    hc(~arrayfun( @(h) isprop(h, 'XData' ) & isprop(h, 'YData' ), hc)) = [];
-                    xdata = get(hc, 'XData');
-                    if iscell(xdata)
-                        xdata = cellfun(@(x) x(:), xdata, 'uni', 0);
-                        xdata = cat(1, xdata{:});
-                    end
-                    ydata = get(hc, 'YData');
-                    if iscell(ydata)
-                        ydata = cellfun(@(x) x(:), ydata, 'uni', 0);
-                        ydata = cat(1, ydata{:});
-                    end
-                    isplotted = ~isinf(xdata) & ~isnan(xdata) & ...
-                                ~isinf(ydata) & ~isnan(ydata);
-                    xdata = xdata(isplotted);
-                    ydata = ydata(isplotted);
-                    if isempty(xdata)
-                        xdata = [0 1];
-                    end
-                    if isempty(ydata)
-                        ydata = [0 1];
-                    end
-                    if isinf(xlim(1))
-                        xlim(1) = min(xdata);
-                    end
-                    if isinf(xlim(2))
-                        xlim(2) = max(xdata);
-                    end
-                    if isinf(ylim(1))
-                        ylim(1) = min(ydata);
-                    end
-                    if isinf(ylim(2))
-                        ylim(2) = max(ydata);
-                    end
-                end
-                dx = diff(xlim);
-                dy = diff(ylim);
-                dar = get(h, 'DataAspectRatio');
-                pbar = get(h, 'PlotBoxAspectRatio');
-                limDarRatio = (dx/dar(1))/(dy/dar(2));
-                pbarRatio = pbar(1)/pbar(2);
-                axisRatio = axisPos(3)/axisPos(4);
-                if darismanual
-                    if limDarRatio > axisRatio
-                        pos(1) = axisPos(1);
-                        pos(3) = axisPos(3);
-                        pos(4) = axisPos(3)/limDarRatio;
-                        pos(2) = (axisPos(4) - pos(4))/2 + axisPos(2);
-                    else
-                        pos(2) = axisPos(2);
-                        pos(4) = axisPos(4);
-                        pos(3) = axisPos(4) * limDarRatio;
-                        pos(1) = (axisPos(3) - pos(3))/2 + axisPos(1);
-                    end
-                elseif pbarismanual
-                    if pbarRatio > axisRatio
-                        pos(1) = axisPos(1);
-                        pos(3) = axisPos(3);
-                        pos(4) = axisPos(3)/pbarRatio;
-                        pos(2) = (axisPos(4) - pos(4))/2 + axisPos(2);
-                    else
-                        pos(2) = axisPos(2);
-                        pos(4) = axisPos(4);
-                        pos(3) = axisPos(4) * pbarRatio;
-                        pos(1) = (axisPos(3) - pos(3))/2 + axisPos(1);
-                    end
-                end
-            end
-            % Convert plot box position to the units used by the axis
-            hparent = get(h, 'parent');
-            hfig = ancestor(hparent, 'figure'); % in case in panel or similar
-            currax = get(hfig, 'currentaxes');
-            temp = axes('Units', 'Pixels', 'Position', pos, 'Visible', 'off', 'parent', hparent);
-            posPixels = temp.Position;
-            temp.Units = 'Normalized';
-            posNorm = temp.Position;
-            temp.Units = 'centimeters';
-            posCm = temp.Position;
-            delete(temp);
-            h.Units = currunits;
-            set(hfig, 'currentaxes', currax);
-        end
 
         function matrixTransform = getDataToFigureCoordinateTransform(tv)
             % get transform matrix which transform axes coordinate to figure coordinate
@@ -1034,19 +897,13 @@ classdef ThreeVector < handle
             if any(plotBoxRatio == 0), return, end
             % is perspective
             isPerspective = strcmp(get(hAxes, 'Projection'), 'perspective');
-            
-%             old = false;
-%             if old
-%                 % axes position
-%                 axesUnitsOriginal = get(hAxes, 'Units');
-%                 set(hAxes, 'Units', 'normalized'); 
-%                 positionNormal = get(hAxes, 'Position');
-%                 set(hAxes, 'Units', 'pixels'); 
-%                 positionPixel = get(hAxes, 'Position');
-%                 set(hAxes, 'Units', axesUnitsOriginal);
-%             else
-                [positionNormal, positionPixel] = tv.getTrueAxesPosition();
-%             end
+            % axes position
+            axesUnitsOriginal = get(hAxes, 'Units');
+            set(hAxes, 'Units', 'normalized'); 
+            positionNormal = get(hAxes, 'Position');
+            set(hAxes, 'Units', 'pixels'); 
+            positionPixel = get(hAxes, 'Position');
+            set(hAxes, 'Units', axesUnitsOriginal);
             % stretch
             stretchMode = strcmp(get(hAxes, {'CameraViewAngleMode', ...
                 'DataAspectRatioMode', 'PlotBoxAspectRatioMode'}), 'auto');
@@ -1131,9 +988,6 @@ classdef ThreeVector < handle
             %%%% return transformation matrix
             matrixTransform = matrixViewPort * matrixStretch * matrixProjection * ...
                 matrixRotate * matrixRescale * matrixTranslate;
-            
-%              matrixTransform = matrixViewPort * matrixProjection * ...
-%                 matrixRotate * matrixRescale * matrixTranslate;
         end
         
     end
