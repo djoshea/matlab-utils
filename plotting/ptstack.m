@@ -101,23 +101,23 @@ if p.Results.pca
         pcaInput = TensorUtils.reshapeByConcatenatingDims(pcaInput, {timeDim, stackDims, superimposeDims, ci_dim});
         coeff = TensorUtils.pcaAlongDim(pcaInput, pcaDim, 'NumComponents', pcaK);
         
-        mean_xr = mean(xr, pcaDim);
-        xr = TensorUtils.linearCombinationAlongDimension(xr - mean_xr, pcaDim, coeff');
+        mean_xr = mean(xr, pcaDim, 'omitnan');
+        xr = TensorUtils.linearCombinationAlongDimension(xr - mean_xr, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
         
         if has_ci
             x_ci =  TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims, ci_dim});
-            x_ci = TensorUtils.linearCombinationAlongDimension(x_ci - mean_xr, pcaDim, coeff');
+            x_ci = TensorUtils.linearCombinationAlongDimension(x_ci - mean_xr, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
         end
     else
         coeff = TensorUtils.pcaAlongDim(pcaInput, pcaDim, 'NumComponents', pcaK);
-        mean_x = mean(x, pcaDim);
-        x = TensorUtils.linearCombinationAlongDimension(x - mean_x, pcaDim, coeff');
+        mean_x = mean(x, pcaDim, 'omitnan');
+        x = TensorUtils.linearCombinationAlongDimension(x - mean_x, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
         
         % xr will be T x nStack x nSuperimpose
         xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims, ci_dim});
         
         if has_ci
-            x_ci = TensorUtils.linearCombinationAlongDimension(x_ci - mean_x, pcaDim, coeff');
+            x_ci = TensorUtils.linearCombinationAlongDimension(x_ci - mean_x, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
             x_ci =  TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
         end
     end
