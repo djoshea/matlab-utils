@@ -2,6 +2,7 @@ function [h, hcbar] = pmatbal(m, varargin)
 
 p = inputParser();
 p.addParameter('colormap', 'default', @(x) ischar(x) || ismatrix(x) || isa(x, 'function_handle'));
+p.addParameter('L', NaN, @isscalar);
 p.KeepUnmatched = true;
 p.parse(varargin{:});
 
@@ -27,5 +28,8 @@ end
 
 [h, hcbar] = pmat(m, p.Unmatched);
 colormap(cmap);
-L = gather(max(abs(m(:))));
+L = abs(p.Results.L);
+if isnan(L)
+    L = gather(max(abs(m(:))));
+end
 caxis([-L L]);
