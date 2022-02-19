@@ -133,7 +133,7 @@ if ~isempty(p.Results.colorDim)
     colorDim = p.Results.colorDim;
     colormap = p.Results.colormap;
     if isempty(colormap)
-        colormap = @(n) TrialDataUtilities.Colormaps.linspecer(n, 'seq');
+        colormap = @(n) TrialDataUtilities.Colormaps.linspecer(n);
     end
     
     nColor = size(x, colorDim);

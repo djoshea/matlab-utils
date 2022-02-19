@@ -95,6 +95,8 @@ classdef ThreeVector < handle
         
         positionFrozen = false;
         positionFrozenCorner
+        
+        interpreter (1, 1) string = "none";
     end
     
     properties(SetAccess=protected)
@@ -282,7 +284,7 @@ classdef ThreeVector < handle
             set(tv.ht(3), 'String', get(get(axh, 'ZLabel'), 'String'));
             
             set(tv.ht, 'Clipping', 'off', 'FontSize', tv.fontSize, 'Color', tv.fontColor, ...
-                'BackgroundColor', 'none', 'Interpreter', 'none');
+                'BackgroundColor', 'none', 'Interpreter', tv.interpreter);
             
             for iA = 1:3
                 tv.ht(iA).HorizontalAlignment = tv.labelHorizontalAlignment(iA);
