@@ -72,6 +72,7 @@ end
 if isempty(p.Results.coloreval) && isempty(p.Results.colorIdx)
     colors = cmap;
     colorevalLims = [1 nTraces];
+    colors = TrialDataUtilities.Color.evalColorMapAt(cmap, 1:nTraces, colorevalLims);
 else
     % plot lines according to their value in cmap
     colorIdx = p.Results.colorIdx;
@@ -118,7 +119,9 @@ else
     ax = gca;
     ax.TickDir = 'out';
     ax.ColorSpace.Colormap = cmap;
-    ax.CLim = colorevalLims;
+    if colorevalLims(2) - colorevalLims(1) > 0
+        ax.CLim = colorevalLims;
+    end
     
     if p.Results.showColorbar
         hc = colorbar;

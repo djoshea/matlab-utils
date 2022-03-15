@@ -77,6 +77,7 @@ classdef ThreeVector < handle
         % vector length. 1 is end of vector, 0.5 is halfway along vector, 
         % 1.5 is 1.5 times the length of the vector.
         textVectorNormalizedPosition = 1.3; 
+        textMargin = 0.01;
         
         fontSize % font size used for axis labels
         fontColor % font color used for axis labels
@@ -284,7 +285,7 @@ classdef ThreeVector < handle
             set(tv.ht(3), 'String', get(get(axh, 'ZLabel'), 'String'));
             
             set(tv.ht, 'Clipping', 'off', 'FontSize', tv.fontSize, 'Color', tv.fontColor, ...
-                'BackgroundColor', 'none', 'Interpreter', tv.interpreter);
+                'BackgroundColor', 'none', 'Interpreter', tv.interpreter, 'Margin', tv.textMargin);
             
             for iA = 1:3
                 tv.ht(iA).HorizontalAlignment = tv.labelHorizontalAlignment(iA);
@@ -697,9 +698,9 @@ classdef ThreeVector < handle
             end
             
             tv.ht = gobjects(3, 1);
-            tv.ht(1) = text(0, 1, 'X', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay, 'Units', 'Normalized');
-            tv.ht(2) = text(0, 2, 'Y', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay, 'Units', 'Normalized');
-            tv.ht(3) = text(0, 3, 'Z', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay, 'Units', 'Normalized');
+            tv.ht(1) = text(0, 1, 'X', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay, 'Units', 'Normalized', 'Margin', tv.textMargin);
+            tv.ht(2) = text(0, 2, 'Y', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay, 'Units', 'Normalized', 'Margin', tv.textMargin);
+            tv.ht(3) = text(0, 3, 'Z', 'HorizontalAlign', 'Left', 'Parent', tv.axhOverlay, 'Units', 'Normalized', 'Margin', tv.textMargin);
             
             axis(tv.axhOverlay, 'off');
             

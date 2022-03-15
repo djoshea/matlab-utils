@@ -8,6 +8,8 @@ if iscellstr(str)
     capStr = cellfun(fn, str, 'UniformOutput', false);
 elseif ischar(str)
     capStr = fn(str);
+elseif isstring(str)
+    capStr = cellfun(@(s) string(fn(char(s))), str, 'UniformOutput', true);
 else
     error('lowerFirst accepts char or cellstr argument');
 end

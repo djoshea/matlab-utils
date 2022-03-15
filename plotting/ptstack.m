@@ -30,15 +30,20 @@ p = inputParser();
 %p.addParameter('colormap', TrialDataUtilities.Color.hslmap(nSuperimpose, 'fracHueSpan', 0.9), @(x) ~ischar(x) && ismatrix(x));
 p.addParameter('data_ci', [], @(x) true);
 p.addParameter('ci_dim', ndims(x) + 1, @isscalar);
+p.addParameter('data_se', [], @(x) true); % used if data_ci is empty
 p.addParameter('namesAlongDims', {}, @iscell);
 p.addParameter('labelsSuperimposed', {}, @isstringlike);
 p.addParameter('labelsStacked', {}, @isstringlike);
 p.addParameter('pca', false, @(x) islogical(x) || isscalar(x)); % pca on stacking dim
 p.addParameter('pcaInput', [], @(x) isnumeric(x));
-p.addParameter('pcaDim', [],  @(x) isempty(x) || isscalar(x)); % pca on superimposed dim
+p.addParameter('pcaDim', [],  @(x) isempty(x) || isvector(x)); % pca on superimposed dim
+p.addParameter('projCoeff', [], @(x) isempty(x) || ismatrix(x) ); % used if PCA not specified
+p.addParameter('projDim', [], @(x) isempty(x) || isvector(x));
+p.addParameter('projectErrorInQudrature', false, @islogical);
 p.addParameter('colorDim', [], @(x) true);
 p.addParameter('colormap', [], @(x) true); % applied along colorDim
 p.addParameter('maxStack', 30, @isscalar);
+p.addParameter('stackPage', 1, @isscalar); % 2 --> skips to 31:60 stacked traces
 p.addParameter('maxSuperimpose', 500, @isscalar);
 %p.addParameter('alpha', 1, @isscalar);
 p.KeepUnmatched = true;
@@ -57,16 +62,24 @@ superimposeDims = TensorUtils.otherDims(size(x), [timeDim; stackDims]);
 % if nSuperimpose > 50
 %     error('Refusing to superimpose more than 50 traces');
 % end
-
+projectErrorInQudrature = p.Results.projectErrorInQudrature;
 x_ci = p.Results.data_ci;
 has_ci = ~isempty(x_ci);
 ci_dim = p.Results.ci_dim;
 if has_ci
     superimposeDims = setdiff(superimposeDims, ci_dim);
     assert(size(x, ci_dim) == 1, 'Data must have size 1 along ci_dim');
+elseif ~isempty(p.Results.data_se)
+    x_se = p.Results.data_se;
+    x_ci = cat(ci_dim, x - x_se, x + x_se);
+    has_ci = true;
+    projectErrorInQudrature = true;
 else
     ci_dim = [];
 end
+
+coeff = p.Results.projCoeff;
+projDim = p.Results.projDim;
 
 if p.Results.pca
     if isempty(p.Results.pcaInput)
@@ -102,30 +115,93 @@ if p.Results.pca
         coeff = TensorUtils.pcaAlongDim(pcaInput, pcaDim, 'NumComponents', pcaK);
         
         mean_xr = mean(xr, pcaDim, 'omitnan');
+        xr_preProj = xr;
         xr = TensorUtils.linearCombinationAlongDimension(xr - mean_xr, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
         
         if has_ci
-            x_ci =  TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims, ci_dim});
-            x_ci = TensorUtils.linearCombinationAlongDimension(x_ci - mean_xr, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
-        end
-    else
-        coeff = TensorUtils.pcaAlongDim(pcaInput, pcaDim, 'NumComponents', pcaK);
-        mean_x = mean(x, pcaDim, 'omitnan');
-        x = TensorUtils.linearCombinationAlongDimension(x - mean_x, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
+            xr_ci = TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
         
+            if ~projectErrorInQudrature
+                % simply subtract off the mean and project
+                xr_ci = TensorUtils.linearCombinationAlongDimension(xr_ci - mean_xr, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
+            else
+                % extract the residual, project in quadrature, add back onto xr
+                xrproj_res = TensorUtils.addInQuadratureAlongDimension(xr_ci - xr_preProj, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
+                xr_ci = cat(4, xr - xrproj_res(:, :, :, 1), xr + xrproj_res(:, :, :, 2)); % dim 1 is "low" error, dim 2 is "high" error
+            end
+        end
+        
+        % make sure we don't do any subsequent projection below
+        coeff = [];
+    else
+        % we'll do pca below
+        coeff = TensorUtils.pcaAlongDim(pcaInput, pcaDim, 'NumComponents', pcaK);
+        projDim = pcaDim;
+    end
+end
+
+if ~isempty(coeff)
+    if isempty(projDim)
+        projDim = stackDims;
+    end
+    
+     if numel(projDim) > 1
+        if isequal(sort(projDim), sort(stackDims))
+            projDim = 2;
+        elseif isequal(sort(projDim), sort(superimposeDims))
+            projDim = 3;
+        else
+            error('Non-scalar projection dim must match stack or superimpose dimensions');
+        end
+        
+        % reshape, then do pca on the combined dim,
         % xr will be T x nStack x nSuperimpose
         xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims, ci_dim});
+        mean_xr = mean(xr, projDim, 'omitnan');
+        xr_preProj = xr;
+        xr = TensorUtils.linearCombinationAlongDimension(xr - mean_xr, projDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
         
         if has_ci
-            x_ci = TensorUtils.linearCombinationAlongDimension(x_ci - mean_x, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
-            x_ci =  TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
+            xr_ci = TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
+        
+            if ~projectErrorInQudrature
+                % simply subtract off the mean and project
+                xr_ci = TensorUtils.linearCombinationAlongDimension(xr_ci - mean_xr, projDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
+            else
+                % extract the residual, project in quadrature, add back onto xr
+                xrproj_res = TensorUtils.addInQuadratureAlongDimension(xr_ci - xr_preProj, projDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
+                xr_ci = cat(4, xr - xrproj_res(:, :, :, 1), xr + xrproj_res(:, :, :, 2)); % dim 1 is "low" error, dim 2 is "high" error
+            end
         end
-    end
+     else
+        mean_x = mean(x, projDim, 'omitnan');
+
+        x_preProj = x;
+        x = TensorUtils.linearCombinationAlongDimension(x - mean_x, projDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
+
+        % xr will be T x nStack x nSuperimpose
+        xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims, ci_dim});
+
+        if has_ci
+            if ~projectErrorInQudrature
+                x_ci = TensorUtils.linearCombinationAlongDimension(x_ci - mean_x, projDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
+                xr_ci =  TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
+            else
+                xproj_res = TensorUtils.addInQuadratureAlongDimension(x_ci - x_preProj, projDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
+                xrproj_res = TensorUtils.reshapeByConcatenatingDims(xproj_res, {timeDim, stackDims, superimposeDims, ci_dim});
+                xr_ci = cat(4, xr - xrproj_res(:, :, :, 1), xr + xrproj_res(:, :, :, 2)); % dim 1 is "low" error, dim 2 is "high" error
+            end 
+        end
+     end
 else
     xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims, ci_dim});
     if has_ci
-        x_ci = TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
+        xr_ci = TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
     end
+end
+
+if ~has_ci
+    xr_ci = [];
 end
 
 colorArgs = {};
@@ -190,22 +266,39 @@ end
 
 nStack = size(xr, 2);
 maxStack = p.Results.maxStack;
+stackPage = p.Results.stackPage;
 if nStack > maxStack
-    xr = xr(:, 1:maxStack, :);
+    stackTraceOffset = (stackPage-1) * maxStack;
+    stackInds = intersect(stackTraceOffset + (1:maxStack), 1:nStack);
+    if isempty(stackInds)
+        error('stackPage out of range');
+    end
+    xr = xr(:, stackInds, :);
+    if has_ci
+        xr_ci = xr_ci(:, stackInds, :, :);
+    end
     nStack = maxStack;
+else
+    stackTraceOffset = 0;
 end
 
 nSuperimpose = size(xr, 3);
 maxStack = p.Results.maxStack;
 if nStack > maxStack
     warning('Truncating to stack only maxStack=%d traces', maxStack);
-    xr = xr(:, 1:p.Results.maxStack, :);
+    xr = xr(:, 1:maxStack, :);
+    if has_ci
+        xr_ci = xr_ci(:, 1:maxStack, :, :);
+    end
 end
 
 maxSuperimpose = p.Results.maxSuperimpose;
 if nSuperimpose > maxSuperimpose
     warning('Truncating to superimpose only maxSuperimpose=%d traces', maxSuperimpose);
     xr = xr(:, :, 1:maxSuperimpose);
+    if has_ci
+        xr_ci = xr_ci(:, :, 1:maxSuperimpose, :);
+    end
 end
 
 if ~isempty(p.Results.namesAlongDims)
@@ -226,13 +319,20 @@ end
 
 if ~isempty(labelsStack)
     labelsStack = labelsStack(1:size(xr, 2));
+else
+    if isfield(p.Unmatched, 'labelPrefix')
+        labelPrefix = p.Unmatched.labelPrefix;
+    else
+        labelPrefix = "";
+    end
+    labelsStack = arrayfun(@(x) sprintf("%s%d", labelPrefix, x), stackTraceOffset + (1:size(xr, 2)));
 end
 if ~isempty(labelsSuperimpose)
     labelsSuperimpose = labelsSuperimpose(1:size(xr, 3));
 end
 
 [traceCenters, hLines] = TrialDataUtilities.Plotting.plotStackedTraces(tvec, xr, ...
-    'data_ci', x_ci, 'labels', labelsStack, 'labelsSuperimposed', labelsSuperimpose, 'labels', labelsStack, ...
+    'data_ci', xr_ci, 'labels', labelsStack, 'labelsSuperimposed', labelsSuperimpose, 'labels', labelsStack, ...
     colorArgs{:}, p.Unmatched);
 hold off;
 

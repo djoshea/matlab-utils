@@ -1,6 +1,11 @@
 function n = nn(in, dims)
 
     if nargin < 2
+        if isstring(in)
+            n = 0;
+            return;
+        end
+        
         if isobject(in)
             in = struct(in);
         end
