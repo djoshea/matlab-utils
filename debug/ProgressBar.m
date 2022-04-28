@@ -31,6 +31,10 @@ classdef ProgressBar < handle
 %
 %
 
+    properties
+        active = true;
+    end
+
     properties(SetAccess=protected)
         message
         n = 0; % last value
@@ -70,19 +74,32 @@ classdef ProgressBar < handle
     end
 
     methods
-        function pbar = ProgressBar(N, message, varargin)
-            if nargin >= 2
-                pbar.message = sprintf(message, varargin{:});
-            else
-                pbar.message = '';
-            end
+        function pbar = ProgressBar(varargin)
+            % ProgressBar(N, message, sprintf_varargin for message)
+            % ProgressBar(active?, N, message, sprintf_varargin for message)
 
-            if nargin >= 1
+            args = varargin;
+            if numel(args) >= 1
+                if islogical(args{1}) && isnumeric(args{2})
+                    pbar.active = args{1};
+                    args = args(2:end);
+                end
+            end
+            
+            if numel(args) >= 1
+                N = args{1};
                 pbar.N = double(N);
+                args = args(2:end);
             else
                 pbar.N = 1;
             end
 
+            if numel(args) >= 1
+                pbar.message = sprintf(args{:});
+            else
+                pbar.message = '';
+            end
+            
             % use simple version in desktop mode  not inside jupyter kernel
             outputMode = getMatlabOutputMode();
             pbar.usingTerminal = strcmp(outputMode, 'terminal');
@@ -214,6 +231,10 @@ classdef ProgressBar < handle
         function update(pbar, n, message, varargin)
             if feature('isdmlworker') && ~pbar.parallel
                 return; % print nothing inside parfor loop if I'm not the main progress bar
+            end
+
+            if ~pbar.active
+                return;
             end
 
             if nargin > 2
@@ -371,6 +392,10 @@ classdef ProgressBar < handle
             if feature('isdmlworker') && ~pbar.parallel
                 return; % print nothing inside parfor loop if I'm not the main progress bar
             end
+
+            if ~pbar.active
+                return;
+            end
             
             try
                 DatabaseAnalysis.pauseOutputLog();
@@ -417,6 +442,10 @@ classdef ProgressBar < handle
 
             if feature('isdmlworker') && ~pbar.parallel
                 return; % print nothing inside parfor loop if I'm not the main progress bar
+            end
+
+            if ~pbar.active
+                return;
             end
 
             try

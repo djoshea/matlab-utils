@@ -123,7 +123,7 @@ axis ij
 axis on;
 
 axis on;
-set(gca, 'TickLength', [0 0], 'XAxisLocation', 'top');
+set(gca, 'TickLength', [0 0], 'XAxisLocation', 'bottom');
 axis tight;
 box on;
 

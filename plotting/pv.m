@@ -324,7 +324,9 @@ ax = gca;
 ax.TickDir = 'out';
 if style == "traces" || style == "ridgeline"
     ax.ColorSpace.Colormap = cmap;
-    ax.CLim = [1 size(cmap, 1)];
+    if size(cmap, 1) > 1
+        ax.CLim = [1 size(cmap, 1)];
+    end
 end
 
 if ~washolding
