@@ -9,6 +9,7 @@ p.addParameter('dy', NaN, @isscalar);
 p.addParameter('addColorbar', true, @islogical);
 p.addParameter('colorAxisLabel', '', @isstringlike);
 p.addParameter('nanColor', [], @(x) true);
+p.addParameter('transpose', false, @islogical);
 p.parse(varargin{:});
 
 % cla;
@@ -26,6 +27,10 @@ end
 if ndims(m) > 2
     warning('Selecting (:, :, 1) of tensor to display');
     m = m(:, :, 1);
+end
+
+if p.Results.transpose
+    m = m';
 end
 
 % add an extra row onto m
