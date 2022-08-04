@@ -266,6 +266,61 @@ classdef SchurLower < handle
             end
         end
         
+        function [Z, Ztotal] = aggregate_total_across_basis_set(Q, T, args)
+            % sums the absolute value of T within the basis sets specified by col_inds, 
+            % which is nBasisSets cell of {1 or 2 column idx}, the output of split_by_eigenvalue.
+
+            arguments
+                Q (:, :)
+                T (:, :)
+                args.add_in_quadrature (1, 1) logical = true;
+                args.col_inds (:, 1) cell = {}; % required if Q not provided
+                args.include_diag = true;
+                args.nan_empty = true;
+            end
+
+            if isempty(Q)
+                assert(~isempty(args.col_inds));
+                col_inds = args.col_inds;
+            else
+                [~, ~, ~, col_inds] = SchurLower.split_by_eigenvalue(Q, T);
+            end
+
+            E = numel(col_inds);
+            Z = zeros(E, E, 'single');
+            for i = 1:E
+                for j = i:E
+                    if ~args.include_diag && i == j
+                        continue;
+                    end
+                    if args.add_in_quadrature
+                        Z(i, j) = sqrt(sum(T(col_inds{i}, col_inds{j}).^2, 'all', 'omitnan'));
+                    else
+                        Z(i, j) = sum(abs(T(col_inds{i}, col_inds{j})), 'all', 'omitnan');
+                    end
+                end
+            end
+
+            % deal with reverse ordering in lower-triangular Schur T
+            R = flipud(eye(size(Z)));
+            Z = R' * Z * R';
+
+            if args.nan_empty
+                if args.include_diag
+                    mask = tril(true(E, E));
+                else
+                    mask = tril(true(E, E)) & ~eye(E, E);
+                end
+                Z(~mask) = NaN;
+            end
+
+            if args.add_in_quadrature
+                Ztotal = sqrt(sum(Z.^2, 2, 'omitnan'));
+            else
+                Ztotal = sum(Z, 2, 'omitnan');
+            end
+        end
+
         % splitting into lower and diagonal parts
         function mask = mask_lower_tri(T)
             N = size(T, 1);
