@@ -11,6 +11,9 @@ function vals = catfields(S, args)
     vals = cell(numel(flds), 1);
     for iF = 1:numel(flds)
         vals{iF} = S.(flds{iF});
+        if args.flattenEach
+            vals{iF} = vals{iF}(:);
+        end
     end
     if ~args.asCell
         vals = cat(1, vals{:});
