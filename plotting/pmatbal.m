@@ -32,4 +32,4 @@ L = abs(p.Results.L);
 if isnan(L)
     L = gather(max(abs(m(:))));
 end
-caxis([-L L]);
+caxis([-L-eps L+eps]);
