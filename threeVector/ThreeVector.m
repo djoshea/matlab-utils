@@ -70,6 +70,8 @@ classdef ThreeVector < handle
         niceGrid logical = false;
         axisInset = [0.2 0.2]; % in cm [left bottom]
         vectorLength = 1; % in cm
+
+        enableUpdates = true;
         
         flipAxis = [false false false];
         
@@ -146,6 +148,9 @@ classdef ThreeVector < handle
         function update(tv)
             % reposition and redraw all ThreeVector annotations for axis
             
+            if ~tv.enableUpdates
+                return
+            end
             axh = tv.axh; %#ok<*PROP>
             axhOverlay = tv.axhOverlay;
             if isempty(axh) || ~ishandle(axh) || (~isempty(axhOverlay) && ~ishandle(axhOverlay))
@@ -872,7 +877,7 @@ classdef ThreeVector < handle
             hasChanged = ~isequal(old, tv.dataToFig);
         end
         
-        function [posNorm, posPixels, posCm] = getTrueAxesPosition(tv, outer)
+        function [posNorm, posPixels, posCm] = getTrueAxesPosition(tv, outer, args)
             % based on plotboxpos by Kelly Kearney https://github.com/kakearney/plotboxpos-pkg
             %PLOTBOXPOS Returns the position of the plotted axis region
             %
@@ -894,10 +899,13 @@ classdef ThreeVector < handle
             % Copyright 2010 Kelly Kearney
             % Check input
 
-            h = tv.axh;
-            if nargin < 2
-                outer = false;
+            arguments
+                tv
+                outer = false
+                args.normRelativeToFigure = true;
             end
+
+            h = tv.axh;
             
             % Get position of axis in pixels
             currunits = h.Units;
@@ -1000,11 +1008,20 @@ classdef ThreeVector < handle
             hparent = get(h, 'parent');
             hfig = ancestor(hparent, 'figure'); % in case in panel or similar
             currax = get(hfig, 'currentaxes');
-            temp = axes('Units', 'Pixels', 'Position', pos, 'Visible', 'off', 'parent', hparent);
+
+            temp = axes('Units', 'Pixels', 'Position', pos, 'Visible', 'off', 'parent', hfig);
             posPixels = temp.Position;
             temp.Units = 'Normalized';
             posNorm = temp.Position;
             temp.Units = 'centimeters';
+
+            if isa(hparent, 'matlab.graphics.layout.TiledChartLayout') && args.normRelativeToFigure
+                % posNorm is in units normalized to the tiled chart layout's position, not the figure, which is what we
+                % want
+                tiled_pos = hparent.Position;
+                posNorm = [tiled_pos(1) + posNorm(1), tiled_pos(2) + posNorm(2), tiled_pos(3) * posNorm(3), tiled_pos(4) * posNorm(4)];
+            end
+
             posCm = temp.Position;
             delete(temp);
             h.Units = currunits;
