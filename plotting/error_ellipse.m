@@ -86,7 +86,7 @@ y0=mu(2);
 % Compute quantile for the desired percentile
 k = sqrt(qchisq(conf,r)); % r is the number of dimensions (degrees of freedom)
 
-hold_state = get(gca,'nextplot');
+hold_state = get(gca,'nextdplot');
 
 if r==3 & c==3
   z0=mu(3);
