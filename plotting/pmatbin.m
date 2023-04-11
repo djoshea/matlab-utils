@@ -14,6 +14,6 @@ if ~islogical(m)
     m = m ~= 0;
 end
 
-[h, hcbar] = pmat(m, p.Unmatched);
+[h, hcbar] = pmat(m, 'addColorbar', false, p.Unmatched);
 colormap(cmap);
-caxis([0 1]);
+clim([0 1]);

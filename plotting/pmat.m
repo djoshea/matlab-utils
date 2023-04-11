@@ -24,7 +24,7 @@ if islogical(m)
     m = double(m);
 end
 
-if ndims(m) > 2
+if ndims(m) > 2 %#ok<ISMAT>
     warning('Selecting (:, :, 1) of tensor to display');
     m = m(:, :, 1);
 end
@@ -33,6 +33,9 @@ if p.Results.transpose
     m = m';
 end
 
+if isempty(m)
+    error('Empty matrix');
+end
 % add an extra row onto m
 addRowCol = @(v) [v, v(:, end)+diff(v(:, end-1:end), 1, 2); ...
     v(end, :) + diff(v(end-1:end, :), 1, 1), 2*v(end, end)-v(end-1, end-1)];
