@@ -60,6 +60,8 @@ if ~success
 end
 
 % grant group write access
-unix(['chmod g+rw ' fname]);
+if isunix
+    unix(['chmod g+rw ' fname]);
+end
 
 end

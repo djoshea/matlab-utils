@@ -243,6 +243,7 @@ classdef ProgressBar < handle
             else
 %                 newMessage = false;
             end
+            n = double(n);
             pbar.n = n; % store last update
 
             if pbar.parallel
