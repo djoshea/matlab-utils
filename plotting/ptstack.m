@@ -42,6 +42,12 @@ p.addParameter('projDim', [], @(x) isempty(x) || isvector(x));
 p.addParameter('projectErrorInQudrature', false, @islogical);
 p.addParameter('colorDim', [], @(x) true);
 p.addParameter('colormap', [], @(x) true); % applied along colorDim
+
+p.addParameter('colorIdx', [], @(x) isempty(x) || isvector(x));
+p.addParameter('coloreval', [], @(x) isempty(x) || isvector(x));
+p.addParameter('colorevalLims', [], @(x) isempty(x) || numel(x) == 2);
+
+
 p.addParameter('maxStack', 30, @isscalar);
 p.addParameter('stackPage', 1, @isscalar); % 2 --> skips to 31:60 stacked traces
 p.addParameter('maxSuperimpose', 500, @isscalar);
@@ -204,17 +210,49 @@ if ~has_ci
     xr_ci = [];
 end
 
+ 
+
 colorArgs = {};
 if ~isempty(p.Results.colorDim)
     colorDim = p.Results.colorDim;
     colormap = p.Results.colormap;
-    if isempty(colormap)
-        colormap = @(n) TrialDataUtilities.Colormaps.linspecer(n);
-    end
     
-    nColor = size(x, colorDim);
-    colormap = TrialDataUtilities.Plotting.expandWrapColormap(colormap, nColor);
-    colorInds = TensorUtils.orientVectorAlongDim(1:nColor, colorDim);
+    % determine color inds
+    % plot lines according to their value in cmap
+    colorIdx = p.Results.colorIdx;
+    szColorDim = size(x, colorDim);
+    colorInds = TensorUtils.orientVectorAlongDim(1:szColorDim, colorDim);
+    if isempty(colorIdx) && isempty(p.Results.coloreval)
+        % 1:n along colorDim
+        nColor = size(x, colorDim);
+        if isempty(colormap)
+            colormap = @(n) TrialDataUtilities.Colormaps.linspecer(n);
+        else
+            colormap = TrialDataUtilities.Plotting.expandWrapColormap(colormap, nColor);
+        end
+    elseif isempty(colorIdx)
+        % evaluate coloreval into a continuous colormap
+        coloreval = p.Results.coloreval;
+        colorevalLims = p.Results.colorevalLims;
+        if isempty(colorevalLims)
+            colorevalLims = [min(coloreval(:), [], 'omitnan'), max(coloreval(:), [], 'omitnan')];
+        end
+        if isempty(colormap)
+            nColor = size(x, colorDim);
+            colormap = TrialDataUtilities.Colormaps.linspecer(nColor);
+        end
+        colormap = TrialDataUtilities.Color.evalColorMapAt(colormap, coloreval, colorevalLims);
+        colormap(isnan(coloreval), :) = NaN;
+    else
+        nColor = max(colorIdx);
+        if isempty(colormap)
+            colormap = TrialDataUtilities.Colormaps.linspecer(nColor);
+        else
+            colormap = TrialDataUtilities.Plotting.expandWrapColormap(colormap, nColor);
+        end
+        colors_mask = colormap(colorIdx(~isnan(colorIdx)), :);
+        colormap = TensorUtils.inflateMaskedTensor(colors_mask, 1, ~isnan(colorIdx));
+    end
     
     if ismember(colorDim, stackDims)
         % specifying the stacking colormap
@@ -224,7 +262,14 @@ if ~isempty(p.Results.colorDim)
     elseif ismember(colorDim, superimposeDims)
         % specifying the superimposed colormap
         szOtherSuper = TensorUtils.sizeMultiDim(x, setdiff(superimposeDims, colorDim));
+        nColor = max(szOtherSuper);
         colorInds = TensorUtils.repmatAlongDims(colorInds, setdiff(superimposeDims, colorDim), szOtherSuper);
+        if isempty(colormap)
+            colormap = TrialDataUtilities.Colormaps.linspecer(nColor);
+        else
+            colormap = TrialDataUtilities.Plotting.expandWrapColormap(colormap, nColor);
+        end
+
         colorArgs = {'colormap', colormap(colorInds(:), :)};
     elseif colorDim == timeDim
         error('Cannot color by time dim');

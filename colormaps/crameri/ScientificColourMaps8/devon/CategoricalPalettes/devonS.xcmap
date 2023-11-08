@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<Colormaps xmlns="http://pdgm.com/Gocad/ColormapEntity/2.8.0">
+
+  <ColormapEntity>
+	<!--www.fabiocrameri.ch/colourmaps-->
+    <Name>scientific-devonS</Name>
+    <Kind>linear</Kind>
+    <Colors>
+      <Color index="0" rgb="0.17103 0.1004 0.29978"/>
+      <Color index="1" rgb="0.97357 0.97102 0.9946"/>
+      <Color index="2" rgb="0.46541 0.54531 0.85481"/>
+      <Color index="3" rgb="0.15721 0.33688 0.55"/>
+      <Color index="4" rgb="0.77477 0.75438 0.95367"/>
+      <Color index="5" rgb="0.15947 0.21408 0.41376"/>
+      <Color index="6" rgb="0.24355 0.43562 0.72126"/>
+      <Color index="7" rgb="0.87255 0.86088 0.97382"/>
+      <Color index="8" rgb="0.67022 0.65223 0.9289"/>
+      <Color index="9" rgb="0.16605 0.15887 0.35797"/>
+      <Color index="10" rgb="0.5826 0.59942 0.89939"/>
+      <Color index="11" rgb="0.34779 0.49174 0.80103"/>
+      <Color index="12" rgb="0.92107 0.91374 0.98382"/>
+      <Color index="13" rgb="0.72769 0.70392 0.94373"/>
+      <Color index="14" rgb="0.153 0.27597 0.47721"/>
+      <Color index="15" rgb="0.18662 0.38871 0.63374"/>
+      <Color index="16" rgb="0.82482 0.80889 0.96398"/>
+      <Color index="17" rgb="0.15595 0.24449 0.44456"/>
+      <Color index="18" rgb="0.28962 0.4625 0.76352"/>
+      <Color index="19" rgb="0.21086 0.41176 0.67765"/>
+      <Color index="20" rgb="0.16908 0.12989 0.32874"/>
+      <Color index="21" rgb="0.52572 0.57232 0.87823"/>
+      <Color index="22" rgb="0.79969 0.78151 0.95881"/>
+      <Color index="23" rgb="0.94725 0.94227 0.98921"/>
+      <Color index="24" rgb="0.16308 0.1844 0.3838"/>
+      <Color index="25" rgb="0.75303 0.7308 0.94915"/>
+      <Color index="26" rgb="0.63338 0.62739 0.9172"/>
+      <Color index="27" rgb="0.69978 0.67669 0.93711"/>
+      <Color index="28" rgb="0.85017 0.83651 0.96921"/>
+      <Color index="29" rgb="0.8951 0.88544 0.97847"/>
+      <Color index="30" rgb="0.1679 0.36299 0.58894"/>
+      <Color index="31" rgb="0.15246 0.30441 0.5089"/>
+      <Color index="32" rgb="0.41076 0.52088 0.83194"/>
+      <Color index="33" rgb="0.16765 0.14438 0.34332"/>
+      <Color index="34" rgb="0.26478 0.44865 0.74275"/>
+      <Color index="35" rgb="0.49589 0.55887 0.8668"/>
+      <Color index="36" rgb="0.81222 0.79517 0.96139"/>
+      <Color index="37" rgb="0.15768 0.22918 0.42901"/>
+      <Color index="38" rgb="0.37911 0.50644 0.81727"/>
+      <Color index="39" rgb="0.16131 0.19914 0.3987"/>
+      <Color index="40" rgb="0.83747 0.82267 0.96659"/>
+      <Color index="41" rgb="0.22582 0.42338 0.69948"/>
+      <Color index="42" rgb="0.17653 0.37638 0.61145"/>
+      <Color index="43" rgb="0.15431 0.26008 0.46054"/>
+      <Color index="44" rgb="0.17023 0.11524 0.31422"/>
+      <Color index="45" rgb="0.9604 0.95662 0.99191"/>
+      <Color index="46" rgb="0.3176 0.47697 0.78307"/>
+      <Color index="47" rgb="0.93413 0.92797 0.98652"/>
+      <Color index="48" rgb="0.55471 0.58579 0.88913"/>
+      <Color index="49" rgb="0.90806 0.89956 0.98114"/>
+      <Color index="50" rgb="0.60899 0.61329 0.90881"/>
+      <Color index="51" rgb="0.15391 0.32082 0.52882"/>
+      <Color index="52" rgb="0.74051 0.71738 0.94651"/>
+      <Color index="53" rgb="0.78721 0.76791 0.95623"/>
+      <Color index="54" rgb="0.71427 0.69038 0.94067"/>
+      <Color index="55" rgb="0.19798 0.40036 0.65577"/>
+      <Color index="56" rgb="0.88541 0.87489 0.97647"/>
+      <Color index="57" rgb="0.76546 0.74426 0.95174"/>
+      <Color index="58" rgb="0.65537 0.64159 0.92436"/>
+      <Color index="59" rgb="0.15241 0.28806 0.49034"/>
+      <Color index="60" rgb="0.1648 0.16979 0.369"/>
+      <Color index="61" rgb="0.16259 0.3522 0.57209"/>
+      <Color index="62" rgb="0.68789 0.66628 0.93396"/>
+      <Color index="63" rgb="0.43435 0.53148 0.84211"/>
+      <Color index="64" rgb="0.86294 0.85041 0.97184"/>
+      <Color index="65" rgb="0.36336 0.49911 0.80936"/>
+      <Color index="66" rgb="0.17068 0.10786 0.30699"/>
+      <Color index="67" rgb="0.19213 0.39459 0.64477"/>
+      <Color index="68" rgb="0.48073 0.55212 0.86088"/>
+      <Color index="69" rgb="0.15962 0.34465 0.56096"/>
+      <Color index="70" rgb="0.7468 0.72408 0.94784"/>
+      <Color index="71" rgb="0.91456 0.90664 0.98248"/>
+      <Color index="72" rgb="0.59601 0.60632 0.90422"/>
+      <Color index="73" rgb="0.15532 0.32892 0.53926"/>
+      <Color index="74" rgb="0.92759 0.92084 0.98517"/>
+      <Color index="75" rgb="0.16689 0.1516 0.35064"/>
+      <Color index="76" rgb="0.67933 0.65928 0.93157"/>
+      <Color index="77" rgb="0.94069 0.93511 0.98786"/>
+      <Color index="78" rgb="0.44995 0.53844 0.84856"/>
+      <Color index="79" rgb="0.95382 0.94944 0.99056"/>
+      <Color index="80" rgb="0.15298 0.31262 0.51869"/>
+      <Color index="81" rgb="0.51089 0.5656 0.87258"/>
+      <Color index="82" rgb="0.85655 0.84345 0.97053"/>
+      <Color index="83" rgb="0.1551 0.25226 0.45249"/>
+      <Color index="84" rgb="0.80595 0.78833 0.9601"/>
+      <Color index="85" rgb="0.16036 0.20662 0.40621"/>
+      <Color index="86" rgb="0.27677 0.45548 0.75325"/>
+      <Color index="87" rgb="0.83114 0.81577 0.96529"/>
+      <Color index="88" rgb="0.72108 0.69716 0.94225"/>
+      <Color index="89" rgb="0.33249 0.48433 0.79227"/>
+      <Color index="90" rgb="0.62146 0.62032 0.91315"/>
+      <Color index="91" rgb="0.16397 0.17708 0.37639"/>
+      <Color index="92" rgb="0.1523 0.29622 0.49944"/>
+      <Color index="93" rgb="0.1697 0.12254 0.32146"/>
+      <Color index="94" rgb="0.84381 0.82958 0.9679"/>
+      <Color index="95" rgb="0.16837 0.13713 0.33601"/>
+      <Color index="96" rgb="0.56881 0.59258 0.89435"/>
+      <Color index="97" rgb="0.15681 0.23683 0.43674"/>
+      <Color index="98" rgb="0.64469 0.63449 0.92093"/>
+      <Color index="99" rgb="0.73416 0.71065 0.94515"/>
+    </Colors>
+  </ColormapEntity>
+
+</Colormaps>

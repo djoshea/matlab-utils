@@ -232,6 +232,7 @@ end
 function RGB = cmoceanRawRGB(cmapName) 
 
 
+cmapName = char(cmapName);
 switch lower(cmapName(1:3))
    case {'dee'} 
       RGB = [9.928371765383620096e-01 9.943734553013935384e-01 8.001361955494933342e-01

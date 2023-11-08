@@ -1,0 +1,104 @@
+GIMP Palette
+Name: lajolla 100 Swatches
+Columns: 1
+#
+ 25  25   0	lajolla-1 #191900
+ 28  26   1	lajolla-4 #1C1A01
+ 30  27   2	lajolla-6 #1E1B02
+ 32  28   4	lajolla-9 #201C04
+ 34  28   5	lajolla-11 #221C05
+ 36  29   7	lajolla-14 #241D07
+ 38  30   8	lajolla-16 #261E08
+ 41  31   9	lajolla-19 #291F09
+ 44  32  11	lajolla-22 #2C200B
+ 46  33  12	lajolla-24 #2E210C
+ 49  34  14	lajolla-27 #31220E
+ 51  34  15	lajolla-29 #33220F
+ 54  36  17	lajolla-32 #362411
+ 57  36  18	lajolla-34 #392412
+ 60  38  20	lajolla-37 #3C2614
+ 64  39  22	lajolla-40 #402716
+ 67  40  23	lajolla-42 #432817
+ 71  41  25	lajolla-45 #472919
+ 74  42  26	lajolla-47 #4A2A1A
+ 78  44  29	lajolla-50 #4E2C1D
+ 83  45  31	lajolla-53 #532D1F
+ 86  46  33	lajolla-55 #562E21
+ 91  48  35	lajolla-58 #5B3023
+ 94  49  37	lajolla-60 #5E3125
+ 99  51  40	lajolla-63 #633328
+103  52  42	lajolla-65 #67342A
+108  54  44	lajolla-68 #6C362C
+114  56  47	lajolla-71 #72382F
+118  57  49	lajolla-73 #763931
+123  59  52	lajolla-76 #7B3B34
+127  60  54	lajolla-78 #7F3C36
+133  62  57	lajolla-81 #853E39
+137  63  58	lajolla-83 #893F3A
+143  64  61	lajolla-86 #8F403D
+150  66  63	lajolla-89 #96423F
+154  67  64	lajolla-91 #9A4340
+160  68  66	lajolla-94 #A04442
+164  69  68	lajolla-96 #A44544
+171  71  69	lajolla-99 #AB4745
+175  72  70	lajolla-101 #AF4846
+181  73  71	lajolla-104 #B54947
+187  75  72	lajolla-107 #BB4B48
+190  76  73	lajolla-109 #BE4C49
+196  78  74	lajolla-112 #C44E4A
+199  80  75	lajolla-114 #C7504B
+204  82  75	lajolla-117 #CC524B
+207  84  76	lajolla-119 #CF544C
+210  88  76	lajolla-122 #D2584C
+214  91  77	lajolla-125 #D65B4D
+215  94  77	lajolla-127 #D75E4D
+218  97  78	lajolla-130 #DA614E
+219 100  78	lajolla-132 #DB644E
+221 104  78	lajolla-135 #DD684E
+222 108  79	lajolla-138 #DE6C4F
+223 110  79	lajolla-140 #DF6E4F
+224 114  79	lajolla-143 #E0724F
+225 117  80	lajolla-145 #E17550
+226 121  80	lajolla-148 #E27950
+226 123  80	lajolla-150 #E27B50
+227 127  80	lajolla-153 #E37F50
+228 130  81	lajolla-156 #E48251
+228 133  81	lajolla-158 #E48551
+229 136  81	lajolla-161 #E58851
+230 139  81	lajolla-163 #E68B51
+230 142  81	lajolla-166 #E68E51
+231 144  82	lajolla-168 #E79052
+231 148  82	lajolla-171 #E79452
+232 151  82	lajolla-174 #E89752
+233 154  82	lajolla-176 #E99A52
+233 157  83	lajolla-179 #E99D53
+234 159  83	lajolla-181 #EA9F53
+235 163  83	lajolla-184 #EBA353
+235 165  83	lajolla-186 #EBA553
+236 169  83	lajolla-189 #ECA953
+236 172  84	lajolla-192 #ECAC54
+237 175  84	lajolla-194 #EDAF54
+238 179  85	lajolla-197 #EEB355
+238 181  85	lajolla-199 #EEB555
+239 185  86	lajolla-202 #EFB956
+240 188  87	lajolla-204 #F0BC57
+241 192  88	lajolla-207 #F1C058
+241 196  90	lajolla-210 #F1C45A
+242 199  92	lajolla-212 #F2C75C
+243 203  96	lajolla-215 #F3CB60
+244 206  99	lajolla-217 #F4CE63
+245 211 105	lajolla-220 #F5D369
+246 215 111	lajolla-223 #F6D76F
+247 218 116	lajolla-225 #F7DA74
+248 223 124	lajolla-228 #F8DF7C
+249 226 130	lajolla-230 #F9E282
+250 230 138	lajolla-233 #FAE68A
+251 232 144	lajolla-235 #FBE890
+251 236 153	lajolla-238 #FBEC99
+252 240 162	lajolla-241 #FCF0A2
+253 242 168	lajolla-243 #FDF2A8
+253 245 176	lajolla-246 #FDF5B0
+254 247 182	lajolla-248 #FEF7B6
+254 250 190	lajolla-251 #FEFABE
+255 252 195	lajolla-253 #FFFCC3
+255 254 203	lajolla-256 #FFFECB

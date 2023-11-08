@@ -1,0 +1,27 @@
+Scientific Colour Map Categorical Palette
+managua 25 Swatches
+255 207 103	managua-1 #FFCF67
+241 185  96	managua-12 #F1B960
+229 166  89	managua-22 #E5A659
+216 147  83	managua-33 #D89353
+203 129  77	managua-44 #CB814D
+190 113  72	managua-54 #BE7148
+177  98  67	managua-65 #B16243
+163  84  63	managua-75 #A3543F
+146  70  59	managua-86 #92463B
+129  57  57	managua-97 #813939
+113  47  58	managua-107 #712F3A
+ 98  41  63	managua-118 #62293F
+ 87  41  73	managua-129 #572949
+ 80  46  88	managua-139 #502E58
+ 76  57 107	managua-150 #4C396B
+ 76  69 127	managua-160 #4C457F
+ 78  85 147	managua-171 #4E5593
+ 82 102 165	managua-182 #5266A5
+ 87 117 179	managua-192 #5775B3
+ 93 134 193	managua-203 #5D86C1
+100 152 206	managua-214 #6498CE
+107 170 218	managua-224 #6BAADA
+114 190 230	managua-235 #72BEE6
+121 209 242	managua-245 #79D1F2
+129 231 255	managua-256 #81E7FF

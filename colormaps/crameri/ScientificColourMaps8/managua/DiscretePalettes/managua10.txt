@@ -1,0 +1,12 @@
+Scientific Colour Map Categorical Palette
+managua 10 Swatches
+255 207 103	managua-1 #FFCF67
+221 154  85	managua-29 #DD9A55
+185 108  70	managua-58 #B96C46
+146  70  59	managua-86 #92463B
+103  43  60	managua-114 #672B3C
+ 78  49  94	managua-143 #4E315E
+ 78  85 147	managua-171 #4E5593
+ 91 128 188	managua-199 #5B80BC
+109 177 222	managua-228 #6DB1DE
+129 231 255	managua-256 #81E7FF

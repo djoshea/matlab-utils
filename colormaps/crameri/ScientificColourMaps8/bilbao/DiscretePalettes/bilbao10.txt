@@ -1,0 +1,12 @@
+Scientific Colour Map Categorical Palette
+bilbao 10 Swatches
+ 76   0   1	bilbao-1 #4C0001
+115  37  41	bilbao-29 #732529
+148  70  75	bilbao-58 #94464B
+160  98  87	bilbao-86 #A06257
+166 119  92	bilbao-114 #A6775C
+172 141  97	bilbao-143 #AC8D61
+181 167 114	bilbao-171 #B5A772
+194 188 163	bilbao-199 #C2BCA3
+210 210 206	bilbao-228 #D2D2CE
+255 255 255	bilbao-256 #FFFFFF

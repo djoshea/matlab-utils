@@ -1,0 +1,12 @@
+Scientific Colour Map Categorical Palette
+lajolla 10 Swatches
+ 25  25   0	lajolla-1 #191900
+ 51  34  15	lajolla-29 #33220F
+ 91  48  35	lajolla-58 #5B3023
+143  64  61	lajolla-86 #8F403D
+199  80  75	lajolla-114 #C7504B
+224 114  79	lajolla-143 #E0724F
+231 148  82	lajolla-171 #E79452
+238 181  85	lajolla-199 #EEB555
+248 223 124	lajolla-228 #F8DF7C
+255 254 203	lajolla-256 #FFFECB

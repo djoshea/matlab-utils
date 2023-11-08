@@ -63,10 +63,10 @@ if nargin==0
    figure('menubar','none','numbertitle','off','Name','crameri options:')
    
    if license('test','image_toolbox')
-      imshow(imread('crameri7.0.png')); 
+      imshow(imread('ScientificColourMaps8-FabioCrameri.png')); 
    else
       axes('pos',[0 0 1 1])
-      image(imread('crameri7.0.png')); 
+      image(imread('ScientificColourMaps8-FabioCrameri.png')); 
       axis image off
    end
    
@@ -79,7 +79,7 @@ assert(isnumeric(ColormapName)==0,'Input error: ColormapName must be a string.')
 
 %% Set defaults: 
 
-NLevels = 256; 
+NLevels = NaN; 
 autopivot = false; 
 PivotValue = 0; 
 InvertedColormap = false; 
@@ -94,7 +94,7 @@ if any(dash)
 end
 
 % Standardize all colormap names to lowercase: 
-ColormapName = lower(ColormapName); 
+% ColormapName = lower(ColormapName); 
 
 % Oleron's too hard for me to remember, so I'm gonna use dem or topo. 
 if ismember(ColormapName,{'dem','topo'})
@@ -124,14 +124,14 @@ end
 %% Load RGB values and interpolate to NLevels: 
 
 try
-   S = load('CrameriColourMaps7.0.mat',ColormapName); 
+   S = load('CrameriColourMaps.mat',ColormapName); 
    cmap = S.(ColormapName); 
 catch
    error(['Unknown colormap name ''',ColormapName,'''. Try typing crameri with no inputs to check the options and try again.'])
 end
 
 % Interpolate if necessary: 
-if NLevels~=size(cmap,1) 
+if ~isnan(NLevels) && NLevels~=size(cmap,1) 
    cmap = interp1(1:size(cmap,1), cmap, linspace(1,size(cmap,1),NLevels),'linear');
 end
 

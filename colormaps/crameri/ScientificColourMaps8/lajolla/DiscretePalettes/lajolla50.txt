@@ -1,0 +1,52 @@
+Scientific Colour Map Categorical Palette
+lajolla 50 Swatches
+ 25  25   0	lajolla-1 #191900
+ 30  27   2	lajolla-6 #1E1B02
+ 34  28   5	lajolla-11 #221C05
+ 39  30   8	lajolla-17 #271E08
+ 44  32  11	lajolla-22 #2C200B
+ 49  34  14	lajolla-27 #31220E
+ 54  36  17	lajolla-32 #362411
+ 60  38  20	lajolla-37 #3C2614
+ 68  40  23	lajolla-43 #442817
+ 75  43  27	lajolla-48 #4B2B1B
+ 83  45  31	lajolla-53 #532D1F
+ 91  48  35	lajolla-58 #5B3023
+ 99  51  40	lajolla-63 #633328
+110  54  45	lajolla-69 #6E362D
+120  57  50	lajolla-74 #783932
+129  60  55	lajolla-79 #813C37
+139  63  59	lajolla-84 #8B3F3B
+150  66  63	lajolla-89 #96423F
+162  69  67	lajolla-95 #A24543
+173  71  70	lajolla-100 #AD4746
+183  74  72	lajolla-105 #B74A48
+192  77  73	lajolla-110 #C04D49
+201  81  75	lajolla-115 #C9514B
+209  86  76	lajolla-121 #D1564C
+215  92  77	lajolla-126 #D75C4D
+219  99  78	lajolla-131 #DB634E
+221 105  79	lajolla-136 #DD694F
+224 113  79	lajolla-142 #E0714F
+225 119  80	lajolla-147 #E17750
+227 125  80	lajolla-152 #E37D50
+228 131  81	lajolla-157 #E48351
+229 137  81	lajolla-162 #E58951
+231 144  82	lajolla-168 #E79052
+232 150  82	lajolla-173 #E89652
+233 156  82	lajolla-178 #E99C52
+234 162  83	lajolla-183 #EAA253
+235 168  83	lajolla-188 #EBA853
+237 175  84	lajolla-194 #EDAF54
+238 181  85	lajolla-199 #EEB555
+240 188  87	lajolla-204 #F0BC57
+241 194  90	lajolla-209 #F1C25A
+243 202  95	lajolla-214 #F3CA5F
+245 211 105	lajolla-220 #F5D369
+247 218 116	lajolla-225 #F7DA74
+249 226 130	lajolla-230 #F9E282
+251 232 144	lajolla-235 #FBE890
+252 239 159	lajolla-240 #FCEF9F
+253 245 176	lajolla-246 #FDF5B0
+254 250 190	lajolla-251 #FEFABE
+255 254 203	lajolla-256 #FFFECB

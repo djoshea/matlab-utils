@@ -1,0 +1,27 @@
+Scientific Colour Map Categorical Palette
+glasgow 25 Swatches
+ 54  19  56	glasgow-1 #361338
+ 64  22  47	glasgow-12 #40162F
+ 73  24  40	glasgow-22 #491828
+ 82  27  32	glasgow-33 #521B20
+ 92  30  24	glasgow-44 #5C1E18
+103  35  15	glasgow-54 #67230F
+112  45   6	glasgow-65 #702D06
+116  57   1	glasgow-75 #743901
+116  69   0	glasgow-86 #744500
+116  81   1	glasgow-97 #745101
+115  91   7	glasgow-107 #735B07
+112 102  24	glasgow-118 #706618
+109 112  45	glasgow-129 #6D702D
+106 121  64	glasgow-139 #6A7940
+102 129  85	glasgow-150 #668155
+ 99 137 104	glasgow-160 #638968
+ 96 146 125	glasgow-171 #60927D
+ 97 154 146	glasgow-182 #619A92
+105 163 165	glasgow-192 #69A3A5
+123 172 183	glasgow-203 #7BACB7
+142 180 198	glasgow-214 #8EB4C6
+160 187 211	glasgow-224 #A0BBD3
+178 195 225	glasgow-235 #B2C3E1
+196 202 238	glasgow-245 #C4CAEE
+219 211 255	glasgow-256 #DBD3FF

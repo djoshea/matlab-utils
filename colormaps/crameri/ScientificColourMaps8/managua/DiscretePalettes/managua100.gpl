@@ -1,0 +1,104 @@
+GIMP Palette
+Name: managua 100 Swatches
+Columns: 1
+#
+255 207 103	managua-1 #FFCF67
+251 201 101	managua-4 #FBC965
+249 197 100	managua-6 #F9C564
+245 191  98	managua-9 #F5BF62
+243 187  96	managua-11 #F3BB60
+239 181  94	managua-14 #EFB55E
+236 177  93	managua-16 #ECB15D
+233 172  91	managua-19 #E9AC5B
+229 166  89	managua-22 #E5A659
+227 163  88	managua-24 #E3A358
+223 157  86	managua-27 #DF9D56
+221 154  85	managua-29 #DD9A55
+217 149  84	managua-32 #D99554
+215 145  82	managua-34 #D79152
+211 140  81	managua-37 #D38C51
+207 135  79	managua-40 #CF874F
+205 132  78	managua-42 #CD844E
+201 127  76	managua-45 #C97F4C
+199 124  75	managua-47 #C77C4B
+195 119  74	managua-50 #C3774A
+192 115  72	managua-53 #C07348
+189 112  71	managua-55 #BD7047
+185 108  70	managua-58 #B96C46
+183 105  69	managua-60 #B76945
+179 100  68	managua-63 #B36444
+177  98  67	managua-65 #B16243
+173  94  66	managua-68 #AD5E42
+168  89  64	managua-71 #A85940
+166  87  63	managua-73 #A6573F
+161  83  62	managua-76 #A1533E
+158  80  62	managua-78 #9E503E
+154  76  61	managua-81 #9A4C3D
+151  73  60	managua-83 #97493C
+146  70  59	managua-86 #92463B
+142  66  58	managua-89 #8E423A
+138  63  58	managua-91 #8A3F3A
+134  60  57	managua-94 #863C39
+130  58  57	managua-96 #823A39
+126  55  57	managua-99 #7E3739
+122  53  57	managua-101 #7A3539
+118  50  57	managua-104 #763239
+113  47  58	managua-107 #712F3A
+110  46  58	managua-109 #6E2E3A
+106  44  59	managua-112 #6A2C3B
+103  43  60	managua-114 #672B3C
+ 99  42  62	managua-117 #632A3E
+ 97  41  63	managua-119 #61293F
+ 94  41  66	managua-122 #5E2942
+ 91  40  68	managua-125 #5B2844
+ 89  41  71	managua-127 #592947
+ 86  41  74	managua-130 #56294A
+ 84  42  77	managua-132 #542A4D
+ 82  43  81	managua-135 #522B51
+ 81  45  86	managua-138 #512D56
+ 80  47  89	managua-140 #502F59
+ 78  49  94	managua-143 #4E315E
+ 78  51  98	managua-145 #4E3362
+ 77  54 104	managua-148 #4D3668
+ 76  57 107	managua-150 #4C396B
+ 76  60 113	managua-153 #4C3C71
+ 76  64 119	managua-156 #4C4077
+ 76  67 123	managua-158 #4C437B
+ 76  71 129	managua-161 #4C4781
+ 76  74 133	managua-163 #4C4A85
+ 77  78 138	managua-166 #4D4E8A
+ 77  81 142	managua-168 #4D518E
+ 78  85 147	managua-171 #4E5593
+ 79  90 152	managua-174 #4F5A98
+ 80  93 156	managua-176 #505D9C
+ 81  97 161	managua-179 #5161A1
+ 82 100 164	managua-181 #5264A4
+ 83 105 168	managua-184 #5369A8
+ 84 108 171	managua-186 #546CAB
+ 86 113 175	managua-189 #5671AF
+ 87 117 179	managua-192 #5775B3
+ 88 120 182	managua-194 #5878B6
+ 90 125 186	managua-197 #5A7DBA
+ 91 128 188	managua-199 #5B80BC
+ 93 133 192	managua-202 #5D85C0
+ 94 136 194	managua-204 #5E88C2
+ 96 141 198	managua-207 #608DC6
+ 98 146 201	managua-210 #6292C9
+ 99 149 204	managua-212 #6395CC
+101 154 207	managua-215 #659ACF
+102 158 210	managua-217 #669ED2
+104 163 213	managua-220 #68A3D5
+106 168 217	managua-223 #6AA8D9
+107 172 219	managua-225 #6BACDB
+109 177 222	managua-228 #6DB1DE
+111 181 225	managua-230 #6FB5E1
+113 186 228	managua-233 #71BAE4
+114 190 230	managua-235 #72BEE6
+116 196 234	managua-238 #74C4EA
+118 201 237	managua-241 #76C9ED
+120 205 240	managua-243 #78CDF0
+122 211 243	managua-246 #7AD3F3
+123 215 245	managua-248 #7BD7F5
+125 221 249	managua-251 #7DDDF9
+126 225 251	managua-253 #7EE1FB
+129 231 255	managua-256 #81E7FF

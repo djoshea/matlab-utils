@@ -1,0 +1,102 @@
+Scientific Colour Map Categorical Palette
+glasgow 100 scrambled Swatches
+ 54  19  56	glasgow-1 #361338
+219 211 255	glasgow-256 #DBD3FF
+109 112  45	glasgow-129 #6D702D
+112  45   6	glasgow-65 #702D06
+105 163 165	glasgow-192 #69A3A5
+ 82  27  32	glasgow-33 #521B20
+160 187 211	glasgow-224 #A0BBD3
+116  81   1	glasgow-97 #745101
+ 99 138 106	glasgow-161 #638A6A
+132 176 190	glasgow-208 #84B0BE
+104 125  76	glasgow-145 #687D4C
+ 69  23  44	glasgow-17 #45172C
+ 97  32  19	glasgow-49 #612013
+114  98  16	glasgow-113 #726210
+187 198 231	glasgow-240 #BBC6E7
+117  64   1	glasgow-81 #754001
+ 96 150 137	glasgow-177 #609689
+112 105  30	glasgow-121 #70691E
+101 132  91	glasgow-153 #65845B
+202 204 243	glasgow-248 #CACCF3
+115  89   5	glasgow-105 #735905
+106  37  12	glasgow-57 #6A250C
+173 193 221	glasgow-232 #ADC1DD
+146 182 201	glasgow-216 #92B6C9
+118 170 178	glasgow-200 #76AAB2
+106 119  60	glasgow-137 #6A773C
+116  55   2	glasgow-73 #743702
+116  73   0	glasgow-89 #744900
+ 75  25  38	glasgow-25 #4B1926
+ 62  21  50	glasgow-9 #3E1532
+ 96 144 121	glasgow-169 #609079
+ 89  29  26	glasgow-41 #591D1A
+ 98 156 150	glasgow-184 #629C96
+ 93  30  23	glasgow-45 #5D1E17
+108 116  52	glasgow-133 #6C7434
+ 72  24  41	glasgow-21 #481829
+ 58  20  53	glasgow-5 #3A1435
+ 86  28  29	glasgow-37 #561C1D
+ 97 141 114	glasgow-165 #618D72
+ 79  26  35	glasgow-29 #4F1A23
+101 159 157	glasgow-188 #659F9D
+100 135  99	glasgow-157 #648763
+102  34  16	glasgow-53 #662210
+116  77   0	glasgow-93 #744D00
+113 102  23	glasgow-117 #716617
+114  50   3	glasgow-69 #723203
+153 185 206	glasgow-220 #99B9CE
+105 122  68	glasgow-141 #697A44
+ 65  22  47	glasgow-13 #41162F
+139 179 195	glasgow-212 #8BB3C3
+194 201 237	glasgow-244 #C2C9ED
+116  59   1	glasgow-77 #743B01
+166 190 216	glasgow-228 #A6BED8
+116  85   3	glasgow-101 #745503
+109  41   9	glasgow-61 #6D2909
+ 96 147 129	glasgow-173 #609381
+210 208 249	glasgow-252 #D2D0F9
+125 173 184	glasgow-204 #7DADB8
+110 109  37	glasgow-125 #6E6D25
+111 166 171	glasgow-196 #6FA6AB
+114  94  10	glasgow-109 #725E0A
+180 195 226	glasgow-236 #B4C3E2
+102 129  83	glasgow-149 #668153
+117  68   0	glasgow-85 #754400
+ 96 153 142	glasgow-180 #60998E
+116  83   2	glasgow-99 #745302
+ 80  26  33	glasgow-31 #501A21
+ 97 142 118	glasgow-167 #618E76
+110 111  41	glasgow-127 #6E6F29
+ 67  22  45	glasgow-15 #43162D
+106 121  64	glasgow-139 #6A7940
+116  62   1	glasgow-79 #743E01
+156 186 209	glasgow-222 #9CBAD1
+ 56  19  55	glasgow-3 #381337
+104  36  14	glasgow-55 #68240E
+170 191 219	glasgow-230 #AABFDB
+111  43   7	glasgow-63 #6F2B07
+116  75   0	glasgow-91 #744B00
+115  87   4	glasgow-103 #735704
+135 177 193	glasgow-210 #87B1C1
+101 133  95	glasgow-155 #65855F
+142 180 198	glasgow-214 #8EB4C6
+ 74  24  39	glasgow-23 #4A1827
+ 99  33  18	glasgow-51 #632112
+ 96 146 125	glasgow-171 #60927D
+ 70  23  42	glasgow-19 #46172A
+114 168 175	glasgow-198 #72A8AF
+ 99 136 102	glasgow-159 #638866
+128 174 187	glasgow-206 #80AEBB
+ 95  31  21	glasgow-47 #5F1F15
+108 165 168	glasgow-194 #6CA5A8
+121 171 181	glasgow-202 #79ABB5
+183 197 229	glasgow-238 #B7C5E5
+113 100  19	glasgow-115 #716413
+108  39  11	glasgow-59 #6C270B
+116  70   0	glasgow-87 #744600
+116  79   1	glasgow-95 #744F01
+111 107  33	glasgow-123 #6F6B21
+115  91   7	glasgow-107 #735B07
+ 95 149 133	glasgow-175 #5F9585
