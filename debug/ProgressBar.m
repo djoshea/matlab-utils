@@ -300,10 +300,10 @@ classdef ProgressBar < handle
             end
 
 %             if isempty(getCurrentTask())
-                try
-                    DatabaseAnalysis.pauseOutputLog();
-                catch
-                end
+                % try
+                %     eval('DatabaseAnalysis.pauseOutputLog();'); %#ok<*EVLCS>
+                % catch
+                % end
 %             end
 
             if pbar.usingTerminal || pbar.usingNotebook
@@ -376,10 +376,10 @@ classdef ProgressBar < handle
             end
 
 %             if isempty(getCurrentTask())
-                try
-                    DatabaseAnalysis.resumeOutputLog();
-                catch
-                end
+                % try
+                %     DatabaseAnalysis.resumeOutputLog();
+                % catch
+                % end
 %             end
 
             pbar.firstUpdate = false;
@@ -398,10 +398,10 @@ classdef ProgressBar < handle
                 return;
             end
             
-            try
-                DatabaseAnalysis.pauseOutputLog();
-            catch
-            end
+            % try
+            %     DatabaseAnalysis.pauseOutputLog();
+            % catch
+            % end
             
             if pbar.usingTerminal || pbar.usingNotebook
                 spaces = repmat(' ', 1, pbar.cols-1);
@@ -422,11 +422,11 @@ classdef ProgressBar < handle
                 pbar.textprogressbar(1);
                 fprintf('\n');
             end
-            
-            try
-                DatabaseAnalysis.resumeOutputLog();
-            catch
-            end
+            % 
+            % try
+            %     DatabaseAnalysis.resumeOutputLog();
+            % catch
+            % end
             
             pbar.firstUpdate = true; % ensure the line won't be cleared on next update
         end
@@ -449,10 +449,10 @@ classdef ProgressBar < handle
                 return;
             end
 
-            try
-                DatabaseAnalysis.pauseOutputLog();
-            catch
-            end
+            % try
+            %     DatabaseAnalysis.pauseOutputLog();
+            % catch
+            % end
 
             if pbar.usingTerminal
                 spaces = repmat(' ', 1, pbar.cols-1);
@@ -489,10 +489,10 @@ classdef ProgressBar < handle
             pbar.cleanupParallel();
 
 %             if ~isempty(getCurrentTask())
-                try
-                    DatabaseAnalysis.resumeOutputLog();
-                catch
-                end
+                % try
+                %     DatabaseAnalysis.resumeOutputLog();
+                % catch
+                % end
 %             end
         end
 

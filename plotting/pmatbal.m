@@ -9,8 +9,8 @@ p.parse(varargin{:});
 cmap = p.Results.colormap;
 if isa(cmap, 'function_handle')
     cmap = cmap(256);
-elseif ischar(cmap)
-    switch cmap
+elseif isstringlike(cmap)
+    switch char(cmap)
         case 'default'
             cmap = flipud(TrialDataUtilities.Color.cbrewer('div', 'RdBu', 256));
         case 'reverse'

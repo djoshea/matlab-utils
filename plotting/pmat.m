@@ -15,6 +15,8 @@ p.parse(varargin{:});
 % cla;
 
 m = squeeze(m);
+x = p.Results.x;
+y = p.Results.y;
 
 if isvector(m)
     m = repmat(makerow(m), 2, 1);
@@ -36,15 +38,18 @@ end
 if isempty(m)
     error('Empty matrix');
 end
-% add an extra row onto m
+% % add an extra row onto m
+% function addRowCol(v)
+%     if isvector(v)
+%         if size(v, 1) == 1 % row vector
+
 addRowCol = @(v) [v, v(:, end)+diff(v(:, end-1:end), 1, 2); ...
     v(end, :) + diff(v(end-1:end, :), 1, 1), 2*v(end, end)-v(end-1, end-1)];
 
-if isempty(p.Results.x)
+if isempty(x)
     x = 0.5:size(m, 2)-0.5;
     dx = 1;
 else
-    x = p.Results.x;
     if isnan(p.Results.dx)
         dx = median(diff(x));
     else
@@ -58,11 +63,10 @@ else
         x = x - dx/2;
     end
 end
-if isempty(p.Results.y)
+if isempty(y)
     y = 0.5:size(m, 1)-0.5;
     dy = 1;
 else
-    y = p.Results.y;
     if isnan(p.Results.dy)
         dy = median(diff(y));
     else

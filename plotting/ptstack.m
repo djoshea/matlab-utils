@@ -262,7 +262,8 @@ if ~isempty(p.Results.colorDim)
     elseif ismember(colorDim, superimposeDims)
         % specifying the superimposed colormap
         szOtherSuper = TensorUtils.sizeMultiDim(x, setdiff(superimposeDims, colorDim));
-        nColor = max(szOtherSuper);
+        %nColor = max(szOtherSuper);
+        nColor = max(colorInds);
         colorInds = TensorUtils.repmatAlongDims(colorInds, setdiff(superimposeDims, colorDim), szOtherSuper);
         if isempty(colormap)
             colormap = TrialDataUtilities.Colormaps.linspecer(nColor);
