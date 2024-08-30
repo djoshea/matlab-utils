@@ -7,6 +7,8 @@ if numel(varargin) >= 4 && isnumeric(varargin{1}) && isnumeric(varargin{2}) ...
     y = varargin{2};
     z = varargin{3};
     D = varargin{4};
+
+    remainder = varargin(5:end);
     
     assert(numel(x) == size(D, 1));
     assert(numel(y) == size(D, 2));
@@ -16,15 +18,24 @@ else
     x = 1:size(D, 1);
     y = 1:size(D, 2);
     z = 1:size(D, 3);
+
+    remainder = varargin(2:end);
 end
+
+p = inputParser();
+p.addParameter("gap", 1, @isscalar);
+p.KeepUnmatched = true;
+p.parse(remainder{:});
 
 sz = size(D);
 
-D = TensorUtils.expandAlongDims(D, 1, 1);
+if p.Results.gap > 0
+    D = TensorUtils.expandAlongDims(D, 1, p.Results.gap);
+end
 
 D = TensorUtils.reshapeByConcatenatingDims(D, {[1 3] 2});
 
-pmat(D);
+pmat(D, p.Unmatched);
 
 
 
