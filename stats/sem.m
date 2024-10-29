@@ -1,7 +1,7 @@
 function se = sem(vals,dim)
     % choose dim as first non singleton dimension
     if ~exist('dim', 'var')
-        if numel(vals) == 1
+        if isscalar(vals)
             dim = 1;
         else
             sz = size(vals);
@@ -15,7 +15,7 @@ function se = sem(vals,dim)
     end
 
     n = size(vals, dim); 
-    s = std(vals, [], dim, 'omitnan');
+    s = std(vals, [], dim, 'omitmissing');
     se = s / sqrt(n);
     
     if n == 1

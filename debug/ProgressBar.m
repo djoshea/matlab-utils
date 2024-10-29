@@ -151,13 +151,18 @@ classdef ProgressBar < handle
 
         function n = updateParallel(pbar, n)
 %             id = pbar.objWorker.Value;
-            t = getCurrentTask();
+            try
+                t = getCurrentTask();
+            catch
+                t = [];
+            end
             if isempty(t)
                % not running in parallel mode
                 % n = n;
-                return;
+                id = 1;
+            else
+                id = t.ID;
             end
-            id = t.ID;
 
             fname = sprintf('%s_%d', pbar.fnamePrefix, id);
             f = fopen(fname, 'a');
