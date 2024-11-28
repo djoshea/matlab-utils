@@ -1,7 +1,7 @@
 function n = ssq(m, dim)
     if nargin < 2
-        n = nansum(m(:).^2);
+        n = sum(m.^2, "all", "omitnan");
     else
-        n = nansum(m.^2, dim);
+        n = sum(m.^2, dim, "omitnan");
     end
 end
