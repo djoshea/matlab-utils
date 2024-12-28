@@ -103,7 +103,9 @@ function hcprintf(fmatString, varargin)
     else
         % use Yair Altman's cprintf
         nSpec = numel(colorspec);
-        fprintf(content{1});
+        if ~isempty(content{1})
+            fprintf(content{1});
+        end
         for i = 1:nSpec
             fg = parseColorString(colorspec(i).fg) / 255;
             if isempty(fg)

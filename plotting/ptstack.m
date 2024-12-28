@@ -39,6 +39,7 @@ p.addParameter('pcaInput', [], @(x) isnumeric(x));
 p.addParameter('pcaDim', [],  @(x) isempty(x) || isvector(x)); % pca on superimposed dim
 p.addParameter('projCoeff', [], @(x) isempty(x) || ismatrix(x) ); % used if PCA not specified
 p.addParameter('projDim', [], @(x) isempty(x) || isvector(x));
+p.addParameter('pcaFlip', false, @islogical);
 p.addParameter('projectErrorInQudrature', false, @islogical);
 p.addParameter('colorDim', [], @(x) true);
 p.addParameter('colormap', [], @(x) true); % applied along colorDim
@@ -143,6 +144,10 @@ if p.Results.pca
         % we'll do pca below
         coeff = TensorUtils.pcaAlongDim(pcaInput, pcaDim, 'NumComponents', pcaK);
         projDim = pcaDim;
+    end
+    
+    if p.Results.pcaFlip
+        coeff = -coeff;
     end
 end
 
