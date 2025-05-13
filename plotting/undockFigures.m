@@ -3,4 +3,4 @@ function undockFigures()
     set(0, 'DefaultFigureWindowStyle', 'normal');
     figs = findobj('Type', 'figure');
     set(figs, 'WindowStyle', 'normal');
-end
+    enddoc

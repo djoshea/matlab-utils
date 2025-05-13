@@ -47,7 +47,7 @@ for i = 1:N
     else
         args = {};
     end
-    h(i) = xline(vals(i), linespec, labels(i), args{:}, extraArgs{:});
+    h(i) = xline(double(vals(i)), linespec, labels(i), args{:}, extraArgs{:});
     hold on;
 end
 
