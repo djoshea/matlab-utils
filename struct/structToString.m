@@ -18,6 +18,8 @@ function str = structToString(s, separator)
     function str = convertToString(v)
         if ischar(v)
             str = v;
+        elseif isstring(v)
+            str = char(v);
         elseif isempty(v)
             str = '[]';
         elseif isnumeric(v) || islogical(v)

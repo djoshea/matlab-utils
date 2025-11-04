@@ -263,6 +263,9 @@ if ~isempty(p.Results.colorDim)
         % specifying the stacking colormap
         szOtherStack = TensorUtils.sizeMultiDim(x, setdiff(stackDims, colorDim));
         colorInds = TensorUtils.repmatAlongDims(colorInds, setdiff(stackDims, colorDim), szOtherStack);
+        if isa(colormap, 'function_handle')
+            colormap = colormap(max(colorInds));
+        end
         colorArgs = {'colormapStacked', colormap(colorInds(:), :)};
     elseif ismember(colorDim, superimposeDims)
         % specifying the superimposed colormap
@@ -282,6 +285,8 @@ if ~isempty(p.Results.colorDim)
     else
         szSuper = TensorUtils.sizeMultiDim(x, superimposeDims);
         colorInds = TensorUtils.repmatAlongDims(colorInds, superimposeDims, szSuper);
+        % colors = TrialDataUtilities.Color.evalColorMapAt(colormap, colorInds);
+        % colorArgs = {'colormap', colors};
         colorArgs = {'colormap', colormap(colorInds(:), :)};
     end
 else
