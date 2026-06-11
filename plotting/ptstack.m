@@ -30,7 +30,7 @@ p = inputParser();
 %p.addParameter('colormap', TrialDataUtilities.Color.hslmap(nSuperimpose, 'fracHueSpan', 0.9), @(x) ~ischar(x) && ismatrix(x));
 p.addParameter('data_ci', [], @(x) true);
 p.addParameter('ci_dim', ndims(x) + 1, @isscalar);
-p.addParameter('data_se', [], @(x) true); % used if data_ci is empty
+p.addParameter('data_se', [], @(x) true); % used if data_ci is emptyStim
 p.addParameter('namesAlongDims', {}, @iscell);
 p.addParameter('labelsSuperimposed', {}, @isstringlike);
 p.addParameter('labelsStacked', {}, @isstringlike);
@@ -40,7 +40,7 @@ p.addParameter('pcaDim', [],  @(x) isempty(x) || isvector(x)); % pca on superimp
 p.addParameter('projCoeff', [], @(x) isempty(x) || ismatrix(x) ); % used if PCA not specified
 p.addParameter('projDim', [], @(x) isempty(x) || isvector(x));
 p.addParameter('pcaFlip', false, @islogical);
-p.addParameter('projectErrorInQudrature', false, @islogical);
+p.addParameter('projectErrorInQuadrature', false, @islogical);
 p.addParameter('colorDim', [], @(x) true);
 p.addParameter('colormap', [], @(x) true); % applied along colorDim
 
@@ -69,7 +69,7 @@ superimposeDims = TensorUtils.otherDims(size(x), [timeDim; stackDims]);
 % if nSuperimpose > 50
 %     error('Refusing to superimpose more than 50 traces');
 % end
-projectErrorInQudrature = p.Results.projectErrorInQudrature;
+projectErrorInQuadrature = p.Results.projectErrorInQuadrature;
 x_ci = p.Results.data_ci;
 has_ci = ~isempty(x_ci);
 ci_dim = p.Results.ci_dim;
@@ -80,7 +80,7 @@ elseif ~isempty(p.Results.data_se)
     x_se = p.Results.data_se;
     x_ci = cat(ci_dim, x - x_se, x + x_se);
     has_ci = true;
-    projectErrorInQudrature = true;
+    projectErrorInQuadrature = true;
 else
     ci_dim = [];
 end
@@ -128,7 +128,7 @@ if p.Results.pca
         if has_ci
             xr_ci = TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
         
-            if ~projectErrorInQudrature
+            if ~projectErrorInQuadrature
                 % simply subtract off the mean and project
                 xr_ci = TensorUtils.linearCombinationAlongDimension(xr_ci - mean_xr, pcaDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
             else
@@ -175,7 +175,7 @@ if ~isempty(coeff)
         if has_ci
             xr_ci = TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
         
-            if ~projectErrorInQudrature
+            if ~projectErrorInQuadrature
                 % simply subtract off the mean and project
                 xr_ci = TensorUtils.linearCombinationAlongDimension(xr_ci - mean_xr, projDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
             else
@@ -194,7 +194,7 @@ if ~isempty(coeff)
         xr = TensorUtils.reshapeByConcatenatingDims(x, {timeDim, stackDims, superimposeDims, ci_dim});
 
         if has_ci
-            if ~projectErrorInQudrature
+            if ~projectErrorInQuadrature
                 x_ci = TensorUtils.linearCombinationAlongDimension(x_ci - mean_x, projDim, coeff', 'replaceNaNWithZero', true, 'keepNaNIfAllNaNs', true);
                 xr_ci =  TensorUtils.reshapeByConcatenatingDims(x_ci, {timeDim, stackDims, superimposeDims, ci_dim});
             else
@@ -287,9 +287,15 @@ if ~isempty(p.Results.colorDim)
         colorInds = TensorUtils.repmatAlongDims(colorInds, superimposeDims, szSuper);
         % colors = TrialDataUtilities.Color.evalColorMapAt(colormap, colorInds);
         % colorArgs = {'colormap', colors};
+        if isa(colormap, 'function_handle')
+            colormap = colormap(max(colorInds(:), [], 'omitmissing'));
+        end
         colorArgs = {'colormap', colormap(colorInds(:), :)};
     end
 else
+    if ~isempty(p.Results.coloreval) || ~isempty(p.Results.colorIdx)
+        error("Specify colorDim to use coloreval or coloridx mode");
+    end
     colorArgs = {'colormap', p.Results.colormap};
 end
 

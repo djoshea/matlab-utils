@@ -19,7 +19,7 @@ function code(varargin)
 %   "Shell Command: Install 'code' command in PATH"
 
     arguments (Repeating)
-        varargin {mustBeTextScalar}
+        varargin
     end
 
     if isempty(varargin)
@@ -60,10 +60,22 @@ end
 function absPath = resolveFile(name)
     % Resolve file name to absolute path, searching MATLAB path if needed
     %
-    % Strategy:
+    % Strategy:cod
+    %   0. If name is a class instance, resolve the source file of class(name)
     %   1. Check if file exists as-is (absolute or relative path)
     %   2. Try adding .m extension if not present
     %   3. Search MATLAB path using which()
+
+    % Try 0: If name is a class instance (not text), use its class source file
+    if ~(ischar(name) || isstring(name))
+        className = class(name);
+        pathResult = which(className);
+        if ~isempty(pathResult)
+            absPath = pathResult;
+            return;
+        end
+        error('code:ClassFileNotFound', 'Source file not found for class: %s', className);
+    end
 
     % Try 1: File exists as-is
     if isfile(name)

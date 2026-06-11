@@ -16,7 +16,7 @@ function niceGrid(ax)
     grid(ax, 'on');
     
     figh = getParentFigure(ax);
-    figh.InvertHardcopy = 'off';
+    % figh.InvertHardcopy = 'off';
     
     box(ax, 'off');
 

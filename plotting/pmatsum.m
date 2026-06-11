@@ -13,7 +13,10 @@ if ndims(m) > 2 %#ok<ISMAT>
     else
         sarg = "includemissing";
     end
+    mask = all(isnan(m), 3:ndims(m));
     m = sum(m, 3:ndims(m), sarg);
+    m(mask) = NaN;
+    
 end
 
 [h, hcbar] = pmat(m, p.Unmatched);
