@@ -10,7 +10,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     /* Variable Declarations */
     
     double *s, *y, *g, *H, *d, *ro, *alpha, *beta, *q, *r;
-    int nVars,nSteps,lhs_dims[2];
+    /* lhs_dims must be mwSize, not int: mxCreateNumericArray reads it as const mwSize*,
+       which is 64-bit under -largeArrayDims (the default since R2018a). */
+    mwSize lhs_dims[2];
+    int nVars,nSteps;
     double temp;
     int i,j;
     

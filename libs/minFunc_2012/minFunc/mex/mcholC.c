@@ -59,7 +59,11 @@ void permuteCols(double *x, int p, int q,int n)
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    int n,sizL[2],sizD[2],i,j,q,s,
+    /* Dimension arrays must be mwSize, not int: mxCreateNumericArray reads them as
+       const mwSize*, which is 64-bit under -largeArrayDims (the default since R2018a).
+       Passing an int[2] makes it read 16 bytes out of an 8-byte array. */
+    mwSize sizL[2],sizD[2];
+    int n,i,j,q,s,
     *P;
     
     double mu,gamma,xi,delta,beta,maxVal,theta,
